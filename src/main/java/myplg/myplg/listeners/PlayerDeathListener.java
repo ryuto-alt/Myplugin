@@ -68,22 +68,7 @@ public class PlayerDeathListener implements Listener {
         UUID playerUUID = player.getUniqueId();
         String teamName = plugin.getGameManager().getPlayerTeam(playerUUID);
 
-        // Clear inventory drops
-        player.getInventory().clear();
-
-        // Check if bed is alive
-        boolean bedAlive = plugin.getScoreboardManager().isBedAlive(teamName);
-
-        if (!bedAlive) {
-            // Player is eliminated
-            eliminatedPlayers.add(playerUUID);
-            player.setGameMode(GameMode.SPECTATOR);
-            player.sendTitle("§c§l死んでしまった！", "§cあなたは脱落しました", 10, 70, 20);
-            processingDeath.remove(playerUUID);
-            return;
-        }
-
-        // Save all armor (leather, iron, diamond, netherite)
+        // Save all armor BEFORE clearing inventory (leather, iron, diamond, netherite)
         ItemStack[] armor = player.getInventory().getArmorContents();
         ItemStack[] savedArmorArray = new ItemStack[4];
         for (int i = 0; i < armor.length; i++) {
@@ -92,6 +77,19 @@ public class PlayerDeathListener implements Listener {
             }
         }
         savedArmor.put(playerUUID, savedArmorArray);
+
+        // Check if bed is alive
+        boolean bedAlive = plugin.getScoreboardManager().isBedAlive(teamName);
+
+        if (!bedAlive) {
+            // Player is eliminated
+            eliminatedPlayers.add(playerUUID);
+            player.getInventory().clear();
+            player.setGameMode(GameMode.SPECTATOR);
+            player.sendTitle("§c§l死んでしまった！", "§cあなたは脱落しました", 10, 70, 20);
+            processingDeath.remove(playerUUID);
+            return;
+        }
 
         // Find and save axe/pickaxe (downgrade level)
         ItemStack currentAxe = null;
@@ -136,6 +134,9 @@ public class PlayerDeathListener implements Listener {
                 }
             }
         }
+
+        // Clear inventory after saving everything
+        player.getInventory().clear();
 
         // Show "死んでしまった！" title to the player
         player.sendTitle("§c§l死んでしまった！", "§e5秒後にリスポーンします...", 10, 70, 20);
