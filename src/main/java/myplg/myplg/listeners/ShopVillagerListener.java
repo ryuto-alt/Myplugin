@@ -4,6 +4,7 @@ import myplg.myplg.PvPGame;
 import myplg.myplg.gui.ShopConfigGUI;
 import myplg.myplg.gui.ShopGUI;
 import myplg.myplg.gui.ShopTeamSelectGUI;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -66,6 +67,12 @@ public class ShopVillagerListener implements Listener {
                                     villager.setAI(false);
                                     villager.setInvulnerable(true);
                                     villager.setSilent(true);
+
+                                    // Set villager to face south (yaw = 0)
+                                    Location loc = villager.getLocation();
+                                    loc.setYaw(0f);  // 0 = South, 90 = West, 180 = North, -90 = East
+                                    loc.setPitch(0f); // Look straight ahead
+                                    villager.teleport(loc);
 
                                     // Store temporary shop type (team not set yet)
                                     villager.getPersistentDataContainer().set(shopTypeKey, PersistentDataType.STRING, "shop1");
