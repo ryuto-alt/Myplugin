@@ -83,6 +83,7 @@ public class ManagementGUI {
     }
 
     public void openGeneratorTeamSelection(Player player) {
+        plugin.getLogger().info("Opening generator team selection");
         Inventory gui = Bukkit.createInventory(null, 54, Component.text("チーム選択 - ジェネレーター管理", NamedTextColor.DARK_BLUE, TextDecoration.BOLD));
 
         // Add "共通" team first
@@ -102,6 +103,7 @@ public class ManagementGUI {
         commonMeta.lore(commonLore);
         commonTeam.setItemMeta(commonMeta);
         gui.setItem(0, commonTeam);
+        plugin.getLogger().info("Added 共通 team to slot 0");
 
         int slot = 1;
         for (Team team : plugin.getGameManager().getTeams().values()) {
@@ -128,8 +130,10 @@ public class ManagementGUI {
 
             teamItem.setItemMeta(meta);
             gui.setItem(slot, teamItem);
+            plugin.getLogger().info("Added team " + team.getName() + " to slot " + slot);
             slot++;
         }
+        plugin.getLogger().info("Total teams added: " + (slot - 1));
 
         // Back button
         ItemStack backButton = new ItemStack(Material.ARROW);
