@@ -154,11 +154,11 @@ public class GUIClickListener implements Listener {
             if (clickedItem.getType() == Material.WHITE_BED) {
                 managementGUI.openTeamList(player);
             } else if (clickedItem.getType() == Material.DROPPER) {
-                managementGUI.openGeneratorList(player);
+                managementGUI.openGeneratorTeamSelection(player);
             }
         }
-        // Generator settings menu
-        else if (title.equals("ジェネレーター設定")) {
+        // Team selection for generator management
+        else if (title.equals("チーム選択 - ジェネレーター管理")) {
             event.setCancelled(true);
 
             ItemStack clickedItem = event.getCurrentItem();
@@ -172,13 +172,46 @@ public class GUIClickListener implements Listener {
                 return;
             }
 
+            if (clickedItem.getType() == Material.NETHER_STAR) {
+                // 共通 team selected
+                managementGUI.openGeneratorListByTeam(player, "共通");
+            } else if (clickedItem.getType() == Material.WHITE_BANNER) {
+                // Regular team selected
+                String teamName = PlainTextComponentSerializer.plainText().serialize(clickedItem.getItemMeta().displayName());
+                managementGUI.openGeneratorListByTeam(player, teamName);
+            }
+        }
+        // Generator list by team
+        else if (title.contains(" - ジェネレーター")) {
+            event.setCancelled(true);
+
+            ItemStack clickedItem = event.getCurrentItem();
+            if (clickedItem == null || clickedItem.getType() == Material.AIR) {
+                return;
+            }
+
+            if (clickedItem.getType() == Material.ARROW) {
+                // Back button
+                managementGUI.openGeneratorTeamSelection(player);
+                return;
+            }
+
+            if (clickedItem.getType() == Material.PAPER) {
+                return; // Info item, do nothing
+            }
+
+            // Extract team name from title
+            String teamName = title.split(" - ")[0];
+
             // Find the generator by material type and slot
             int slot = event.getSlot();
             int currentSlot = 0;
 
             for (Generator generator : plugin.getGeneratorManager().getGenerators().values()) {
+                if (!generator.getTeamName().equals(teamName)) continue;
+
                 if (currentSlot == slot && generator.getMaterial() == clickedItem.getType()) {
-                    handleGeneratorClick(player, generator, event.getClick());
+                    handleGeneratorClick(player, generator, event.getClick(), teamName);
                     return;
                 }
                 currentSlot++;
@@ -240,7 +273,7 @@ public class GUIClickListener implements Listener {
         });
     }
 
-    private void handleGeneratorClick(Player player, Generator generator, ClickType clickType) {
+    private void handleGeneratorClick(Player player, Generator generator, ClickType clickType, String teamName) {
         if (clickType == ClickType.LEFT) {
             // Decrease interval by 0.5 seconds (10 ticks)
             int newInterval = Math.max(10, generator.getSpawnInterval() - 10);
@@ -257,8 +290,8 @@ public class GUIClickListener implements Listener {
             player.sendMessage(Component.text("ジェネレーターを削除しました。", NamedTextColor.RED));
         }
 
-        // Refresh GUI
-        managementGUI.openGeneratorList(player);
+        // Refresh GUI with the same team
+        managementGUI.openGeneratorListByTeam(player, teamName);
     }
 
     public boolean hasGeneratorSelection(UUID playerUUID) {

@@ -106,8 +106,8 @@ public class GeneratorManager {
             spawnLocation.getZ()
         );
 
-        // Drop the item (ingot, diamond, or emerald)
-        dropLocation.getWorld().dropItemNaturally(dropLocation, new ItemStack(generator.getMaterial(), 1));
+        // Drop the item without random velocity (no bouncing)
+        dropLocation.getWorld().dropItem(dropLocation, new ItemStack(generator.getMaterial(), 1));
 
         plugin.getLogger().info("Spawned " + generator.getMaterial().name() + " at " +
             String.format("(%.1f, %.1f, %.1f) for generator " + generator.getId(),

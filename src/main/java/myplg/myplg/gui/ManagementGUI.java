@@ -82,11 +82,71 @@ public class ManagementGUI {
         player.openInventory(gui);
     }
 
-    public void openGeneratorList(Player player) {
-        Inventory gui = Bukkit.createInventory(null, 54, Component.text("ジェネレーター設定", NamedTextColor.DARK_BLUE, TextDecoration.BOLD));
+    public void openGeneratorTeamSelection(Player player) {
+        Inventory gui = Bukkit.createInventory(null, 54, Component.text("チーム選択 - ジェネレーター管理", NamedTextColor.DARK_BLUE, TextDecoration.BOLD));
+
+        // Add "共通" team first
+        ItemStack commonTeam = new ItemStack(Material.NETHER_STAR);
+        ItemMeta commonMeta = commonTeam.getItemMeta();
+        commonMeta.displayName(Component.text("共通", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD));
+        List<Component> commonLore = new ArrayList<>();
+
+        int commonCount = 0;
+        for (Generator gen : plugin.getGeneratorManager().getGenerators().values()) {
+            if (gen.getTeamName().equals("共通")) commonCount++;
+        }
+
+        commonLore.add(Component.text("ジェネレーター数: " + commonCount, NamedTextColor.GRAY));
+        commonLore.add(Component.text(""));
+        commonLore.add(Component.text("クリックで詳細を表示", NamedTextColor.GREEN));
+        commonMeta.lore(commonLore);
+        commonTeam.setItemMeta(commonMeta);
+        gui.setItem(0, commonTeam);
+
+        int slot = 1;
+        for (Team team : plugin.getGameManager().getTeams().values()) {
+            if (slot >= 45) break;
+
+            ItemStack teamItem = new ItemStack(Material.WHITE_BANNER);
+            ItemMeta meta = teamItem.getItemMeta();
+            meta.displayName(Component.text(team.getName(), NamedTextColor.YELLOW, TextDecoration.BOLD));
+
+            List<Component> lore = new ArrayList<>();
+
+            // Count generators for this team
+            int generatorCount = 0;
+            for (Generator generator : plugin.getGeneratorManager().getGenerators().values()) {
+                if (generator.getTeamName().equals(team.getName())) {
+                    generatorCount++;
+                }
+            }
+
+            lore.add(Component.text("ジェネレーター数: " + generatorCount, NamedTextColor.GRAY));
+            lore.add(Component.text(""));
+            lore.add(Component.text("クリックで詳細を表示", NamedTextColor.GREEN));
+            meta.lore(lore);
+
+            teamItem.setItemMeta(meta);
+            gui.setItem(slot, teamItem);
+            slot++;
+        }
+
+        // Back button
+        ItemStack backButton = new ItemStack(Material.ARROW);
+        ItemMeta backMeta = backButton.getItemMeta();
+        backMeta.displayName(Component.text("戻る", NamedTextColor.RED, TextDecoration.BOLD));
+        backButton.setItemMeta(backMeta);
+        gui.setItem(49, backButton);
+
+        player.openInventory(gui);
+    }
+
+    public void openGeneratorListByTeam(Player player, String teamName) {
+        Inventory gui = Bukkit.createInventory(null, 54, Component.text(teamName + " - ジェネレーター", NamedTextColor.DARK_BLUE, TextDecoration.BOLD));
 
         int slot = 0;
         for (Generator generator : plugin.getGeneratorManager().getGenerators().values()) {
+            if (!generator.getTeamName().equals(teamName)) continue;
             if (slot >= 45) break;
 
             ItemStack generatorItem = new ItemStack(generator.getMaterial());
@@ -95,7 +155,6 @@ public class ManagementGUI {
                     NamedTextColor.YELLOW, TextDecoration.BOLD));
 
             List<Component> lore = new ArrayList<>();
-            lore.add(Component.text("チーム: " + generator.getTeamName(), NamedTextColor.AQUA));
             lore.add(Component.text("出現間隔: " + (generator.getSpawnInterval() / 20.0) + "秒", NamedTextColor.GRAY));
             lore.add(Component.text(""));
             lore.add(Component.text("左クリック: 間隔を0.5秒短縮", NamedTextColor.GREEN));
@@ -108,7 +167,7 @@ public class ManagementGUI {
             slot++;
         }
 
-        if (plugin.getGeneratorManager().getGenerators().isEmpty()) {
+        if (slot == 0) {
             ItemStack infoItem = new ItemStack(Material.PAPER);
             ItemMeta infoMeta = infoItem.getItemMeta();
             infoMeta.displayName(Component.text("ジェネレーターがありません", NamedTextColor.GRAY));
