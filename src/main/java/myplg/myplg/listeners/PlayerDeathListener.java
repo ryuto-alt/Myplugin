@@ -83,11 +83,11 @@ public class PlayerDeathListener implements Listener {
             return;
         }
 
-        // Save armor (iron, diamond, netherite)
+        // Save all armor (leather, iron, diamond, netherite)
         ItemStack[] armor = player.getInventory().getArmorContents();
         ItemStack[] savedArmorArray = new ItemStack[4];
         for (int i = 0; i < armor.length; i++) {
-            if (armor[i] != null && isUpgradedArmor(armor[i].getType())) {
+            if (armor[i] != null && isArmor(armor[i].getType())) {
                 savedArmorArray[i] = armor[i].clone();
             }
         }
@@ -172,7 +172,7 @@ public class PlayerDeathListener implements Listener {
         // Give wooden sword
         player.getInventory().addItem(new ItemStack(Material.WOODEN_SWORD));
 
-        // Restore saved armor or give leather armor
+        // Restore all saved armor (including leather armor)
         ItemStack[] savedArmorArray = savedArmor.get(playerUUID);
         if (savedArmorArray != null) {
             for (int i = 0; i < savedArmorArray.length; i++) {
@@ -187,9 +187,6 @@ public class PlayerDeathListener implements Listener {
             }
             savedArmor.remove(playerUUID);
         }
-
-        // Give team-colored leather armor for empty slots
-        giveLeatherArmorForEmptySlots(player, teamName);
 
         // Restore tools
         if (savedAxe.containsKey(playerUUID)) {
@@ -243,6 +240,12 @@ public class PlayerDeathListener implements Listener {
             case "グレー": return org.bukkit.Color.GRAY;
             default: return org.bukkit.Color.WHITE;
         }
+    }
+
+    private boolean isArmor(Material material) {
+        String name = material.toString();
+        return name.endsWith("_HELMET") || name.endsWith("_CHESTPLATE") ||
+               name.endsWith("_LEGGINGS") || name.endsWith("_BOOTS");
     }
 
     private boolean isUpgradedArmor(Material material) {
