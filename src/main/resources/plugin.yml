@@ -1,0 +1,4 @@
+name: myplg
+version: '${version}'
+main: myplg.myplg.Myplg
+api-version: '1.21'
