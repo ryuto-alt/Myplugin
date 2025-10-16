@@ -52,8 +52,14 @@ public class GeneratorManager {
     }
 
     public void startAllGenerators() {
-        plugin.getLogger().info("Starting all generators...");
+        plugin.getLogger().info("Starting all generators... Total: " + generators.size());
+        if (generators.isEmpty()) {
+            plugin.getLogger().warning("No generators found! Use /gene to create generators.");
+        }
         for (Generator generator : generators.values()) {
+            plugin.getLogger().info("Starting generator: " + generator.getId() +
+                " (Material: " + generator.getMaterial().name() +
+                ", Interval: " + generator.getSpawnInterval() + " ticks)");
             startGenerator(generator);
         }
     }
@@ -93,18 +99,19 @@ public class GeneratorManager {
         int highestY = spawnLocation.getWorld().getHighestBlockYAt(spawnLocation);
 
         // Spawn the item 1 block above the highest block
-        Location groundLocation = new Location(
+        Location dropLocation = new Location(
             spawnLocation.getWorld(),
             spawnLocation.getX(),
             highestY + 1,
             spawnLocation.getZ()
         );
 
-        // Drop the item
-        groundLocation.getWorld().dropItemNaturally(groundLocation, new ItemStack(generator.getMaterial(), 1));
+        // Drop the item (ingot, diamond, or emerald)
+        dropLocation.getWorld().dropItemNaturally(dropLocation, new ItemStack(generator.getMaterial(), 1));
 
-        plugin.getLogger().fine("Spawned " + generator.getMaterial().name() + " at " +
-            String.format("(%.1f, %.1f, %.1f)", groundLocation.getX(), groundLocation.getY(), groundLocation.getZ()));
+        plugin.getLogger().info("Spawned " + generator.getMaterial().name() + " at " +
+            String.format("(%.1f, %.1f, %.1f) for generator " + generator.getId(),
+            dropLocation.getX(), dropLocation.getY(), dropLocation.getZ()));
     }
 
     public void updateGeneratorInterval(String id, int newInterval) {
