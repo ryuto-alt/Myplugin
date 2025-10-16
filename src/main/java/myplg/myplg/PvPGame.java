@@ -6,6 +6,7 @@ import myplg.myplg.commands.GeneCommand;
 import myplg.myplg.commands.SaveCommand;
 import myplg.myplg.commands.SetBedCommand;
 import myplg.myplg.commands.Shop1Command;
+import myplg.myplg.commands.ShopResetCommand;
 import myplg.myplg.commands.StartCommand;
 import myplg.myplg.data.GeneratorDataManager;
 import myplg.myplg.data.ShopDataManager;
@@ -31,6 +32,7 @@ public final class PvPGame extends JavaPlugin {
     private GeneratorDataManager generatorDataManager;
     private ShopDataManager shopDataManager;
     private WorldBackupManager worldBackupManager;
+    private ToolUpgradeManager toolUpgradeManager;
     private SetBedCommand setBedCommand;
     private BedClickListener bedClickListener;
     private GUIClickListener guiClickListener;
@@ -45,6 +47,7 @@ public final class PvPGame extends JavaPlugin {
         generatorDataManager = new GeneratorDataManager(this);
         shopDataManager = new ShopDataManager(this);
         worldBackupManager = new WorldBackupManager(this);
+        toolUpgradeManager = new ToolUpgradeManager(this);
 
         // Load teams and generators from file after a delay to ensure worlds are loaded
         Bukkit.getScheduler().runTaskLater(this, () -> {
@@ -69,6 +72,7 @@ public final class PvPGame extends JavaPlugin {
         getCommand("end").setExecutor(new EndCommand(this));
         getCommand("gene").setExecutor(new GeneCommand(this));
         getCommand("shop1").setExecutor(new Shop1Command(this));
+        getCommand("sreset").setExecutor(new ShopResetCommand(this));
 
         // Register listeners
         getServer().getPluginManager().registerEvents(bedClickListener, this);
@@ -85,6 +89,7 @@ public final class PvPGame extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(shopVillagerListener, this);
         getServer().getPluginManager().registerEvents(shopClickListener, this);
+        getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.FireballListener(this), this);
 
         // Start time control
         TimeControlListener timeControl = new TimeControlListener(this);
@@ -151,5 +156,9 @@ public final class PvPGame extends JavaPlugin {
 
     public ShopDataManager getShopDataManager() {
         return shopDataManager;
+    }
+
+    public ToolUpgradeManager getToolUpgradeManager() {
+        return toolUpgradeManager;
     }
 }

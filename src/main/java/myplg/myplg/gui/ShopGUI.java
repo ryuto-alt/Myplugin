@@ -97,18 +97,18 @@ public class ShopGUI {
         }
         inv.setItem(14, enhancement);
 
-        // TNT category (placeholder)
-        ItemStack tnt = new ItemStack(Material.TNT);
-        ItemMeta tntMeta = tnt.getItemMeta();
-        if (tntMeta != null) {
-            tntMeta.setDisplayName("§4§lTNT");
-            tntMeta.setLore(Arrays.asList(
-                "§7爆発物",
-                "§c未実装"
+        // Tools category
+        ItemStack tools = new ItemStack(Material.GOLDEN_APPLE);
+        ItemMeta toolsMeta = tools.getItemMeta();
+        if (toolsMeta != null) {
+            toolsMeta.setDisplayName("§6§l道具");
+            toolsMeta.setLore(Arrays.asList(
+                "§7金リンゴ、TNT、道具など",
+                "§aクリックして詳細を表示"
             ));
-            tnt.setItemMeta(tntMeta);
+            tools.setItemMeta(toolsMeta);
         }
-        inv.setItem(16, tnt);
+        inv.setItem(16, tools);
 
         // Row 3 (skip Row 2 for spacing): Quick buy items
         // Quick buy: Wool x16 (below blocks)
@@ -198,6 +198,34 @@ public class ShopGUI {
             jumpPotion.setItemMeta(jumpMeta);
         }
         inv.setItem(41, jumpPotion);
+
+        // Row 3: Quick buy: Enchanted Golden Apple (below tools)
+        ItemStack goldenApple = new ItemStack(Material.ENCHANTED_GOLDEN_APPLE);
+        ItemMeta goldenAppleMeta = goldenApple.getItemMeta();
+        if (goldenAppleMeta != null) {
+            goldenAppleMeta.setDisplayName("§6エンチャント金リンゴ");
+            goldenAppleMeta.setLore(Arrays.asList(
+                "§7コスト: §6ゴールド 3個",
+                "",
+                "§eクリックして購入！"
+            ));
+            goldenApple.setItemMeta(goldenAppleMeta);
+        }
+        inv.setItem(34, goldenApple);
+
+        // Row 4: Quick buy: TNT (below golden apple)
+        ItemStack tntItem = new ItemStack(Material.TNT);
+        ItemMeta tntItemMeta = tntItem.getItemMeta();
+        if (tntItemMeta != null) {
+            tntItemMeta.setDisplayName("§cTNT");
+            tntItemMeta.setLore(Arrays.asList(
+                "§7コスト: §6ゴールド 8個",
+                "",
+                "§eクリックして購入！"
+            ));
+            tntItem.setItemMeta(tntItemMeta);
+        }
+        inv.setItem(43, tntItem);
 
         player.openInventory(inv);
     }
@@ -593,6 +621,204 @@ public class ShopGUI {
             speedPotion.setItemMeta(speedMeta);
         }
         inv.setItem(15, speedPotion);
+
+        // Back button
+        ItemStack backButton = new ItemStack(Material.ARROW);
+        ItemMeta backMeta = backButton.getItemMeta();
+        if (backMeta != null) {
+            backMeta.setDisplayName("§c§l戻る");
+            backMeta.setLore(Arrays.asList(
+                "§7メインショップに戻る"
+            ));
+            backButton.setItemMeta(backMeta);
+        }
+        inv.setItem(49, backButton);
+
+        player.openInventory(inv);
+    }
+
+    public void openToolsShop(Player player) {
+        Inventory inv = Bukkit.createInventory(null, 54, "§6§l道具");
+
+        // Fill with light gray glass panes for decoration
+        ItemStack grayPane = new ItemStack(Material.LIGHT_GRAY_STAINED_GLASS_PANE);
+        ItemMeta grayMeta = grayPane.getItemMeta();
+        if (grayMeta != null) {
+            grayMeta.setDisplayName(" ");
+            grayPane.setItemMeta(grayMeta);
+        }
+
+        // Fill all empty slots with glass panes
+        for (int i = 0; i < 54; i++) {
+            inv.setItem(i, grayPane);
+        }
+
+        // Row 2: First row of items (evenly spaced)
+        // Enchanted Golden Apple
+        ItemStack goldenApple = new ItemStack(Material.ENCHANTED_GOLDEN_APPLE);
+        ItemMeta goldenAppleMeta = goldenApple.getItemMeta();
+        if (goldenAppleMeta != null) {
+            goldenAppleMeta.setDisplayName("§6エンチャント金リンゴ");
+            goldenAppleMeta.setLore(Arrays.asList(
+                "§7コスト: §6ゴールド 3個",
+                "",
+                "§eクリックして購入！"
+            ));
+            goldenApple.setItemMeta(goldenAppleMeta);
+        }
+        inv.setItem(11, goldenApple);
+
+        // TNT
+        ItemStack tnt = new ItemStack(Material.TNT);
+        ItemMeta tntMeta = tnt.getItemMeta();
+        if (tntMeta != null) {
+            tntMeta.setDisplayName("§cTNT");
+            tntMeta.setLore(Arrays.asList(
+                "§7コスト: §6ゴールド 8個",
+                "",
+                "§eクリックして購入！"
+            ));
+            tnt.setItemMeta(tntMeta);
+        }
+        inv.setItem(13, tnt);
+
+        // Ender Pearl
+        ItemStack enderPearl = new ItemStack(Material.ENDER_PEARL);
+        ItemMeta enderPearlMeta = enderPearl.getItemMeta();
+        if (enderPearlMeta != null) {
+            enderPearlMeta.setDisplayName("§5エンダーパール");
+            enderPearlMeta.setLore(Arrays.asList(
+                "§7コスト: §aエメラルド 4個",
+                "",
+                "§eクリックして購入！"
+            ));
+            enderPearl.setItemMeta(enderPearlMeta);
+        }
+        inv.setItem(15, enderPearl);
+
+        // Row 3: Tools upgrade items (axes) - Show only next level
+        int currentAxeLevel = plugin.getToolUpgradeManager().getAxeLevel(player.getUniqueId());
+        int nextAxeLevel = currentAxeLevel + 1;
+
+        if (nextAxeLevel <= 4) {
+            Material axeMaterial;
+            String axeName;
+            Material currency;
+            int cost;
+
+            switch (nextAxeLevel) {
+                case 1:
+                    axeMaterial = Material.WOODEN_AXE;
+                    axeName = "§f木の斧";
+                    currency = Material.IRON_INGOT;
+                    cost = 12;
+                    break;
+                case 2:
+                    axeMaterial = Material.STONE_AXE;
+                    axeName = "§f石の斧";
+                    currency = Material.IRON_INGOT;
+                    cost = 24;
+                    break;
+                case 3:
+                    axeMaterial = Material.IRON_AXE;
+                    axeName = "§f鉄の斧";
+                    currency = Material.GOLD_INGOT;
+                    cost = 8;
+                    break;
+                case 4:
+                default:
+                    axeMaterial = Material.DIAMOND_AXE;
+                    axeName = "§fダイヤの斧";
+                    currency = Material.GOLD_INGOT;
+                    cost = 16;
+                    break;
+            }
+
+            ItemStack axe = new ItemStack(axeMaterial);
+            ItemMeta axeMeta = axe.getItemMeta();
+            if (axeMeta != null) {
+                axeMeta.setDisplayName(axeName);
+                String currencyName = currency == Material.IRON_INGOT ? "§f鉄" : "§6ゴールド";
+                axeMeta.setLore(Arrays.asList(
+                    "§7コスト: " + currencyName + " " + cost + "個",
+                    "§7アップグレード: レベル " + nextAxeLevel,
+                    "",
+                    "§eクリックして購入！"
+                ));
+                axe.setItemMeta(axeMeta);
+            }
+            inv.setItem(22, axe);
+        }
+
+        // Row 4: Tools upgrade items (pickaxes) - Show only next level
+        int currentPickaxeLevel = plugin.getToolUpgradeManager().getPickaxeLevel(player.getUniqueId());
+        int nextPickaxeLevel = currentPickaxeLevel + 1;
+
+        if (nextPickaxeLevel <= 4) {
+            Material pickaxeMaterial;
+            String pickaxeName;
+            Material currency;
+            int cost;
+
+            switch (nextPickaxeLevel) {
+                case 1:
+                    pickaxeMaterial = Material.WOODEN_PICKAXE;
+                    pickaxeName = "§f木のツルハシ";
+                    currency = Material.IRON_INGOT;
+                    cost = 12;
+                    break;
+                case 2:
+                    pickaxeMaterial = Material.STONE_PICKAXE;
+                    pickaxeName = "§f石のツルハシ";
+                    currency = Material.IRON_INGOT;
+                    cost = 24;
+                    break;
+                case 3:
+                    pickaxeMaterial = Material.IRON_PICKAXE;
+                    pickaxeName = "§f鉄のツルハシ";
+                    currency = Material.GOLD_INGOT;
+                    cost = 8;
+                    break;
+                case 4:
+                default:
+                    pickaxeMaterial = Material.DIAMOND_PICKAXE;
+                    pickaxeName = "§fダイヤのツルハシ";
+                    currency = Material.GOLD_INGOT;
+                    cost = 16;
+                    break;
+            }
+
+            ItemStack pickaxe = new ItemStack(pickaxeMaterial);
+            ItemMeta pickaxeMeta = pickaxe.getItemMeta();
+            if (pickaxeMeta != null) {
+                pickaxeMeta.setDisplayName(pickaxeName);
+                String currencyName = currency == Material.IRON_INGOT ? "§f鉄" : "§6ゴールド";
+                pickaxeMeta.setLore(Arrays.asList(
+                    "§7コスト: " + currencyName + " " + cost + "個",
+                    "§7アップグレード: レベル " + nextPickaxeLevel,
+                    "",
+                    "§eクリックして購入！"
+                ));
+                pickaxe.setItemMeta(pickaxeMeta);
+            }
+            inv.setItem(31, pickaxe);
+        }
+
+        // Row 5: Fireball item (centered)
+        // Fireball (fire charge that shoots fireballs on right-click)
+        ItemStack fireball = new ItemStack(Material.FIRE_CHARGE);
+        ItemMeta fireballMeta = fireball.getItemMeta();
+        if (fireballMeta != null) {
+            fireballMeta.setDisplayName("§c火玉");
+            fireballMeta.setLore(Arrays.asList(
+                "§7コスト: §f鉄 40個",
+                "§7右クリックで火の玉を発射",
+                "",
+                "§eクリックして購入！"
+            ));
+            fireball.setItemMeta(fireballMeta);
+        }
+        inv.setItem(40, fireball);
 
         // Back button
         ItemStack backButton = new ItemStack(Material.ARROW);

@@ -91,6 +91,13 @@ public class ShopClickListener implements Listener {
             handleEnhancementShopClick(player, clickedItem);
             return;
         }
+
+        // Tools shop
+        if (title.equals("§6§l道具")) {
+            event.setCancelled(true);
+            handleToolsShopClick(player, clickedItem);
+            return;
+        }
     }
 
     private void handleMainShopClick(Player player, ItemStack clickedItem) {
@@ -116,6 +123,12 @@ public class ShopClickListener implements Listener {
             // Category button: Enhancement
             if (displayName.contains("強化") && amount == 1) {
                 shopGUI.openEnhancementShop(player);
+                return;
+            }
+
+            // Category button: Tools
+            if (displayName.contains("道具") && amount == 1) {
+                shopGUI.openToolsShop(player);
                 return;
             }
         }
@@ -145,6 +158,12 @@ public class ShopClickListener implements Listener {
                     processPotionPurchase(player, Material.EMERALD, 1, org.bukkit.potion.PotionEffectType.JUMP_BOOST, 60 * 20, 0);
                 }
             }
+        } else if (type == Material.ENCHANTED_GOLDEN_APPLE && amount == 1) {
+            // Quick buy: Enchanted Golden Apple for gold 3
+            processPurchase(player, Material.GOLD_INGOT, 3, type, 1);
+        } else if (type == Material.TNT && amount == 1) {
+            // Quick buy: TNT for gold 8
+            processPurchase(player, Material.GOLD_INGOT, 8, type, 1);
         }
     }
 
@@ -278,6 +297,192 @@ public class ShopClickListener implements Listener {
                 processPotionPurchase(player, Material.EMERALD, 1, org.bukkit.potion.PotionEffectType.SPEED, 60 * 20, 0);
             }
         }
+    }
+
+    private void handleToolsShopClick(Player player, ItemStack clickedItem) {
+        Material type = clickedItem.getType();
+
+        // Back button
+        if (type == Material.ARROW && clickedItem.hasItemMeta() &&
+            clickedItem.getItemMeta().hasDisplayName() &&
+            clickedItem.getItemMeta().getDisplayName().contains("戻る")) {
+            shopGUI.openMainShop(player);
+            return;
+        }
+
+        // Ignore glass panes (decoration)
+        if (type.toString().contains("GLASS_PANE")) {
+            return;
+        }
+
+        // Simple items (no upgrades)
+        if (type == Material.ENCHANTED_GOLDEN_APPLE) {
+            processPurchase(player, Material.GOLD_INGOT, 3, type, 1);
+        } else if (type == Material.TNT) {
+            processPurchase(player, Material.GOLD_INGOT, 8, type, 1);
+        } else if (type == Material.ENDER_PEARL) {
+            processPurchase(player, Material.EMERALD, 4, type, 1);
+        } else if (type == Material.FIRE_CHARGE && clickedItem.hasItemMeta() &&
+                   clickedItem.getItemMeta().hasDisplayName() &&
+                   clickedItem.getItemMeta().getDisplayName().contains("火玉")) {
+            processFireballPurchase(player);
+        }
+        // Tool upgrades - Axes
+        else if (type == Material.WOODEN_AXE) {
+            processToolUpgradePurchase(player, Material.IRON_INGOT, 12, type, 1, true);
+        } else if (type == Material.STONE_AXE) {
+            processToolUpgradePurchase(player, Material.IRON_INGOT, 24, type, 2, true);
+        } else if (type == Material.IRON_AXE) {
+            processToolUpgradePurchase(player, Material.GOLD_INGOT, 8, type, 3, true);
+        } else if (type == Material.DIAMOND_AXE) {
+            processToolUpgradePurchase(player, Material.GOLD_INGOT, 16, type, 4, true);
+        }
+        // Tool upgrades - Pickaxes
+        else if (type == Material.WOODEN_PICKAXE) {
+            processToolUpgradePurchase(player, Material.IRON_INGOT, 12, type, 1, false);
+        } else if (type == Material.STONE_PICKAXE) {
+            processToolUpgradePurchase(player, Material.IRON_INGOT, 24, type, 2, false);
+        } else if (type == Material.IRON_PICKAXE) {
+            processToolUpgradePurchase(player, Material.GOLD_INGOT, 8, type, 3, false);
+        } else if (type == Material.DIAMOND_PICKAXE) {
+            processToolUpgradePurchase(player, Material.GOLD_INGOT, 16, type, 4, false);
+        }
+    }
+
+    private void processFireballPurchase(Player player) {
+        // Check cooldown
+        long currentTime = System.currentTimeMillis();
+        Long lastPurchaseTime = purchaseCooldown.get(player.getUniqueId());
+
+        if (lastPurchaseTime != null && (currentTime - lastPurchaseTime) < COOLDOWN_MS) {
+            return;
+        }
+
+        // Check if player has enough currency (iron 40)
+        if (!hasEnoughItems(player, Material.IRON_INGOT, 40)) {
+            player.sendMessage("§c購入に必要な通貨が不足しています！ 必要: 鉄 x40");
+            return;
+        }
+
+        // Remove currency
+        removeItems(player, Material.IRON_INGOT, 40);
+
+        // Create fireball item with custom name
+        ItemStack fireball = new ItemStack(Material.FIRE_CHARGE, 1);
+        org.bukkit.inventory.meta.ItemMeta meta = fireball.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName("§c火玉");
+            meta.setLore(java.util.Arrays.asList(
+                "§7右クリックで火の玉を発射"
+            ));
+            fireball.setItemMeta(meta);
+        }
+
+        // Give item to player
+        java.util.HashMap<Integer, ItemStack> leftover = player.getInventory().addItem(fireball);
+
+        if (!leftover.isEmpty()) {
+            // Return currency if inventory is full
+            player.getInventory().addItem(new ItemStack(Material.IRON_INGOT, 40));
+            player.sendMessage("§cインベントリに空きがありません！");
+            return;
+        }
+
+        // Update cooldown
+        purchaseCooldown.put(player.getUniqueId(), currentTime);
+
+        // Play sound
+        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
+    }
+
+    private void processToolUpgradePurchase(Player player, Material currency, int cost, Material tool, int level, boolean isAxe) {
+        // Check cooldown
+        long currentTime = System.currentTimeMillis();
+        Long lastPurchaseTime = purchaseCooldown.get(player.getUniqueId());
+
+        if (lastPurchaseTime != null && (currentTime - lastPurchaseTime) < COOLDOWN_MS) {
+            return;
+        }
+
+        // Check current level
+        int currentLevel = isAxe ?
+            plugin.getToolUpgradeManager().getAxeLevel(player.getUniqueId()) :
+            plugin.getToolUpgradeManager().getPickaxeLevel(player.getUniqueId());
+
+        if (currentLevel >= level) {
+            player.sendMessage("§c既にこのレベル以上のツールを持っています！");
+            return;
+        }
+
+        // Check if player has enough currency
+        if (!hasEnoughItems(player, currency, cost)) {
+            player.sendMessage("§c購入に必要な通貨が不足しています！ 必要: " + getItemDisplayName(currency) + " x" + cost);
+            return;
+        }
+
+        // Remove currency
+        removeItems(player, currency, cost);
+
+        // Upgrade tool level
+        boolean upgraded = isAxe ?
+            plugin.getToolUpgradeManager().upgradeAxe(player.getUniqueId(), level) :
+            plugin.getToolUpgradeManager().upgradePickaxe(player.getUniqueId(), level);
+
+        if (!upgraded) {
+            // Refund if upgrade failed
+            player.getInventory().addItem(new ItemStack(currency, cost));
+            player.sendMessage("§cアップグレードに失敗しました。");
+            return;
+        }
+
+        // Remove all old tools from inventory
+        Inventory inv = player.getInventory();
+        if (isAxe) {
+            // Remove all axes from inventory
+            for (int i = 0; i < inv.getSize(); i++) {
+                ItemStack item = inv.getItem(i);
+                if (item != null && (item.getType() == Material.WOODEN_AXE ||
+                    item.getType() == Material.STONE_AXE ||
+                    item.getType() == Material.IRON_AXE ||
+                    item.getType() == Material.DIAMOND_AXE)) {
+                    inv.setItem(i, null);
+                }
+            }
+        } else {
+            // Remove all pickaxes from inventory
+            for (int i = 0; i < inv.getSize(); i++) {
+                ItemStack item = inv.getItem(i);
+                if (item != null && (item.getType() == Material.WOODEN_PICKAXE ||
+                    item.getType() == Material.STONE_PICKAXE ||
+                    item.getType() == Material.IRON_PICKAXE ||
+                    item.getType() == Material.DIAMOND_PICKAXE)) {
+                    inv.setItem(i, null);
+                }
+            }
+        }
+
+        // Give new tool to player
+        ItemStack toolItem = new ItemStack(tool, 1);
+        java.util.HashMap<Integer, ItemStack> leftover = player.getInventory().addItem(toolItem);
+
+        if (!leftover.isEmpty()) {
+            // This shouldn't happen since we just removed old tools, but handle it anyway
+            player.sendMessage("§cインベントリに空きがありません！");
+            return;
+        }
+
+        // Update cooldown
+        purchaseCooldown.put(player.getUniqueId(), currentTime);
+
+        // Play sound
+        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
+
+        // Success message
+        String toolName = isAxe ? "斧" : "ツルハシ";
+        player.sendMessage("§a" + toolName + "をレベル " + level + " にアップグレードしました！");
+
+        // Reopen the tools shop to show updated items in real-time
+        shopGUI.openToolsShop(player);
     }
 
     private void processPotionPurchase(Player player, Material currency, int cost,

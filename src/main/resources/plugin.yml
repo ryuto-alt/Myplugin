@@ -27,3 +27,6 @@ commands:
   shop2:
     description: ダイヤモンドショップ村人のスポーンエッグを入手します
     usage: /shop2
+  sreset:
+    description: 全プレイヤーのショップツールアップグレード状態をリセットします
+    usage: /sreset
