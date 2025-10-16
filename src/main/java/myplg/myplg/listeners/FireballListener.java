@@ -62,7 +62,7 @@ public class FireballListener implements Listener {
 
             // Set fireball properties
             fireball.setShooter(player);
-            fireball.setVelocity(direction.multiply(1.5));
+            fireball.setVelocity(direction.multiply(0.8)); // Reduced from 1.5 to 0.8 for slower speed
             fireball.setYield(2.0f); // Explosion power (smaller than TNT)
             fireball.setIsIncendiary(true); // Sets blocks on fire
 

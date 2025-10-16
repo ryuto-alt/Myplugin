@@ -7,8 +7,11 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 
 public class BedBreakListener implements Listener {
     private final PvPGame plugin;
@@ -17,7 +20,7 @@ public class BedBreakListener implements Listener {
         this.plugin = plugin;
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGH)
     public void onBedBreak(BlockBreakEvent event) {
         if (!plugin.getGameManager().isGameRunning()) {
             return;
@@ -49,7 +52,9 @@ public class BedBreakListener implements Listener {
                     return;
                 }
 
-                // Enemy team breaking bed - allow it
+                // Enemy team breaking bed - allow it but prevent drops
+                event.setDropItems(false);
+
                 // Mark bed as destroyed
                 plugin.getScoreboardManager().setBedStatus(team.getName(), false);
 
@@ -60,6 +65,48 @@ public class BedBreakListener implements Listener {
                 return;
             }
         }
+    }
+
+    // Protect beds from explosions
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onEntityExplode(EntityExplodeEvent event) {
+        if (!plugin.getGameManager().isGameRunning()) {
+            return;
+        }
+
+        event.blockList().removeIf(block -> {
+            if (isBed(block.getType())) {
+                // Check if this is a team bed
+                for (Team team : plugin.getGameManager().getTeams().values()) {
+                    Block teamBedBlock = team.getBedBlock();
+                    if (teamBedBlock != null && isSameBed(block, teamBedBlock)) {
+                        return true; // Remove from explosion list (protect bed)
+                    }
+                }
+            }
+            return false;
+        });
+    }
+
+    // Protect beds from block explosions (TNT, etc.)
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onBlockExplode(BlockExplodeEvent event) {
+        if (!plugin.getGameManager().isGameRunning()) {
+            return;
+        }
+
+        event.blockList().removeIf(block -> {
+            if (isBed(block.getType())) {
+                // Check if this is a team bed
+                for (Team team : plugin.getGameManager().getTeams().values()) {
+                    Block teamBedBlock = team.getBedBlock();
+                    if (teamBedBlock != null && isSameBed(block, teamBedBlock)) {
+                        return true; // Remove from explosion list (protect bed)
+                    }
+                }
+            }
+            return false;
+        });
     }
 
     private boolean isBed(Material material) {

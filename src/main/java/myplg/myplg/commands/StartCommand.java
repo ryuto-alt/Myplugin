@@ -2,6 +2,7 @@ package myplg.myplg.commands;
 
 import myplg.myplg.PvPGame;
 import myplg.myplg.Team;
+import myplg.myplg.listeners.BlockPlaceListener;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Material;
@@ -43,6 +44,9 @@ public class StartCommand implements CommandExecutor {
 
         // Start the game
         plugin.getGameManager().setGameRunning(true);
+
+        // Clear player-placed blocks tracking from previous game
+        BlockPlaceListener.clearPlayerPlacedBlocks();
 
         // Assign players to teams
         plugin.getGameManager().assignPlayersToTeams(onlinePlayers);

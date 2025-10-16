@@ -1,6 +1,7 @@
 package myplg.myplg.commands;
 
 import myplg.myplg.PvPGame;
+import myplg.myplg.listeners.BlockPlaceListener;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -53,6 +54,9 @@ public class EndCommand implements CommandExecutor {
 
         // Stop all generators
         plugin.getGeneratorManager().stopAllGenerators();
+
+        // Clear player-placed blocks tracking
+        BlockPlaceListener.clearPlayerPlacedBlocks();
 
         // Broadcast game end
         Bukkit.broadcast(Component.text("==================", NamedTextColor.GOLD));

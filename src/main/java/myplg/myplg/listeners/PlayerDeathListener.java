@@ -135,15 +135,28 @@ public class PlayerDeathListener implements Listener {
         // Set respawn location to team spawn
         event.setRespawnLocation(plugin.getGameManager().getTeam(teamName).getSpawnLocation());
 
-        // Restore equipment after a tick
+        // Set to spectator mode for 5 seconds (respawn cooldown)
         new BukkitRunnable() {
             @Override
             public void run() {
                 if (player.isOnline()) {
-                    restorePlayerEquipment(player, playerUUID, teamName);
+                    player.setGameMode(GameMode.SPECTATOR);
+                    player.sendMessage("§e5秒後にリスポーンします...");
                 }
             }
         }.runTaskLater(plugin, 1L);
+
+        // Restore to survival mode and equipment after 5 seconds
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (player.isOnline()) {
+                    player.setGameMode(GameMode.SURVIVAL);
+                    restorePlayerEquipment(player, playerUUID, teamName);
+                    player.sendMessage("§aリスポーンしました！");
+                }
+            }
+        }.runTaskLater(plugin, 100L); // 5 seconds (20 ticks per second * 5 = 100 ticks)
     }
 
     private void restorePlayerEquipment(Player player, UUID playerUUID, String teamName) {

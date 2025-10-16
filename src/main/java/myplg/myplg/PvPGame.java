@@ -15,6 +15,8 @@ import myplg.myplg.data.WorldBackupManager;
 import myplg.myplg.listeners.ArmorRemoveListener;
 import myplg.myplg.listeners.BedBreakListener;
 import myplg.myplg.listeners.BedClickListener;
+import myplg.myplg.listeners.BlockPlaceListener;
+import myplg.myplg.listeners.ExplosionProtectionListener;
 import myplg.myplg.listeners.GeneratorSelectionListener;
 import myplg.myplg.listeners.GUIClickListener;
 import myplg.myplg.listeners.MobSpawnListener;
@@ -23,6 +25,7 @@ import myplg.myplg.listeners.PlayerJoinListener;
 import myplg.myplg.listeners.ShopClickListener;
 import myplg.myplg.listeners.ShopVillagerListener;
 import myplg.myplg.listeners.TimeControlListener;
+import myplg.myplg.listeners.VoidDeathListener;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -96,6 +99,9 @@ public final class PvPGame extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.FireballListener(this), this);
         getServer().getPluginManager().registerEvents(new ArmorRemoveListener(this), this);
         getServer().getPluginManager().registerEvents(new BedBreakListener(this), this);
+        getServer().getPluginManager().registerEvents(new VoidDeathListener(this), this);
+        getServer().getPluginManager().registerEvents(new BlockPlaceListener(this), this);
+        getServer().getPluginManager().registerEvents(new ExplosionProtectionListener(this), this);
 
         // Start time control
         TimeControlListener timeControl = new TimeControlListener(this);
