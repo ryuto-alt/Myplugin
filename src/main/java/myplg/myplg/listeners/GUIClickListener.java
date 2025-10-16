@@ -1,6 +1,7 @@
 package myplg.myplg.listeners;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
+import myplg.myplg.Generator;
 import myplg.myplg.PvPGame;
 import myplg.myplg.Team;
 import myplg.myplg.gui.ManagementGUI;
@@ -11,6 +12,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 
@@ -49,6 +51,36 @@ public class GUIClickListener implements Listener {
 
             if (clickedItem.getType() == Material.WHITE_BED) {
                 managementGUI.openTeamList(player);
+            } else if (clickedItem.getType() == Material.DROPPER) {
+                managementGUI.openGeneratorList(player);
+            }
+        }
+        // Generator settings menu
+        else if (title.equals("ジェネレーター設定")) {
+            event.setCancelled(true);
+
+            ItemStack clickedItem = event.getCurrentItem();
+            if (clickedItem == null || clickedItem.getType() == Material.AIR) {
+                return;
+            }
+
+            if (clickedItem.getType() == Material.ARROW) {
+                // Back button
+                managementGUI.openMainMenu(player);
+                return;
+            }
+
+            // Find the generator by material type and slot
+            int slot = event.getSlot();
+            int currentSlot = 0;
+
+            for (Generator generator : plugin.getGeneratorManager().getGenerators().values()) {
+                if (currentSlot == slot && generator.getMaterial() == clickedItem.getType()) {
+                    handleGeneratorClick(player, generator, event.getClick());
+                    return;
+                }
+                currentSlot++;
+                if (currentSlot >= 45) break;
             }
         }
         // Team list menu
@@ -104,6 +136,27 @@ public class GUIClickListener implements Listener {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             managementGUI.openTeamList(player);
         });
+    }
+
+    private void handleGeneratorClick(Player player, Generator generator, ClickType clickType) {
+        if (clickType == ClickType.LEFT) {
+            // Decrease interval by 0.5 seconds (10 ticks)
+            int newInterval = Math.max(10, generator.getSpawnInterval() - 10);
+            plugin.getGeneratorManager().updateGeneratorInterval(generator.getId(), newInterval);
+            player.sendMessage(Component.text("出現間隔を" + (newInterval / 20.0) + "秒に変更しました。", NamedTextColor.GREEN));
+        } else if (clickType == ClickType.RIGHT) {
+            // Increase interval by 0.5 seconds (10 ticks)
+            int newInterval = generator.getSpawnInterval() + 10;
+            plugin.getGeneratorManager().updateGeneratorInterval(generator.getId(), newInterval);
+            player.sendMessage(Component.text("出現間隔を" + (newInterval / 20.0) + "秒に変更しました。", NamedTextColor.GREEN));
+        } else if (clickType == ClickType.SHIFT_LEFT) {
+            // Delete generator
+            plugin.getGeneratorManager().removeGenerator(generator.getId());
+            player.sendMessage(Component.text("ジェネレーターを削除しました。", NamedTextColor.RED));
+        }
+
+        // Refresh GUI
+        managementGUI.openGeneratorList(player);
     }
 
     public ManagementGUI getManagementGUI() {

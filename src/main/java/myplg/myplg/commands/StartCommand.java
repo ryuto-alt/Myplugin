@@ -42,6 +42,9 @@ public class StartCommand implements CommandExecutor {
         // Assign players to teams
         plugin.getGameManager().assignPlayersToTeams(onlinePlayers);
 
+        // Start all generators
+        plugin.getGeneratorManager().startAllGenerators();
+
         // Teleport players to their team spawns
         for (Player player : onlinePlayers) {
             plugin.getGameManager().teleportPlayerToTeamSpawn(player);

@@ -51,6 +51,9 @@ public class EndCommand implements CommandExecutor {
         // End game
         plugin.getGameManager().setGameRunning(false);
 
+        // Stop all generators
+        plugin.getGeneratorManager().stopAllGenerators();
+
         // Broadcast game end
         Bukkit.broadcast(Component.text("==================", NamedTextColor.GOLD));
         Bukkit.broadcast(Component.text("ゲームが終了しました！", NamedTextColor.GREEN));

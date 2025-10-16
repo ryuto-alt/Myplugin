@@ -2,9 +2,11 @@ package myplg.myplg;
 
 import myplg.myplg.commands.EditCommand;
 import myplg.myplg.commands.EndCommand;
+import myplg.myplg.commands.GeneCommand;
 import myplg.myplg.commands.SaveCommand;
 import myplg.myplg.commands.SetBedCommand;
 import myplg.myplg.commands.StartCommand;
+import myplg.myplg.data.GeneratorDataManager;
 import myplg.myplg.data.TeamDataManager;
 import myplg.myplg.data.WorldBackupManager;
 import myplg.myplg.listeners.BedClickListener;
@@ -19,7 +21,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class PvPGame extends JavaPlugin {
 
     private GameManager gameManager;
+    private GeneratorManager generatorManager;
     private TeamDataManager teamDataManager;
+    private GeneratorDataManager generatorDataManager;
     private WorldBackupManager worldBackupManager;
     private SetBedCommand setBedCommand;
     private BedClickListener bedClickListener;
@@ -30,14 +34,19 @@ public final class PvPGame extends JavaPlugin {
     public void onEnable() {
         // Initialize managers
         gameManager = new GameManager(this);
+        generatorManager = new GeneratorManager(this);
         teamDataManager = new TeamDataManager(this);
+        generatorDataManager = new GeneratorDataManager(this);
         worldBackupManager = new WorldBackupManager(this);
 
-        // Load teams from file after a delay to ensure worlds are loaded
+        // Load teams and generators from file after a delay to ensure worlds are loaded
         Bukkit.getScheduler().runTaskLater(this, () -> {
             teamDataManager.loadTeams();
             teamsLoaded = true;
             getLogger().info("Team data loading completed. Loaded " + gameManager.getTeams().size() + " teams.");
+
+            generatorDataManager.loadGenerators();
+            getLogger().info("Generator data loading completed. Loaded " + generatorManager.getGenerators().size() + " generators.");
         }, 20L); // 1 second delay
 
         // Initialize commands
@@ -51,6 +60,7 @@ public final class PvPGame extends JavaPlugin {
         getCommand("edit").setExecutor(new EditCommand(this));
         getCommand("save").setExecutor(new SaveCommand(this));
         getCommand("end").setExecutor(new EndCommand(this));
+        getCommand("gene").setExecutor(new GeneCommand(this));
 
         // Register listeners
         getServer().getPluginManager().registerEvents(bedClickListener, this);
@@ -75,6 +85,18 @@ public final class PvPGame extends JavaPlugin {
         } else if (!teamsLoaded) {
             getLogger().warning("Teams were not fully loaded yet, skipping save to prevent data loss.");
         }
+
+        // Save generators
+        if (generatorDataManager != null && generatorManager != null) {
+            getLogger().info("Saving generators on disable. Current generator count: " + generatorManager.getGenerators().size());
+            generatorDataManager.saveGenerators();
+        }
+
+        // Stop all generators
+        if (generatorManager != null) {
+            generatorManager.stopAllGenerators();
+        }
+
         getLogger().info("PvPGame has been disabled!");
     }
 
@@ -100,5 +122,13 @@ public final class PvPGame extends JavaPlugin {
 
     public WorldBackupManager getWorldBackupManager() {
         return worldBackupManager;
+    }
+
+    public GeneratorManager getGeneratorManager() {
+        return generatorManager;
+    }
+
+    public GeneratorDataManager getGeneratorDataManager() {
+        return generatorDataManager;
     }
 }
