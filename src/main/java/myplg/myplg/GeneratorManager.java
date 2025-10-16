@@ -89,11 +89,22 @@ public class GeneratorManager {
     private void spawnItem(Generator generator) {
         Location spawnLocation = generator.getRandomLocationInRegion();
 
-        // Find the highest block in the region to spawn on top
-        Location groundLocation = spawnLocation.getWorld().getHighestBlockAt(spawnLocation).getLocation().add(0, 1, 0);
+        // Get the highest block at the X, Z coordinates within the selected region
+        int highestY = spawnLocation.getWorld().getHighestBlockYAt(spawnLocation);
+
+        // Spawn the item 1 block above the highest block
+        Location groundLocation = new Location(
+            spawnLocation.getWorld(),
+            spawnLocation.getX(),
+            highestY + 1,
+            spawnLocation.getZ()
+        );
 
         // Drop the item
         groundLocation.getWorld().dropItemNaturally(groundLocation, new ItemStack(generator.getMaterial(), 1));
+
+        plugin.getLogger().fine("Spawned " + generator.getMaterial().name() + " at " +
+            String.format("(%.1f, %.1f, %.1f)", groundLocation.getX(), groundLocation.getY(), groundLocation.getZ()));
     }
 
     public void updateGeneratorInterval(String id, int newInterval) {
