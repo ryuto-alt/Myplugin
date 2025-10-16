@@ -4,8 +4,8 @@ import myplg.myplg.PvPGame;
 import myplg.myplg.Team;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Villager;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -14,7 +14,7 @@ import java.util.*;
 
 public class ShopTeamSelectGUI {
     private final PvPGame plugin;
-    private final Map<UUID, UUID> pendingVillagers; // Player UUID -> Villager UUID
+    private final Map<UUID, UUID> pendingVillagers; // Player UUID -> Entity UUID (Villager or Skeleton)
 
     // Team name to wool color mapping
     private static final Map<String, Material> TEAM_WOOL_MAP = new HashMap<>();
@@ -35,7 +35,7 @@ public class ShopTeamSelectGUI {
         this.pendingVillagers = new HashMap<>();
     }
 
-    public void openTeamSelectGUI(Player player, Villager villager) {
+    public void openTeamSelectGUI(Player player, Entity entity) {
         Inventory inv = Bukkit.createInventory(null, 54, "§6§lショップのチームを選択");
 
         Map<String, Team> teams = plugin.getGameManager().getTeams();
@@ -65,8 +65,8 @@ public class ShopTeamSelectGUI {
             }
         }
 
-        // Store pending villager
-        pendingVillagers.put(player.getUniqueId(), villager.getUniqueId());
+        // Store pending entity (villager or skeleton)
+        pendingVillagers.put(player.getUniqueId(), entity.getUniqueId());
 
         player.openInventory(inv);
     }

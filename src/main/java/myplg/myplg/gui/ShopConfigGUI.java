@@ -3,8 +3,8 @@ package myplg.myplg.gui;
 import myplg.myplg.PvPGame;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Villager;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -16,14 +16,14 @@ import java.util.UUID;
 
 public class ShopConfigGUI {
     private final PvPGame plugin;
-    private final Map<UUID, UUID> openConfigs; // Player UUID -> Villager UUID
+    private final Map<UUID, UUID> openConfigs; // Player UUID -> Entity UUID (Villager or Skeleton)
 
     public ShopConfigGUI(PvPGame plugin) {
         this.plugin = plugin;
         this.openConfigs = new HashMap<>();
     }
 
-    public void openConfigGUI(Player player, Villager villager, String teamName) {
+    public void openConfigGUI(Player player, Entity entity, String teamName) {
         Inventory inv = Bukkit.createInventory(null, 27, "§c§lショップ設定");
 
         // Delete button
@@ -32,7 +32,7 @@ public class ShopConfigGUI {
         if (deleteMeta != null) {
             deleteMeta.setDisplayName("§c§lショップを削除");
             deleteMeta.setLore(Arrays.asList(
-                "§7このショップ村人を削除します",
+                "§7このショップを削除します",
                 "§7チーム: §e" + (teamName != null ? teamName : "未設定"),
                 "",
                 "§c§l警告: この操作は取り消せません！",
@@ -50,7 +50,7 @@ public class ShopConfigGUI {
             infoMeta.setDisplayName("§e§lショップ情報");
             infoMeta.setLore(Arrays.asList(
                 "§7チーム: §e" + (teamName != null ? teamName : "未設定"),
-                "§7UUID: §7" + villager.getUniqueId().toString().substring(0, 8) + "..."
+                "§7UUID: §7" + entity.getUniqueId().toString().substring(0, 8) + "..."
             ));
             infoItem.setItemMeta(infoMeta);
         }
@@ -65,8 +65,8 @@ public class ShopConfigGUI {
         }
         inv.setItem(15, closeBtn);
 
-        // Store the villager being configured
-        openConfigs.put(player.getUniqueId(), villager.getUniqueId());
+        // Store the entity being configured (villager or skeleton)
+        openConfigs.put(player.getUniqueId(), entity.getUniqueId());
 
         player.openInventory(inv);
     }
