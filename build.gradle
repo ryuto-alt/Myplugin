@@ -50,3 +50,16 @@ processResources {
         expand props
     }
 }
+
+// ビルド後にjarを自動的にサーバーのpluginsフォルダにコピー
+task copyJarToServer(type: Copy) {
+    dependsOn build
+    from jar.archiveFile
+    into 'C:\\Users\\Unoryuto\\AppData\\Roaming\\FastServer\\servers\\ca410b89\\plugins'
+    doLast {
+        println "Copied ${jar.archiveFileName.get()} to FastServer plugins folder"
+    }
+}
+
+// buildタスク実行時に自動でコピー
+build.finalizedBy copyJarToServer
