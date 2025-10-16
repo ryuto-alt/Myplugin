@@ -95,14 +95,12 @@ public class GeneratorManager {
     private void spawnItem(Generator generator) {
         Location spawnLocation = generator.getRandomLocationInRegion();
 
-        // Get the highest block at the X, Z coordinates within the selected region
-        int highestY = spawnLocation.getWorld().getHighestBlockYAt(spawnLocation);
-
-        // Spawn the item 1 block above the highest block
+        // Use the Y coordinate from the selected region, not the world's highest block
+        // This allows generators to work in specific areas (like a platform or room)
         Location dropLocation = new Location(
             spawnLocation.getWorld(),
             spawnLocation.getX(),
-            highestY + 1,
+            spawnLocation.getY(),
             spawnLocation.getZ()
         );
 
