@@ -1,4 +1,4 @@
-name: myplg
+name: PvPGame
 version: '${version}'
-main: myplg.myplg.Myplg
+main: myplg.myplg.PvPGame
 api-version: '1.21'

@@ -2,7 +2,7 @@ package myplg.myplg;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
-public final class Myplg extends JavaPlugin {
+public final class PvPGame extends JavaPlugin {
 
     @Override
     public void onEnable() {
