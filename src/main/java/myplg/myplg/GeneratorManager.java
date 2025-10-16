@@ -95,12 +95,14 @@ public class GeneratorManager {
     private void spawnItem(Generator generator) {
         Location spawnLocation = generator.getRandomLocationInRegion();
 
-        // Use the Y coordinate from the selected region, not the world's highest block
-        // This allows generators to work in specific areas (like a platform or room)
+        // Get the minimum Y from the selected region (the floor of the selection)
+        double minY = Math.min(generator.getCorner1().getY(), generator.getCorner2().getY());
+
+        // Spawn 1 block above the floor of the selected region
         Location dropLocation = new Location(
             spawnLocation.getWorld(),
             spawnLocation.getX(),
-            spawnLocation.getY(),
+            minY + 1,
             spawnLocation.getZ()
         );
 
