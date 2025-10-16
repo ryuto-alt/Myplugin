@@ -128,6 +128,61 @@ public class ManagementGUI {
         player.openInventory(gui);
     }
 
+    public void openGeneratorTypeSelection(Player player) {
+        Inventory gui = Bukkit.createInventory(null, 27, Component.text("ジェネレーター作成", NamedTextColor.DARK_BLUE, TextDecoration.BOLD));
+
+        // Diamond generator
+        ItemStack diamondGen = new ItemStack(Material.DIAMOND);
+        ItemMeta diamondMeta = diamondGen.getItemMeta();
+        diamondMeta.displayName(Component.text("ダイヤモンド ジェネレーター", NamedTextColor.AQUA, TextDecoration.BOLD));
+        List<Component> diamondLore = new ArrayList<>();
+        diamondLore.add(Component.text("デフォルト間隔: 10秒", NamedTextColor.GRAY));
+        diamondLore.add(Component.text(""));
+        diamondLore.add(Component.text("クリックして範囲選択を開始", NamedTextColor.GREEN));
+        diamondMeta.lore(diamondLore);
+        diamondGen.setItemMeta(diamondMeta);
+
+        // Gold generator
+        ItemStack goldGen = new ItemStack(Material.GOLD_INGOT);
+        ItemMeta goldMeta = goldGen.getItemMeta();
+        goldMeta.displayName(Component.text("金インゴット ジェネレーター", NamedTextColor.GOLD, TextDecoration.BOLD));
+        List<Component> goldLore = new ArrayList<>();
+        goldLore.add(Component.text("デフォルト間隔: 5秒", NamedTextColor.GRAY));
+        goldLore.add(Component.text(""));
+        goldLore.add(Component.text("クリックして範囲選択を開始", NamedTextColor.GREEN));
+        goldMeta.lore(goldLore);
+        goldGen.setItemMeta(goldMeta);
+
+        // Iron generator
+        ItemStack ironGen = new ItemStack(Material.IRON_INGOT);
+        ItemMeta ironMeta = ironGen.getItemMeta();
+        ironMeta.displayName(Component.text("鉄インゴット ジェネレーター", NamedTextColor.WHITE, TextDecoration.BOLD));
+        List<Component> ironLore = new ArrayList<>();
+        ironLore.add(Component.text("デフォルト間隔: 3秒", NamedTextColor.GRAY));
+        ironLore.add(Component.text(""));
+        ironLore.add(Component.text("クリックして範囲選択を開始", NamedTextColor.GREEN));
+        ironMeta.lore(ironLore);
+        ironGen.setItemMeta(ironMeta);
+
+        // Emerald generator
+        ItemStack emeraldGen = new ItemStack(Material.EMERALD);
+        ItemMeta emeraldMeta = emeraldGen.getItemMeta();
+        emeraldMeta.displayName(Component.text("エメラルド ジェネレーター", NamedTextColor.GREEN, TextDecoration.BOLD));
+        List<Component> emeraldLore = new ArrayList<>();
+        emeraldLore.add(Component.text("デフォルト間隔: 15秒", NamedTextColor.GRAY));
+        emeraldLore.add(Component.text(""));
+        emeraldLore.add(Component.text("クリックして範囲選択を開始", NamedTextColor.GREEN));
+        emeraldMeta.lore(emeraldLore);
+        emeraldGen.setItemMeta(emeraldMeta);
+
+        gui.setItem(10, ironGen);
+        gui.setItem(12, goldGen);
+        gui.setItem(14, diamondGen);
+        gui.setItem(16, emeraldGen);
+
+        player.openInventory(gui);
+    }
+
     private String getMaterialDisplayName(Material material) {
         switch (material) {
             case DIAMOND:

@@ -24,11 +24,19 @@ public class GUIClickListener implements Listener {
     private final PvPGame plugin;
     private final ManagementGUI managementGUI;
     private final Map<UUID, String> waitingForRename;
+    private final Map<UUID, GeneratorSelection> generatorSelections;
 
     public GUIClickListener(PvPGame plugin) {
         this.plugin = plugin;
         this.managementGUI = new ManagementGUI(plugin);
         this.waitingForRename = new HashMap<>();
+        this.generatorSelections = new HashMap<>();
+    }
+
+    private static class GeneratorSelection {
+        Material material;
+        org.bukkit.Location corner1;
+        org.bukkit.Location corner2;
     }
 
     @EventHandler
@@ -40,8 +48,35 @@ public class GUIClickListener implements Listener {
         Player player = (Player) event.getWhoClicked();
         String title = PlainTextComponentSerializer.plainText().serialize(event.getView().title());
 
+        // Generator type selection menu
+        if (title.equals("ジェネレーター作成")) {
+            event.setCancelled(true);
+
+            ItemStack clickedItem = event.getCurrentItem();
+            if (clickedItem == null || clickedItem.getType() == Material.AIR) {
+                return;
+            }
+
+            Material selectedMaterial = clickedItem.getType();
+            if (selectedMaterial == Material.DIAMOND || selectedMaterial == Material.GOLD_INGOT ||
+                selectedMaterial == Material.IRON_INGOT || selectedMaterial == Material.EMERALD) {
+
+                // Start generator selection process
+                GeneratorSelection selection = new GeneratorSelection();
+                selection.material = selectedMaterial;
+                generatorSelections.put(player.getUniqueId(), selection);
+
+                player.closeInventory();
+                player.sendMessage(Component.text("1つ目の座標として現在地を設定しました: ", NamedTextColor.GREEN)
+                        .append(Component.text(formatLocation(player.getLocation()), NamedTextColor.YELLOW)));
+                player.sendMessage(Component.text("2つ目の座標に移動して、再度 /gene を実行してください。", NamedTextColor.YELLOW));
+
+                // Set corner1 to current location
+                selection.corner1 = player.getLocation();
+            }
+        }
         // Main menu
-        if (title.equals("ゲーム管理")) {
+        else if (title.equals("ゲーム管理")) {
             event.setCancelled(true);
 
             ItemStack clickedItem = event.getCurrentItem();
@@ -157,6 +192,94 @@ public class GUIClickListener implements Listener {
 
         // Refresh GUI
         managementGUI.openGeneratorList(player);
+    }
+
+    public boolean hasGeneratorSelection(UUID playerUUID) {
+        return generatorSelections.containsKey(playerUUID);
+    }
+
+    public void completeGeneratorSelection(Player player) {
+        GeneratorSelection selection = generatorSelections.get(player.getUniqueId());
+        if (selection == null || selection.corner1 == null) {
+            player.sendMessage(Component.text("エラー: 選択情報が見つかりません。", NamedTextColor.RED));
+            return;
+        }
+
+        selection.corner2 = player.getLocation();
+
+        // Check if both corners are in the same world
+        if (!selection.corner1.getWorld().equals(selection.corner2.getWorld())) {
+            player.sendMessage(Component.text("2つの座標は同じワールド内である必要があります。", NamedTextColor.RED));
+            generatorSelections.remove(player.getUniqueId());
+            return;
+        }
+
+        player.sendMessage(Component.text("2つ目の座標を設定しました: ", NamedTextColor.GREEN)
+                .append(Component.text(formatLocation(selection.corner2), NamedTextColor.YELLOW)));
+
+        // Create generator with default interval
+        String materialName = getMaterialName(selection.material);
+        String generatorId = materialName + "_" + System.currentTimeMillis();
+        int defaultInterval = getDefaultInterval(selection.material);
+
+        plugin.getGeneratorManager().addGenerator(generatorId, selection.material, selection.corner1, selection.corner2, defaultInterval);
+
+        player.sendMessage(Component.text("ジェネレーターを作成しました！", NamedTextColor.GREEN));
+        player.sendMessage(Component.text("アイテム: " + getMaterialDisplayName(selection.material), NamedTextColor.YELLOW));
+        player.sendMessage(Component.text("出現間隔: " + (defaultInterval / 20.0) + "秒", NamedTextColor.YELLOW));
+        player.sendMessage(Component.text("/edit で出現頻度を調整できます。", NamedTextColor.GRAY));
+
+        // Clear selection
+        generatorSelections.remove(player.getUniqueId());
+    }
+
+    private String formatLocation(org.bukkit.Location loc) {
+        return String.format("(%.1f, %.1f, %.1f)", loc.getX(), loc.getY(), loc.getZ());
+    }
+
+    private int getDefaultInterval(Material material) {
+        switch (material) {
+            case DIAMOND:
+                return 200; // 10 seconds
+            case GOLD_INGOT:
+                return 100; // 5 seconds
+            case IRON_INGOT:
+                return 60;  // 3 seconds
+            case EMERALD:
+                return 300; // 15 seconds
+            default:
+                return 100;
+        }
+    }
+
+    private String getMaterialName(Material material) {
+        switch (material) {
+            case DIAMOND:
+                return "diamond";
+            case GOLD_INGOT:
+                return "gold";
+            case IRON_INGOT:
+                return "iron";
+            case EMERALD:
+                return "emerald";
+            default:
+                return material.name().toLowerCase();
+        }
+    }
+
+    private String getMaterialDisplayName(Material material) {
+        switch (material) {
+            case DIAMOND:
+                return "ダイヤモンド";
+            case GOLD_INGOT:
+                return "金インゴット";
+            case IRON_INGOT:
+                return "鉄インゴット";
+            case EMERALD:
+                return "エメラルド";
+            default:
+                return material.name();
+        }
     }
 
     public ManagementGUI getManagementGUI() {
