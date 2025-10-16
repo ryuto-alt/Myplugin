@@ -12,6 +12,8 @@ import myplg.myplg.data.GeneratorDataManager;
 import myplg.myplg.data.ShopDataManager;
 import myplg.myplg.data.TeamDataManager;
 import myplg.myplg.data.WorldBackupManager;
+import myplg.myplg.listeners.ArmorRemoveListener;
+import myplg.myplg.listeners.BedBreakListener;
 import myplg.myplg.listeners.BedClickListener;
 import myplg.myplg.listeners.GeneratorSelectionListener;
 import myplg.myplg.listeners.GUIClickListener;
@@ -33,6 +35,7 @@ public final class PvPGame extends JavaPlugin {
     private ShopDataManager shopDataManager;
     private WorldBackupManager worldBackupManager;
     private ToolUpgradeManager toolUpgradeManager;
+    private ScoreboardManager scoreboardManager;
     private SetBedCommand setBedCommand;
     private BedClickListener bedClickListener;
     private GUIClickListener guiClickListener;
@@ -48,6 +51,7 @@ public final class PvPGame extends JavaPlugin {
         shopDataManager = new ShopDataManager(this);
         worldBackupManager = new WorldBackupManager(this);
         toolUpgradeManager = new ToolUpgradeManager(this);
+        scoreboardManager = new ScoreboardManager(this);
 
         // Load teams and generators from file after a delay to ensure worlds are loaded
         Bukkit.getScheduler().runTaskLater(this, () -> {
@@ -90,6 +94,8 @@ public final class PvPGame extends JavaPlugin {
         getServer().getPluginManager().registerEvents(shopVillagerListener, this);
         getServer().getPluginManager().registerEvents(shopClickListener, this);
         getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.FireballListener(this), this);
+        getServer().getPluginManager().registerEvents(new ArmorRemoveListener(this), this);
+        getServer().getPluginManager().registerEvents(new BedBreakListener(this), this);
 
         // Start time control
         TimeControlListener timeControl = new TimeControlListener(this);
@@ -160,5 +166,9 @@ public final class PvPGame extends JavaPlugin {
 
     public ToolUpgradeManager getToolUpgradeManager() {
         return toolUpgradeManager;
+    }
+
+    public ScoreboardManager getScoreboardManager() {
+        return scoreboardManager;
     }
 }
