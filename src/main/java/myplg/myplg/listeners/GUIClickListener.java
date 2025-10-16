@@ -163,7 +163,11 @@ public class GUIClickListener implements Listener {
             event.setCancelled(true);
 
             ItemStack clickedItem = event.getCurrentItem();
+            plugin.getLogger().info("Clicked item: " + (clickedItem == null ? "NULL" : clickedItem.getType()));
+            plugin.getLogger().info("Clicked slot: " + event.getSlot());
+
             if (clickedItem == null || clickedItem.getType() == Material.AIR) {
+                plugin.getLogger().info("Item is null or AIR, returning");
                 return;
             }
 
