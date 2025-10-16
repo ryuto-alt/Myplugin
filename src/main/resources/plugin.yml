@@ -12,3 +12,9 @@ commands:
   edit:
     description: ゲーム管理の本を入手します
     usage: /edit
+  save:
+    description: ワールドをバックアップします
+    usage: /save [ワールド名]
+  end:
+    description: ゲームを終了してワールドを復元します
+    usage: /end [ワールド名]
