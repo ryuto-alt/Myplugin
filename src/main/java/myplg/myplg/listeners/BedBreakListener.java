@@ -20,7 +20,7 @@ public class BedBreakListener implements Listener {
         this.plugin = plugin;
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onBedBreak(BlockBreakEvent event) {
         if (!plugin.getGameManager().isGameRunning()) {
             return;
@@ -33,6 +33,9 @@ public class BedBreakListener implements Listener {
         if (!isBed(blockType)) {
             return;
         }
+
+        // Mark that this event has been handled by bed listener
+        event.setCancelled(false);
 
         Player player = event.getPlayer();
         String playerTeam = plugin.getGameManager().getPlayerTeam(player.getUniqueId());

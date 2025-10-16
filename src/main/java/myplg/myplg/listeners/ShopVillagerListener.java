@@ -73,7 +73,7 @@ public class ShopVillagerListener implements Listener {
 
                                     // Set villager to face the same direction as the player
                                     Location loc = villager.getLocation();
-                                    loc.setYaw(playerYaw);  // Use player's yaw
+                                    loc.setYaw(playerYaw + 180f);  // Add 180 degrees to face the same direction
                                     loc.setPitch(0f); // Look straight ahead
                                     villager.teleport(loc);
 
