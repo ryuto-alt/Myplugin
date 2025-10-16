@@ -184,6 +184,71 @@ public class ManagementGUI {
         player.openInventory(gui);
     }
 
+    public void openIntervalSelection(Player player, Material selectedMaterial, String teamName) {
+        Inventory gui = Bukkit.createInventory(null, 27,
+            Component.text("出現間隔選択", NamedTextColor.DARK_BLUE, TextDecoration.BOLD));
+
+        // 1秒
+        ItemStack interval1 = new ItemStack(Material.GREEN_CONCRETE);
+        ItemMeta meta1 = interval1.getItemMeta();
+        meta1.displayName(Component.text("1秒", NamedTextColor.GREEN, TextDecoration.BOLD));
+        List<Component> lore1 = new ArrayList<>();
+        lore1.add(Component.text("最も速い出現速度", NamedTextColor.GRAY));
+        meta1.lore(lore1);
+        interval1.setItemMeta(meta1);
+
+        // 3秒
+        ItemStack interval3 = new ItemStack(Material.LIME_CONCRETE);
+        ItemMeta meta3 = interval3.getItemMeta();
+        meta3.displayName(Component.text("3秒", NamedTextColor.GREEN, TextDecoration.BOLD));
+        List<Component> lore3 = new ArrayList<>();
+        lore3.add(Component.text("速い出現速度", NamedTextColor.GRAY));
+        meta3.lore(lore3);
+        interval3.setItemMeta(meta3);
+
+        // 5秒
+        ItemStack interval5 = new ItemStack(Material.YELLOW_CONCRETE);
+        ItemMeta meta5 = interval5.getItemMeta();
+        meta5.displayName(Component.text("5秒", NamedTextColor.YELLOW, TextDecoration.BOLD));
+        List<Component> lore5 = new ArrayList<>();
+        lore5.add(Component.text("普通の出現速度", NamedTextColor.GRAY));
+        meta5.lore(lore5);
+        interval5.setItemMeta(meta5);
+
+        // 10秒
+        ItemStack interval10 = new ItemStack(Material.ORANGE_CONCRETE);
+        ItemMeta meta10 = interval10.getItemMeta();
+        meta10.displayName(Component.text("10秒", NamedTextColor.GOLD, TextDecoration.BOLD));
+        List<Component> lore10 = new ArrayList<>();
+        lore10.add(Component.text("遅い出現速度", NamedTextColor.GRAY));
+        meta10.lore(lore10);
+        interval10.setItemMeta(meta10);
+
+        // 15秒
+        ItemStack interval15 = new ItemStack(Material.RED_CONCRETE);
+        ItemMeta meta15 = interval15.getItemMeta();
+        meta15.displayName(Component.text("15秒", NamedTextColor.RED, TextDecoration.BOLD));
+        List<Component> lore15 = new ArrayList<>();
+        lore15.add(Component.text("最も遅い出現速度", NamedTextColor.GRAY));
+        meta15.lore(lore15);
+        interval15.setItemMeta(meta15);
+
+        gui.setItem(10, interval1);
+        gui.setItem(11, interval3);
+        gui.setItem(12, interval5);
+        gui.setItem(14, interval10);
+        gui.setItem(15, interval15);
+
+        // Back button
+        ItemStack backButton = new ItemStack(Material.ARROW);
+        ItemMeta backMeta = backButton.getItemMeta();
+        backMeta.displayName(Component.text("戻る", NamedTextColor.RED, TextDecoration.BOLD));
+        backButton.setItemMeta(backMeta);
+        gui.setItem(22, backButton);
+
+        player.openInventory(gui);
+    }
+
     public void openTeamSelectionForGenerator(Player player, Material selectedMaterial) {
         Inventory gui = Bukkit.createInventory(null, 54,
             Component.text("チーム選択 - " + getMaterialDisplayName(selectedMaterial), NamedTextColor.DARK_BLUE, TextDecoration.BOLD));

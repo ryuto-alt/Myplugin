@@ -36,6 +36,7 @@ public class GUIClickListener implements Listener {
     private static class GeneratorSelection {
         Material material;
         String teamName;
+        int interval; // in ticks
         org.bukkit.Location corner1;
         org.bukkit.Location corner2;
     }
@@ -62,13 +63,19 @@ public class GUIClickListener implements Listener {
             if (selectedMaterial == Material.DIAMOND || selectedMaterial == Material.GOLD_INGOT ||
                 selectedMaterial == Material.IRON_INGOT || selectedMaterial == Material.EMERALD) {
 
-                // Open team selection GUI
-                managementGUI.openTeamSelectionForGenerator(player, selectedMaterial);
-
                 // Store the selected material temporarily
                 GeneratorSelection selection = new GeneratorSelection();
                 selection.material = selectedMaterial;
                 generatorSelections.put(player.getUniqueId(), selection);
+
+                // Diamond and Emerald skip team selection (共通)
+                if (selectedMaterial == Material.DIAMOND || selectedMaterial == Material.EMERALD) {
+                    selection.teamName = "共通";
+                    managementGUI.openIntervalSelection(player, selectedMaterial, "共通");
+                } else {
+                    // Iron and Gold need team selection
+                    managementGUI.openTeamSelectionForGenerator(player, selectedMaterial);
+                }
             }
         }
         // Team selection for generator menu
@@ -93,9 +100,44 @@ public class GUIClickListener implements Listener {
                 GeneratorSelection selection = generatorSelections.get(player.getUniqueId());
                 if (selection != null) {
                     selection.teamName = teamName;
+                    // Open interval selection GUI
+                    managementGUI.openIntervalSelection(player, selection.material, teamName);
+                }
+            }
+        }
+        // Interval selection menu
+        else if (title.equals("出現間隔選択")) {
+            event.setCancelled(true);
+
+            ItemStack clickedItem = event.getCurrentItem();
+            if (clickedItem == null || clickedItem.getType() == Material.AIR) {
+                return;
+            }
+
+            if (clickedItem.getType() == Material.ARROW) {
+                // Back button
+                GeneratorSelection selection = generatorSelections.get(player.getUniqueId());
+                if (selection != null) {
+                    if (selection.material == Material.DIAMOND || selection.material == Material.EMERALD) {
+                        managementGUI.openGeneratorTypeSelection(player);
+                    } else {
+                        managementGUI.openTeamSelectionForGenerator(player, selection.material);
+                    }
+                }
+                return;
+            }
+
+            // Get selected interval from item name
+            String itemName = PlainTextComponentSerializer.plainText().serialize(clickedItem.getItemMeta().displayName());
+            int interval = parseInterval(itemName);
+
+            if (interval > 0) {
+                GeneratorSelection selection = generatorSelections.get(player.getUniqueId());
+                if (selection != null) {
+                    selection.interval = interval;
 
                     player.closeInventory();
-                    player.sendMessage(Component.text("チーム「" + teamName + "」のジェネレーターを作成します。", NamedTextColor.GREEN));
+                    player.sendMessage(Component.text("出現間隔: " + (interval / 20.0) + "秒", NamedTextColor.GREEN));
                     player.sendMessage(Component.text("範囲の1つ目の角を右クリックしてください。", NamedTextColor.YELLOW));
                 }
             }
@@ -259,20 +301,37 @@ public class GUIClickListener implements Listener {
         player.sendMessage(Component.text("2つ目の角を設定しました: ", NamedTextColor.GREEN)
                 .append(Component.text(formatLocation(selection.corner2), NamedTextColor.YELLOW)));
 
-        // Create generator with default interval
+        // Create generator with selected interval
         String materialName = getMaterialName(selection.material);
         String generatorId = selection.teamName + "_" + materialName + "_" + System.currentTimeMillis();
-        int defaultInterval = getDefaultInterval(selection.material);
+        int interval = selection.interval > 0 ? selection.interval : getDefaultInterval(selection.material);
 
-        plugin.getGeneratorManager().addGenerator(generatorId, selection.teamName, selection.material, selection.corner1, selection.corner2, defaultInterval);
+        plugin.getGeneratorManager().addGenerator(generatorId, selection.teamName, selection.material, selection.corner1, selection.corner2, interval);
 
         player.sendMessage(Component.text("ジェネレーターを作成しました！", NamedTextColor.GREEN));
+        player.sendMessage(Component.text("チーム: " + selection.teamName, NamedTextColor.AQUA));
         player.sendMessage(Component.text("アイテム: " + getMaterialDisplayName(selection.material), NamedTextColor.YELLOW));
-        player.sendMessage(Component.text("出現間隔: " + (defaultInterval / 20.0) + "秒", NamedTextColor.YELLOW));
+        player.sendMessage(Component.text("出現間隔: " + (interval / 20.0) + "秒", NamedTextColor.YELLOW));
         player.sendMessage(Component.text("/edit で出現頻度を調整できます。", NamedTextColor.GRAY));
 
         // Clear selection
         generatorSelections.remove(player.getUniqueId());
+    }
+
+    private int parseInterval(String itemName) {
+        // Extract number from item name (e.g., "1秒" -> 20 ticks)
+        if (itemName.contains("1秒")) {
+            return 20; // 1 second
+        } else if (itemName.contains("3秒")) {
+            return 60; // 3 seconds
+        } else if (itemName.contains("5秒")) {
+            return 100; // 5 seconds
+        } else if (itemName.contains("10秒")) {
+            return 200; // 10 seconds
+        } else if (itemName.contains("15秒")) {
+            return 300; // 15 seconds
+        }
+        return 0;
     }
 
     private String formatLocation(org.bukkit.Location loc) {
