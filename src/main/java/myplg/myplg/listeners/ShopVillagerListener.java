@@ -52,6 +52,9 @@ public class ShopVillagerListener implements Listener {
 
                 // Check if it's a shop villager spawn egg
                 if (displayName.contains("ショップ")) {
+                    // Get player's yaw at the time of spawning
+                    final float playerYaw = player.getLocation().getYaw();
+
                     // Schedule villager customization after spawn
                     plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                         // Find the newly spawned villager near the player
@@ -68,9 +71,9 @@ public class ShopVillagerListener implements Listener {
                                     villager.setInvulnerable(true);
                                     villager.setSilent(true);
 
-                                    // Set villager to face south (yaw = 0)
+                                    // Set villager to face the same direction as the player
                                     Location loc = villager.getLocation();
-                                    loc.setYaw(0f);  // 0 = South, 90 = West, 180 = North, -90 = East
+                                    loc.setYaw(playerYaw);  // Use player's yaw
                                     loc.setPitch(0f); // Look straight ahead
                                     villager.teleport(loc);
 
