@@ -4,7 +4,6 @@ import myplg.myplg.PvPGame;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 
 import java.util.HashSet;
@@ -37,9 +36,8 @@ public class VoidDeathListener implements Listener {
             }
             processingPlayers.add(playerUUID);
 
-            // Trigger instant death with fake damage event
-            EntityDamageEvent fakeEvent = new EntityDamageEvent(player, EntityDamageEvent.DamageCause.VOID, 1000.0);
-            plugin.getServer().getPluginManager().callEvent(fakeEvent);
+            // Damage the player to trigger instant death (health will go below 0.2)
+            player.damage(1000.0);
 
             // Remove from processing
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
