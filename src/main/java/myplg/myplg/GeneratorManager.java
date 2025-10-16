@@ -98,13 +98,27 @@ public class GeneratorManager {
         // Get the minimum Y from the selected region (the floor of the selection)
         double minY = Math.min(generator.getCorner1().getY(), generator.getCorner2().getY());
 
-        // Spawn 1 block above the floor of the selected region
-        Location dropLocation = new Location(
-            spawnLocation.getWorld(),
-            spawnLocation.getX(),
-            minY + 1,
-            spawnLocation.getZ()
-        );
+        // For single-block generators (diamond/emerald), spawn directly above the block center
+        boolean isSingleBlock = generator.getCorner1().equals(generator.getCorner2());
+        Location dropLocation;
+
+        if (isSingleBlock) {
+            // Spawn at the center of the block, 1 block above
+            dropLocation = new Location(
+                spawnLocation.getWorld(),
+                generator.getCorner1().getBlockX() + 0.5,
+                minY + 1.0,
+                generator.getCorner1().getBlockZ() + 0.5
+            );
+        } else {
+            // Spawn randomly within the region for area-based generators
+            dropLocation = new Location(
+                spawnLocation.getWorld(),
+                spawnLocation.getX(),
+                minY + 1.0,
+                spawnLocation.getZ()
+            );
+        }
 
         // Drop the item and set velocity to zero (no bouncing or movement)
         org.bukkit.entity.Item item = dropLocation.getWorld().dropItem(dropLocation, new ItemStack(generator.getMaterial(), 1));

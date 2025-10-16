@@ -5,8 +5,10 @@ import myplg.myplg.commands.EndCommand;
 import myplg.myplg.commands.GeneCommand;
 import myplg.myplg.commands.SaveCommand;
 import myplg.myplg.commands.SetBedCommand;
+import myplg.myplg.commands.Shop1Command;
 import myplg.myplg.commands.StartCommand;
 import myplg.myplg.data.GeneratorDataManager;
+import myplg.myplg.data.ShopDataManager;
 import myplg.myplg.data.TeamDataManager;
 import myplg.myplg.data.WorldBackupManager;
 import myplg.myplg.listeners.BedClickListener;
@@ -15,6 +17,8 @@ import myplg.myplg.listeners.GUIClickListener;
 import myplg.myplg.listeners.MobSpawnListener;
 import myplg.myplg.listeners.PlayerDeathListener;
 import myplg.myplg.listeners.PlayerJoinListener;
+import myplg.myplg.listeners.ShopClickListener;
+import myplg.myplg.listeners.ShopVillagerListener;
 import myplg.myplg.listeners.TimeControlListener;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -25,6 +29,7 @@ public final class PvPGame extends JavaPlugin {
     private GeneratorManager generatorManager;
     private TeamDataManager teamDataManager;
     private GeneratorDataManager generatorDataManager;
+    private ShopDataManager shopDataManager;
     private WorldBackupManager worldBackupManager;
     private SetBedCommand setBedCommand;
     private BedClickListener bedClickListener;
@@ -38,6 +43,7 @@ public final class PvPGame extends JavaPlugin {
         generatorManager = new GeneratorManager(this);
         teamDataManager = new TeamDataManager(this);
         generatorDataManager = new GeneratorDataManager(this);
+        shopDataManager = new ShopDataManager(this);
         worldBackupManager = new WorldBackupManager(this);
 
         // Load teams and generators from file after a delay to ensure worlds are loaded
@@ -62,6 +68,7 @@ public final class PvPGame extends JavaPlugin {
         getCommand("save").setExecutor(new SaveCommand(this));
         getCommand("end").setExecutor(new EndCommand(this));
         getCommand("gene").setExecutor(new GeneCommand(this));
+        getCommand("shop1").setExecutor(new Shop1Command(this));
 
         // Register listeners
         getServer().getPluginManager().registerEvents(bedClickListener, this);
@@ -70,6 +77,14 @@ public final class PvPGame extends JavaPlugin {
         getServer().getPluginManager().registerEvents(guiClickListener, this);
         getServer().getPluginManager().registerEvents(new MobSpawnListener(this), this);
         getServer().getPluginManager().registerEvents(new GeneratorSelectionListener(this), this);
+
+        // Shop system listeners - need to link them together
+        ShopVillagerListener shopVillagerListener = new ShopVillagerListener(this);
+        ShopClickListener shopClickListener = new ShopClickListener(this);
+        shopClickListener.setVillagerListener(shopVillagerListener);
+
+        getServer().getPluginManager().registerEvents(shopVillagerListener, this);
+        getServer().getPluginManager().registerEvents(shopClickListener, this);
 
         // Start time control
         TimeControlListener timeControl = new TimeControlListener(this);
@@ -132,5 +147,9 @@ public final class PvPGame extends JavaPlugin {
 
     public GeneratorDataManager getGeneratorDataManager() {
         return generatorDataManager;
+    }
+
+    public ShopDataManager getShopDataManager() {
+        return shopDataManager;
     }
 }

@@ -3,6 +3,7 @@ package myplg.myplg.listeners;
 import myplg.myplg.PvPGame;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -46,7 +47,32 @@ public class GeneratorSelectionListener implements Listener {
         event.setCancelled(true);
         lastClickTime.put(player.getUniqueId(), currentTime);
 
-        // Handle corner selection
-        plugin.getGUIClickListener().handleCornerSelection(player, event.getClickedBlock().getLocation());
+        Material clickedBlockType = event.getClickedBlock().getType();
+
+        // Check if this is a block-based generator (diamond/emerald)
+        if (plugin.getGUIClickListener().isBlockBasedGenerator(player.getUniqueId())) {
+            Material expectedBlock = plugin.getGUIClickListener().getExpectedBlockType(player.getUniqueId());
+
+            if (clickedBlockType == expectedBlock) {
+                // Create block-based generator directly
+                plugin.getGUIClickListener().handleBlockBasedGenerator(player, event.getClickedBlock().getLocation());
+            } else {
+                player.sendMessage(Component.text("エラー: " + getMaterialDisplayName(expectedBlock) + " をクリックしてください。", NamedTextColor.RED));
+            }
+        } else {
+            // Handle corner selection for area-based generators (iron/gold)
+            plugin.getGUIClickListener().handleCornerSelection(player, event.getClickedBlock().getLocation());
+        }
+    }
+
+    private String getMaterialDisplayName(Material material) {
+        switch (material) {
+            case DIAMOND_BLOCK:
+                return "ダイヤモンドブロック";
+            case EMERALD_BLOCK:
+                return "エメラルドブロック";
+            default:
+                return material.name();
+        }
     }
 }

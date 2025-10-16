@@ -39,6 +39,7 @@ public class GUIClickListener implements Listener {
         int interval; // in ticks
         org.bukkit.Location corner1;
         org.bukkit.Location corner2;
+        boolean isBlockBased; // true for diamond/emerald, false for iron/gold
     }
 
     @EventHandler
@@ -69,18 +70,20 @@ public class GUIClickListener implements Listener {
                 selection.material = selectedMaterial;
                 generatorSelections.put(player.getUniqueId(), selection);
 
-                // Diamond and Emerald skip team selection (共通)
+                // Diamond and Emerald are block-based (共通 team)
                 if (selectedMaterial == Material.DIAMOND || selectedMaterial == Material.EMERALD) {
                     selection.teamName = "共通";
+                    selection.isBlockBased = true;
                     managementGUI.openIntervalSelection(player, selectedMaterial, "共通");
                 } else {
-                    // Iron and Gold need team selection
+                    // Iron and Gold are area-based and need team selection
+                    selection.isBlockBased = false;
                     managementGUI.openTeamSelectionForGenerator(player, selectedMaterial);
                 }
             }
         }
-        // Team selection for generator menu
-        else if (title.startsWith("チーム選択 - ")) {
+        // Team selection for /gene command (must check BEFORE "チーム選択 - ジェネレーター管理")
+        else if (title.startsWith("チーム選択 - ") && !title.equals("チーム選択 - ジェネレーター管理")) {
             event.setCancelled(true);
 
             ItemStack clickedItem = event.getCurrentItem();
@@ -94,7 +97,7 @@ public class GUIClickListener implements Listener {
                 return;
             }
 
-            if (clickedItem.getType() == Material.WHITE_BANNER) {
+            if (clickedItem.getType() == Material.WHITE_BANNER && clickedItem.hasItemMeta()) {
                 // Team selected
                 String teamName = PlainTextComponentSerializer.plainText().serialize(clickedItem.getItemMeta().displayName());
 
@@ -139,7 +142,15 @@ public class GUIClickListener implements Listener {
 
                     player.closeInventory();
                     player.sendMessage(Component.text("出現間隔: " + (interval / 20.0) + "秒", NamedTextColor.GREEN));
-                    player.sendMessage(Component.text("範囲の1つ目の角を右クリックしてください。", NamedTextColor.YELLOW));
+
+                    if (selection.isBlockBased) {
+                        // Block-based generators (diamond/emerald)
+                        String blockName = selection.material == Material.DIAMOND ? "ダイヤモンドブロック" : "エメラルドブロック";
+                        player.sendMessage(Component.text(blockName + " を右クリックしてジェネレーターを作成してください。", NamedTextColor.YELLOW));
+                    } else {
+                        // Area-based generators (iron/gold)
+                        player.sendMessage(Component.text("範囲の1つ目の角を右クリックしてください。", NamedTextColor.YELLOW));
+                    }
                 }
             }
         }
@@ -159,7 +170,7 @@ public class GUIClickListener implements Listener {
             }
         }
         // Team selection for generator management
-        else if (title.startsWith("チーム選択") && title.contains("ジェネレーター管理")) {
+        else if (title.equals("チーム選択 - ジェネレーター管理")) {
             event.setCancelled(true);
 
             ItemStack clickedItem = event.getCurrentItem();
@@ -183,7 +194,7 @@ public class GUIClickListener implements Listener {
                 // 共通 team selected
                 plugin.getLogger().info("Opening 共通 generators");
                 managementGUI.openGeneratorListByTeam(player, "共通");
-            } else if (clickedItem.getType() == Material.WHITE_BANNER) {
+            } else if (clickedItem.getType() == Material.WHITE_BANNER && clickedItem.hasItemMeta()) {
                 // Regular team selected
                 String teamName = PlainTextComponentSerializer.plainText().serialize(clickedItem.getItemMeta().displayName());
                 plugin.getLogger().info("Opening generators for team: " + teamName);
@@ -305,6 +316,52 @@ public class GUIClickListener implements Listener {
 
     public boolean hasGeneratorSelection(UUID playerUUID) {
         return generatorSelections.containsKey(playerUUID);
+    }
+
+    public boolean isBlockBasedGenerator(UUID playerUUID) {
+        GeneratorSelection selection = generatorSelections.get(playerUUID);
+        return selection != null && selection.isBlockBased;
+    }
+
+    public Material getExpectedBlockType(UUID playerUUID) {
+        GeneratorSelection selection = generatorSelections.get(playerUUID);
+        if (selection == null) return null;
+
+        switch (selection.material) {
+            case DIAMOND:
+                return Material.DIAMOND_BLOCK;
+            case EMERALD:
+                return Material.EMERALD_BLOCK;
+            default:
+                return null;
+        }
+    }
+
+    public void handleBlockBasedGenerator(Player player, org.bukkit.Location blockLocation) {
+        GeneratorSelection selection = generatorSelections.get(player.getUniqueId());
+        if (selection == null || !selection.isBlockBased) {
+            player.sendMessage(Component.text("エラー: 選択情報が不完全です。", NamedTextColor.RED));
+            return;
+        }
+
+        // For block-based generators, use the block location as both corners
+        // This creates a 1-block generator area
+        String materialName = getMaterialName(selection.material);
+        String generatorId = selection.teamName + "_" + materialName + "_" + System.currentTimeMillis();
+        int interval = selection.interval > 0 ? selection.interval : getDefaultInterval(selection.material);
+
+        // Use the same location for both corners to create a single-block generator
+        plugin.getGeneratorManager().addGenerator(generatorId, selection.teamName, selection.material,
+            blockLocation, blockLocation, interval);
+
+        player.sendMessage(Component.text("ジェネレーターを作成しました！", NamedTextColor.GREEN));
+        player.sendMessage(Component.text("チーム: " + selection.teamName, NamedTextColor.AQUA));
+        player.sendMessage(Component.text("アイテム: " + getMaterialDisplayName(selection.material), NamedTextColor.YELLOW));
+        player.sendMessage(Component.text("出現間隔: " + (interval / 20.0) + "秒", NamedTextColor.YELLOW));
+        player.sendMessage(Component.text("/edit で出現頻度を調整できます。", NamedTextColor.GRAY));
+
+        // Clear selection
+        generatorSelections.remove(player.getUniqueId());
     }
 
     public void handleCornerSelection(Player player, org.bukkit.Location location) {

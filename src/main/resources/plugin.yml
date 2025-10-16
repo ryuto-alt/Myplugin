@@ -21,3 +21,9 @@ commands:
   gene:
     description: ジェネレーターを設定します
     usage: /gene <diamond|gold|iron|emerald>
+  shop1:
+    description: ショップ村人のスポーンエッグを入手します
+    usage: /shop1
+  shop2:
+    description: ダイヤモンドショップ村人のスポーンエッグを入手します
+    usage: /shop2

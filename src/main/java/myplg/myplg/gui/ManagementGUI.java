@@ -209,8 +209,9 @@ public class ManagementGUI {
         diamondMeta.displayName(Component.text("ダイヤモンド ジェネレーター", NamedTextColor.AQUA, TextDecoration.BOLD));
         List<Component> diamondLore = new ArrayList<>();
         diamondLore.add(Component.text("デフォルト間隔: 10秒", NamedTextColor.GRAY));
+        diamondLore.add(Component.text("ダイヤモンドブロックから生成", NamedTextColor.GRAY));
         diamondLore.add(Component.text(""));
-        diamondLore.add(Component.text("クリックして範囲選択を開始", NamedTextColor.GREEN));
+        diamondLore.add(Component.text("クリックして設定を開始", NamedTextColor.GREEN));
         diamondMeta.lore(diamondLore);
         diamondGen.setItemMeta(diamondMeta);
 
@@ -242,8 +243,9 @@ public class ManagementGUI {
         emeraldMeta.displayName(Component.text("エメラルド ジェネレーター", NamedTextColor.GREEN, TextDecoration.BOLD));
         List<Component> emeraldLore = new ArrayList<>();
         emeraldLore.add(Component.text("デフォルト間隔: 15秒", NamedTextColor.GRAY));
+        emeraldLore.add(Component.text("エメラルドブロックから生成", NamedTextColor.GRAY));
         emeraldLore.add(Component.text(""));
-        emeraldLore.add(Component.text("クリックして範囲選択を開始", NamedTextColor.GREEN));
+        emeraldLore.add(Component.text("クリックして設定を開始", NamedTextColor.GREEN));
         emeraldMeta.lore(emeraldLore);
         emeraldGen.setItemMeta(emeraldMeta);
 

@@ -1,0 +1,37 @@
+# Serena MCP Project Configuration
+# このファイルはプロジェクト固有のSerena設定を定義します
+
+# プロジェクト名
+project_name: "myplg"
+
+# サポートする言語
+# このプロジェクトはMinecraft Javaプラグインのため、Javaを指定
+languages:
+  - java
+
+# インデックス設定（大規模プロジェクトの場合のパフォーマンス向上）
+indexing:
+  enabled: true
+  # 除外するパス
+  exclude_paths:
+    - "target"
+    - "build"
+    - ".git"
+    - ".idea"
+    - "*.class"
+
+# セマンティック検索設定
+semantic_search:
+  enabled: true
+  # 検索深度（1-10、数値が高いほど詳細な検索）
+  depth: 5
+
+# コード編集設定
+editing:
+  # 自動フォーマット
+  auto_format: true
+  # バックアップ作成
+  create_backup: true
+
+# Web ダッシュボード（オプション）
+web_dashboard: false
