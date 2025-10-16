@@ -183,6 +183,50 @@ public class ManagementGUI {
         player.openInventory(gui);
     }
 
+    public void openTeamSelectionForGenerator(Player player, Material selectedMaterial) {
+        Inventory gui = Bukkit.createInventory(null, 54,
+            Component.text("チーム選択 - " + getMaterialDisplayName(selectedMaterial), NamedTextColor.DARK_BLUE, TextDecoration.BOLD));
+
+        int slot = 0;
+        for (Team team : plugin.getGameManager().getTeams().values()) {
+            if (slot >= 45) break;
+
+            ItemStack teamItem = new ItemStack(Material.WHITE_BANNER);
+            ItemMeta meta = teamItem.getItemMeta();
+            meta.displayName(Component.text(team.getName(), NamedTextColor.YELLOW, TextDecoration.BOLD));
+
+            List<Component> lore = new ArrayList<>();
+            lore.add(Component.text("このチームのジェネレーターを作成", NamedTextColor.GRAY));
+            lore.add(Component.text(""));
+            lore.add(Component.text("クリックして選択", NamedTextColor.GREEN));
+            meta.lore(lore);
+
+            teamItem.setItemMeta(meta);
+            gui.setItem(slot, teamItem);
+            slot++;
+        }
+
+        if (plugin.getGameManager().getTeams().isEmpty()) {
+            ItemStack infoItem = new ItemStack(Material.PAPER);
+            ItemMeta infoMeta = infoItem.getItemMeta();
+            infoMeta.displayName(Component.text("チームがありません", NamedTextColor.GRAY));
+            List<Component> infoLore = new ArrayList<>();
+            infoLore.add(Component.text("/setbed でチームを作成してください", NamedTextColor.GRAY));
+            infoMeta.lore(infoLore);
+            infoItem.setItemMeta(infoMeta);
+            gui.setItem(22, infoItem);
+        }
+
+        // Back button
+        ItemStack backButton = new ItemStack(Material.ARROW);
+        ItemMeta backMeta = backButton.getItemMeta();
+        backMeta.displayName(Component.text("戻る", NamedTextColor.RED, TextDecoration.BOLD));
+        backButton.setItemMeta(backMeta);
+        gui.setItem(49, backButton);
+
+        player.openInventory(gui);
+    }
+
     private String getMaterialDisplayName(Material material) {
         switch (material) {
             case DIAMOND:

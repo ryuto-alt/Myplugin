@@ -48,6 +48,9 @@ public class GeneratorDataManager {
             String path = "generators." + generator.getId();
             plugin.getLogger().info("Saving generator: " + generator.getId());
 
+            // Save team name
+            config.set(path + ".teamName", generator.getTeamName());
+
             // Save material
             config.set(path + ".material", generator.getMaterial().name());
 
@@ -92,6 +95,13 @@ public class GeneratorDataManager {
             String path = "generators." + generatorId;
 
             try {
+                // Load team name
+                String teamName = config.getString(path + ".teamName");
+                if (teamName == null) {
+                    plugin.getLogger().severe("Team name is null for generator " + generatorId);
+                    continue;
+                }
+
                 // Load material
                 String materialName = config.getString(path + ".material");
                 if (materialName == null) {
@@ -147,7 +157,7 @@ public class GeneratorDataManager {
                 int spawnInterval = config.getInt(path + ".spawnInterval", 100);
 
                 // Add generator (without saving to avoid loop)
-                plugin.getGeneratorManager().addGenerator(generatorId, material, corner1, corner2, spawnInterval, false);
+                plugin.getGeneratorManager().addGenerator(generatorId, teamName, material, corner1, corner2, spawnInterval, false);
                 plugin.getLogger().info("✓ Successfully loaded generator: " + generatorId);
 
             } catch (Exception e) {

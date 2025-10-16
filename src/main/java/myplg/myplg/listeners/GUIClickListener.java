@@ -35,6 +35,7 @@ public class GUIClickListener implements Listener {
 
     private static class GeneratorSelection {
         Material material;
+        String teamName;
         org.bukkit.Location corner1;
         org.bukkit.Location corner2;
     }
@@ -61,18 +62,42 @@ public class GUIClickListener implements Listener {
             if (selectedMaterial == Material.DIAMOND || selectedMaterial == Material.GOLD_INGOT ||
                 selectedMaterial == Material.IRON_INGOT || selectedMaterial == Material.EMERALD) {
 
-                // Start generator selection process
+                // Open team selection GUI
+                managementGUI.openTeamSelectionForGenerator(player, selectedMaterial);
+
+                // Store the selected material temporarily
                 GeneratorSelection selection = new GeneratorSelection();
                 selection.material = selectedMaterial;
                 generatorSelections.put(player.getUniqueId(), selection);
+            }
+        }
+        // Team selection for generator menu
+        else if (title.startsWith("チーム選択 - ")) {
+            event.setCancelled(true);
 
-                player.closeInventory();
-                player.sendMessage(Component.text("1つ目の座標として現在地を設定しました: ", NamedTextColor.GREEN)
-                        .append(Component.text(formatLocation(player.getLocation()), NamedTextColor.YELLOW)));
-                player.sendMessage(Component.text("2つ目の座標に移動して、再度 /gene を実行してください。", NamedTextColor.YELLOW));
+            ItemStack clickedItem = event.getCurrentItem();
+            if (clickedItem == null || clickedItem.getType() == Material.AIR) {
+                return;
+            }
 
-                // Set corner1 to current location
-                selection.corner1 = player.getLocation();
+            if (clickedItem.getType() == Material.ARROW) {
+                // Back button
+                managementGUI.openGeneratorTypeSelection(player);
+                return;
+            }
+
+            if (clickedItem.getType() == Material.WHITE_BANNER) {
+                // Team selected
+                String teamName = PlainTextComponentSerializer.plainText().serialize(clickedItem.getItemMeta().displayName());
+
+                GeneratorSelection selection = generatorSelections.get(player.getUniqueId());
+                if (selection != null) {
+                    selection.teamName = teamName;
+
+                    player.closeInventory();
+                    player.sendMessage(Component.text("チーム「" + teamName + "」のジェネレーターを作成します。", NamedTextColor.GREEN));
+                    player.sendMessage(Component.text("範囲の1つ目の角を右クリックしてください。", NamedTextColor.YELLOW));
+                }
             }
         }
         // Main menu
@@ -198,14 +223,31 @@ public class GUIClickListener implements Listener {
         return generatorSelections.containsKey(playerUUID);
     }
 
-    public void completeGeneratorSelection(Player player) {
+    public void handleCornerSelection(Player player, org.bukkit.Location location) {
         GeneratorSelection selection = generatorSelections.get(player.getUniqueId());
-        if (selection == null || selection.corner1 == null) {
-            player.sendMessage(Component.text("エラー: 選択情報が見つかりません。", NamedTextColor.RED));
+        if (selection == null) {
             return;
         }
 
-        selection.corner2 = player.getLocation();
+        if (selection.corner1 == null) {
+            // First corner
+            selection.corner1 = location;
+            player.sendMessage(Component.text("1つ目の角を設定しました: ", NamedTextColor.GREEN)
+                    .append(Component.text(formatLocation(location), NamedTextColor.YELLOW)));
+            player.sendMessage(Component.text("2つ目の角を右クリックしてください。", NamedTextColor.YELLOW));
+        } else if (selection.corner2 == null) {
+            // Second corner
+            selection.corner2 = location;
+            completeGeneratorSelection(player);
+        }
+    }
+
+    public void completeGeneratorSelection(Player player) {
+        GeneratorSelection selection = generatorSelections.get(player.getUniqueId());
+        if (selection == null || selection.corner1 == null || selection.corner2 == null) {
+            player.sendMessage(Component.text("エラー: 選択情報が不完全です。", NamedTextColor.RED));
+            return;
+        }
 
         // Check if both corners are in the same world
         if (!selection.corner1.getWorld().equals(selection.corner2.getWorld())) {
@@ -214,15 +256,15 @@ public class GUIClickListener implements Listener {
             return;
         }
 
-        player.sendMessage(Component.text("2つ目の座標を設定しました: ", NamedTextColor.GREEN)
+        player.sendMessage(Component.text("2つ目の角を設定しました: ", NamedTextColor.GREEN)
                 .append(Component.text(formatLocation(selection.corner2), NamedTextColor.YELLOW)));
 
         // Create generator with default interval
         String materialName = getMaterialName(selection.material);
-        String generatorId = materialName + "_" + System.currentTimeMillis();
+        String generatorId = selection.teamName + "_" + materialName + "_" + System.currentTimeMillis();
         int defaultInterval = getDefaultInterval(selection.material);
 
-        plugin.getGeneratorManager().addGenerator(generatorId, selection.material, selection.corner1, selection.corner2, defaultInterval);
+        plugin.getGeneratorManager().addGenerator(generatorId, selection.teamName, selection.material, selection.corner1, selection.corner2, defaultInterval);
 
         player.sendMessage(Component.text("ジェネレーターを作成しました！", NamedTextColor.GREEN));
         player.sendMessage(Component.text("アイテム: " + getMaterialDisplayName(selection.material), NamedTextColor.YELLOW));

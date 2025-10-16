@@ -19,14 +19,14 @@ public class GeneratorManager {
         this.generatorTasks = new HashMap<>();
     }
 
-    public void addGenerator(String id, Material material, Location corner1, Location corner2, int spawnInterval) {
-        addGenerator(id, material, corner1, corner2, spawnInterval, true);
+    public void addGenerator(String id, String teamName, Material material, Location corner1, Location corner2, int spawnInterval) {
+        addGenerator(id, teamName, material, corner1, corner2, spawnInterval, true);
     }
 
-    public void addGenerator(String id, Material material, Location corner1, Location corner2, int spawnInterval, boolean save) {
-        Generator generator = new Generator(id, material, corner1, corner2, spawnInterval);
+    public void addGenerator(String id, String teamName, Material material, Location corner1, Location corner2, int spawnInterval, boolean save) {
+        Generator generator = new Generator(id, teamName, material, corner1, corner2, spawnInterval);
         generators.put(id, generator);
-        plugin.getLogger().info("Generator added: " + id + " (" + material.name() + ")");
+        plugin.getLogger().info("Generator added: " + id + " (Team: " + teamName + ", " + material.name() + ")");
 
         if (save && plugin.getGeneratorDataManager() != null) {
             plugin.getGeneratorDataManager().saveGenerators();

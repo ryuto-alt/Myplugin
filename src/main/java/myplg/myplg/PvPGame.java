@@ -10,6 +10,7 @@ import myplg.myplg.data.GeneratorDataManager;
 import myplg.myplg.data.TeamDataManager;
 import myplg.myplg.data.WorldBackupManager;
 import myplg.myplg.listeners.BedClickListener;
+import myplg.myplg.listeners.GeneratorSelectionListener;
 import myplg.myplg.listeners.GUIClickListener;
 import myplg.myplg.listeners.MobSpawnListener;
 import myplg.myplg.listeners.PlayerDeathListener;
@@ -68,6 +69,7 @@ public final class PvPGame extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerDeathListener(this), this);
         getServer().getPluginManager().registerEvents(guiClickListener, this);
         getServer().getPluginManager().registerEvents(new MobSpawnListener(this), this);
+        getServer().getPluginManager().registerEvents(new GeneratorSelectionListener(this), this);
 
         // Start time control
         TimeControlListener timeControl = new TimeControlListener(this);

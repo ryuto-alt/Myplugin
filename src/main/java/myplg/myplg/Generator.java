@@ -5,13 +5,15 @@ import org.bukkit.Material;
 
 public class Generator {
     private final String id;
+    private final String teamName;
     private final Material material;
     private final Location corner1;
     private final Location corner2;
     private int spawnInterval; // in ticks (20 ticks = 1 second)
 
-    public Generator(String id, Material material, Location corner1, Location corner2, int spawnInterval) {
+    public Generator(String id, String teamName, Material material, Location corner1, Location corner2, int spawnInterval) {
         this.id = id;
+        this.teamName = teamName;
         this.material = material;
         this.corner1 = corner1;
         this.corner2 = corner2;
@@ -20,6 +22,10 @@ public class Generator {
 
     public String getId() {
         return id;
+    }
+
+    public String getTeamName() {
+        return teamName;
     }
 
     public Material getMaterial() {
