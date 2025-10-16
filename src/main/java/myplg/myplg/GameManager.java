@@ -19,8 +19,14 @@ public class GameManager {
     }
 
     public void addTeam(Team team) {
+        addTeam(team, true);
+    }
+
+    public void addTeam(Team team, boolean save) {
         teams.put(team.getName(), team);
-        plugin.getTeamDataManager().saveTeams();
+        if (save) {
+            plugin.getTeamDataManager().saveTeams();
+        }
     }
 
     public Team getTeam(String name) {

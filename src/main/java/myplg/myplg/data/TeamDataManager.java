@@ -138,7 +138,7 @@ public class TeamDataManager {
                     }
                 }
 
-                plugin.getGameManager().addTeam(team);
+                plugin.getGameManager().addTeam(team, false);
                 plugin.getLogger().info("Loaded team: " + teamName);
 
             } catch (Exception e) {

@@ -21,6 +21,12 @@ public class TimeControlListener {
                     if (world.getTime() > 12000 || world.getTime() < 1000) {
                         world.setTime(1000);
                     }
+
+                    // Set weather to clear
+                    if (world.hasStorm() || world.isThundering()) {
+                        world.setStorm(false);
+                        world.setThundering(false);
+                    }
                 }
             }
         }.runTaskTimer(plugin, 0L, 100L); // Check every 5 seconds (100 ticks)
