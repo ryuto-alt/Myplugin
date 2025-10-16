@@ -144,6 +144,10 @@ public class PlayerDeathListener implements Listener {
         player.setGameMode(GameMode.SPECTATOR);
         player.setHealth(20.0); // Reset health
 
+        // Teleport to (0, 125, 0) in the same world
+        Location spectatorLocation = new Location(player.getWorld(), 0.5, 125.0, 0.5);
+        player.teleport(spectatorLocation);
+
         // Get team spawn location
         Location spawnLocation = plugin.getGameManager().getTeam(teamName).getSpawnLocation();
 
