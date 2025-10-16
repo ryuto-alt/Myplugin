@@ -2,3 +2,13 @@ name: PvPGame
 version: '${version}'
 main: myplg.myplg.PvPGame
 api-version: '1.21'
+commands:
+  setbed:
+    description: チームのベッドを設定します
+    usage: /setbed <チーム名>
+  start:
+    description: ゲームを開始します
+    usage: /start
+  edit:
+    description: ゲーム管理の本を入手します
+    usage: /edit
