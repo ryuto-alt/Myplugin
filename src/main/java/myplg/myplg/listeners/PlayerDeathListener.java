@@ -106,6 +106,12 @@ public class PlayerDeathListener implements Listener {
             }
         }
 
+        // Set custom death message
+        event.setDeathMessage(null); // Hide default death message
+
+        // Show "死んでしまった！" title to the player
+        player.sendTitle("§c§l死んでしまった！", "§e5秒後にリスポーンします...", 10, 70, 20);
+
         // Clear all drops except nothing (we handle what they keep)
         event.getDrops().clear();
         event.setKeepInventory(false);
@@ -141,7 +147,6 @@ public class PlayerDeathListener implements Listener {
             public void run() {
                 if (player.isOnline()) {
                     player.setGameMode(GameMode.SPECTATOR);
-                    player.sendMessage("§e5秒後にリスポーンします...");
                 }
             }
         }.runTaskLater(plugin, 1L);
@@ -152,8 +157,11 @@ public class PlayerDeathListener implements Listener {
             public void run() {
                 if (player.isOnline()) {
                     player.setGameMode(GameMode.SURVIVAL);
+
+                    // Teleport to team spawn location
+                    player.teleport(plugin.getGameManager().getTeam(teamName).getSpawnLocation());
+
                     restorePlayerEquipment(player, playerUUID, teamName);
-                    player.sendMessage("§aリスポーンしました！");
                 }
             }
         }.runTaskLater(plugin, 100L); // 5 seconds (20 ticks per second * 5 = 100 ticks)
