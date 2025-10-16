@@ -2,12 +2,14 @@ package myplg.myplg.listeners;
 
 import myplg.myplg.PvPGame;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -23,6 +25,7 @@ public class PlayerDeathListener implements Listener {
     private final Map<UUID, ItemStack[]> savedArmor; // Saved armor for respawn
     private final Map<UUID, ItemStack> savedAxe; // Saved axe for respawn
     private final Map<UUID, ItemStack> savedPickaxe; // Saved pickaxe for respawn
+    private final Set<UUID> processingDeath; // Prevent duplicate death processing
 
     public PlayerDeathListener(PvPGame plugin) {
         this.plugin = plugin;
@@ -30,17 +33,43 @@ public class PlayerDeathListener implements Listener {
         this.savedArmor = new HashMap<>();
         this.savedAxe = new HashMap<>();
         this.savedPickaxe = new HashMap<>();
+        this.processingDeath = new HashSet<>();
     }
 
-    @EventHandler
-    public void onPlayerDeath(PlayerDeathEvent event) {
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onEntityDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player)) {
+            return;
+        }
+
         if (!plugin.getGameManager().isGameRunning()) {
             return;
         }
 
-        Player player = event.getPlayer();
+        Player player = (Player) event.getEntity();
+        UUID playerUUID = player.getUniqueId();
+
+        // Check if player will die from this damage (health <= 0.2 after damage)
+        double healthAfterDamage = player.getHealth() - event.getFinalDamage();
+
+        if (healthAfterDamage <= 0.2 && !processingDeath.contains(playerUUID)) {
+            // Cancel the damage event
+            event.setCancelled(true);
+
+            // Mark as processing
+            processingDeath.add(playerUUID);
+
+            // Trigger instant death
+            handleInstantDeath(player);
+        }
+    }
+
+    private void handleInstantDeath(Player player) {
         UUID playerUUID = player.getUniqueId();
         String teamName = plugin.getGameManager().getPlayerTeam(playerUUID);
+
+        // Clear inventory drops
+        player.getInventory().clear();
 
         // Check if bed is alive
         boolean bedAlive = plugin.getScoreboardManager().isBedAlive(teamName);
@@ -48,7 +77,9 @@ public class PlayerDeathListener implements Listener {
         if (!bedAlive) {
             // Player is eliminated
             eliminatedPlayers.add(playerUUID);
-            event.setDeathMessage("§c" + player.getName() + " は脱落しました！");
+            player.setGameMode(GameMode.SPECTATOR);
+            player.sendTitle("§c§l死んでしまった！", "§cあなたは脱落しました", 10, 70, 20);
+            processingDeath.remove(playerUUID);
             return;
         }
 
@@ -106,65 +137,28 @@ public class PlayerDeathListener implements Listener {
             }
         }
 
-        // Set custom death message
-        event.setDeathMessage(null); // Hide default death message
-
         // Show "死んでしまった！" title to the player
         player.sendTitle("§c§l死んでしまった！", "§e5秒後にリスポーンします...", 10, 70, 20);
 
-        // Clear all drops except nothing (we handle what they keep)
-        event.getDrops().clear();
-        event.setKeepInventory(false);
-    }
+        // Set to spectator mode
+        player.setGameMode(GameMode.SPECTATOR);
+        player.setHealth(20.0); // Reset health
 
-    @EventHandler
-    public void onPlayerRespawn(PlayerRespawnEvent event) {
-        Player player = event.getPlayer();
-        UUID playerUUID = player.getUniqueId();
+        // Get team spawn location
+        Location spawnLocation = plugin.getGameManager().getTeam(teamName).getSpawnLocation();
 
-        if (!plugin.getGameManager().isGameRunning()) {
-            return;
-        }
-
-        String teamName = plugin.getGameManager().getPlayerTeam(playerUUID);
-        if (teamName == null) {
-            return;
-        }
-
-        // Check if player is eliminated
-        if (eliminatedPlayers.contains(playerUUID)) {
-            player.setGameMode(GameMode.SPECTATOR);
-            player.sendMessage("§cあなたは脱落しました。観戦モードになります。");
-            return;
-        }
-
-        // Set respawn location to team spawn
-        event.setRespawnLocation(plugin.getGameManager().getTeam(teamName).getSpawnLocation());
-
-        // Set to spectator mode for 5 seconds (respawn cooldown)
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (player.isOnline()) {
-                    player.setGameMode(GameMode.SPECTATOR);
-                }
-            }
-        }.runTaskLater(plugin, 1L);
-
-        // Restore to survival mode and equipment after 5 seconds
+        // Teleport to spawn after 5 seconds and restore equipment
         new BukkitRunnable() {
             @Override
             public void run() {
                 if (player.isOnline()) {
                     player.setGameMode(GameMode.SURVIVAL);
-
-                    // Teleport to team spawn location
-                    player.teleport(plugin.getGameManager().getTeam(teamName).getSpawnLocation());
-
+                    player.teleport(spawnLocation);
                     restorePlayerEquipment(player, playerUUID, teamName);
+                    processingDeath.remove(playerUUID);
                 }
             }
-        }.runTaskLater(plugin, 100L); // 5 seconds (20 ticks per second * 5 = 100 ticks)
+        }.runTaskLater(plugin, 100L); // 5 seconds
     }
 
     private void restorePlayerEquipment(Player player, UUID playerUUID, String teamName) {
