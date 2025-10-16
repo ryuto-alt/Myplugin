@@ -89,21 +89,23 @@ public class ManagementGUI {
         // Add "共通" team first
         ItemStack commonTeam = new ItemStack(Material.NETHER_STAR);
         ItemMeta commonMeta = commonTeam.getItemMeta();
-        commonMeta.displayName(Component.text("共通", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD));
-        List<Component> commonLore = new ArrayList<>();
+        if (commonMeta != null) {
+            commonMeta.displayName(Component.text("共通", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD));
+            List<Component> commonLore = new ArrayList<>();
 
-        int commonCount = 0;
-        for (Generator gen : plugin.getGeneratorManager().getGenerators().values()) {
-            if (gen.getTeamName().equals("共通")) commonCount++;
+            int commonCount = 0;
+            for (Generator gen : plugin.getGeneratorManager().getGenerators().values()) {
+                if (gen.getTeamName().equals("共通")) commonCount++;
+            }
+
+            commonLore.add(Component.text("ジェネレーター数: " + commonCount, NamedTextColor.GRAY));
+            commonLore.add(Component.text(""));
+            commonLore.add(Component.text("クリックで詳細を表示", NamedTextColor.GREEN));
+            commonMeta.lore(commonLore);
+            commonTeam.setItemMeta(commonMeta);
         }
-
-        commonLore.add(Component.text("ジェネレーター数: " + commonCount, NamedTextColor.GRAY));
-        commonLore.add(Component.text(""));
-        commonLore.add(Component.text("クリックで詳細を表示", NamedTextColor.GREEN));
-        commonMeta.lore(commonLore);
-        commonTeam.setItemMeta(commonMeta);
         gui.setItem(0, commonTeam);
-        plugin.getLogger().info("Added 共通 team to slot 0");
+        plugin.getLogger().info("Added 共通 team to slot 0 - Item: " + commonTeam.getType() + ", HasMeta: " + (commonTeam.hasItemMeta()));
 
         int slot = 1;
         for (Team team : plugin.getGameManager().getTeams().values()) {
@@ -111,26 +113,28 @@ public class ManagementGUI {
 
             ItemStack teamItem = new ItemStack(Material.WHITE_BANNER);
             ItemMeta meta = teamItem.getItemMeta();
-            meta.displayName(Component.text(team.getName(), NamedTextColor.YELLOW, TextDecoration.BOLD));
+            if (meta != null) {
+                meta.displayName(Component.text(team.getName(), NamedTextColor.YELLOW, TextDecoration.BOLD));
 
-            List<Component> lore = new ArrayList<>();
+                List<Component> lore = new ArrayList<>();
 
-            // Count generators for this team
-            int generatorCount = 0;
-            for (Generator generator : plugin.getGeneratorManager().getGenerators().values()) {
-                if (generator.getTeamName().equals(team.getName())) {
-                    generatorCount++;
+                // Count generators for this team
+                int generatorCount = 0;
+                for (Generator generator : plugin.getGeneratorManager().getGenerators().values()) {
+                    if (generator.getTeamName().equals(team.getName())) {
+                        generatorCount++;
+                    }
                 }
+
+                lore.add(Component.text("ジェネレーター数: " + generatorCount, NamedTextColor.GRAY));
+                lore.add(Component.text(""));
+                lore.add(Component.text("クリックで詳細を表示", NamedTextColor.GREEN));
+                meta.lore(lore);
+
+                teamItem.setItemMeta(meta);
             }
-
-            lore.add(Component.text("ジェネレーター数: " + generatorCount, NamedTextColor.GRAY));
-            lore.add(Component.text(""));
-            lore.add(Component.text("クリックで詳細を表示", NamedTextColor.GREEN));
-            meta.lore(lore);
-
-            teamItem.setItemMeta(meta);
             gui.setItem(slot, teamItem);
-            plugin.getLogger().info("Added team " + team.getName() + " to slot " + slot);
+            plugin.getLogger().info("Added team " + team.getName() + " to slot " + slot + ", Item: " + teamItem.getType());
             slot++;
         }
         plugin.getLogger().info("Total teams added: " + (slot - 1));
