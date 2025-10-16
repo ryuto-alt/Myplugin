@@ -43,7 +43,7 @@ public class ScoreboardManager {
         objective.getScore(" ").setScore(score--);
 
         // Display each team's bed status
-        for (Team team : plugin.getGameManager().getTeams()) {
+        for (Team team : plugin.getGameManager().getTeams().values()) {
             String teamName = team.getName();
             boolean bedAlive = bedStatus.getOrDefault(teamName, true);
 
@@ -94,7 +94,7 @@ public class ScoreboardManager {
      */
     public void initializeAllBeds() {
         bedStatus.clear();
-        for (Team team : plugin.getGameManager().getTeams()) {
+        for (Team team : plugin.getGameManager().getTeams().values()) {
             bedStatus.put(team.getName(), true);
         }
     }
