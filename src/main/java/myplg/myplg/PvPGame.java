@@ -6,6 +6,7 @@ import myplg.myplg.commands.GeneCommand;
 import myplg.myplg.commands.SaveCommand;
 import myplg.myplg.commands.SetBedCommand;
 import myplg.myplg.commands.Shop1Command;
+import myplg.myplg.commands.Shop2Command;
 import myplg.myplg.commands.ShopResetCommand;
 import myplg.myplg.commands.StartCommand;
 import myplg.myplg.data.GeneratorDataManager;
@@ -23,6 +24,7 @@ import myplg.myplg.listeners.MobSpawnListener;
 import myplg.myplg.listeners.PlayerDeathListener;
 import myplg.myplg.listeners.PlayerJoinListener;
 import myplg.myplg.listeners.ShopClickListener;
+import myplg.myplg.listeners.ShopTwoListener;
 import myplg.myplg.listeners.ShopVillagerListener;
 import myplg.myplg.listeners.TimeControlListener;
 import myplg.myplg.listeners.VoidDeathListener;
@@ -79,6 +81,7 @@ public final class PvPGame extends JavaPlugin {
         getCommand("end").setExecutor(new EndCommand(this));
         getCommand("gene").setExecutor(new GeneCommand(this));
         getCommand("shop1").setExecutor(new Shop1Command(this));
+        getCommand("shop2").setExecutor(new Shop2Command(this));
         getCommand("sreset").setExecutor(new ShopResetCommand(this));
 
         // Register listeners
@@ -91,10 +94,12 @@ public final class PvPGame extends JavaPlugin {
 
         // Shop system listeners - need to link them together
         ShopVillagerListener shopVillagerListener = new ShopVillagerListener(this);
+        ShopTwoListener shopTwoListener = new ShopTwoListener(this);
         ShopClickListener shopClickListener = new ShopClickListener(this);
         shopClickListener.setVillagerListener(shopVillagerListener);
 
         getServer().getPluginManager().registerEvents(shopVillagerListener, this);
+        getServer().getPluginManager().registerEvents(shopTwoListener, this);
         getServer().getPluginManager().registerEvents(shopClickListener, this);
         getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.FireballListener(this), this);
         getServer().getPluginManager().registerEvents(new ArmorRemoveListener(this), this);
