@@ -142,12 +142,14 @@ public class ManagementGUI {
     }
 
     public void openGeneratorListByTeam(Player player, String teamName) {
+        plugin.getLogger().info("Opening generator list for team: " + teamName);
         Inventory gui = Bukkit.createInventory(null, 54, Component.text(teamName + " - ジェネレーター", NamedTextColor.DARK_BLUE, TextDecoration.BOLD));
 
         int slot = 0;
         for (Generator generator : plugin.getGeneratorManager().getGenerators().values()) {
             if (!generator.getTeamName().equals(teamName)) continue;
             if (slot >= 45) break;
+            plugin.getLogger().info("Adding generator to GUI: " + generator.getId());
 
             ItemStack generatorItem = new ItemStack(generator.getMaterial());
             ItemMeta meta = generatorItem.getItemMeta();
@@ -168,6 +170,7 @@ public class ManagementGUI {
         }
 
         if (slot == 0) {
+            plugin.getLogger().info("No generators found for team: " + teamName);
             ItemStack infoItem = new ItemStack(Material.PAPER);
             ItemMeta infoMeta = infoItem.getItemMeta();
             infoMeta.displayName(Component.text("ジェネレーターがありません", NamedTextColor.GRAY));
@@ -185,6 +188,7 @@ public class ManagementGUI {
         backButton.setItemMeta(backMeta);
         gui.setItem(49, backButton);
 
+        plugin.getLogger().info("Opening inventory for player: " + player.getName() + ", generators: " + slot);
         player.openInventory(gui);
     }
 
