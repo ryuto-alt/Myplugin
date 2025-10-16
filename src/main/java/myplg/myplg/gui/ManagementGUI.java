@@ -95,6 +95,7 @@ public class ManagementGUI {
                     NamedTextColor.YELLOW, TextDecoration.BOLD));
 
             List<Component> lore = new ArrayList<>();
+            lore.add(Component.text("チーム: " + generator.getTeamName(), NamedTextColor.AQUA));
             lore.add(Component.text("出現間隔: " + (generator.getSpawnInterval() / 20.0) + "秒", NamedTextColor.GRAY));
             lore.add(Component.text(""));
             lore.add(Component.text("左クリック: 間隔を0.5秒短縮", NamedTextColor.GREEN));
