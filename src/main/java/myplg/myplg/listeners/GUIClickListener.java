@@ -49,6 +49,7 @@ public class GUIClickListener implements Listener {
 
         Player player = (Player) event.getWhoClicked();
         String title = PlainTextComponentSerializer.plainText().serialize(event.getView().title());
+        plugin.getLogger().info("GUI clicked - Title: '" + title + "'");
 
         // Generator type selection menu
         if (title.equals("ジェネレーター作成")) {
@@ -158,13 +159,15 @@ public class GUIClickListener implements Listener {
             }
         }
         // Team selection for generator management
-        else if (title.equals("チーム選択 - ジェネレーター管理")) {
+        else if (title.startsWith("チーム選択") && title.contains("ジェネレーター管理")) {
             event.setCancelled(true);
 
             ItemStack clickedItem = event.getCurrentItem();
             if (clickedItem == null || clickedItem.getType() == Material.AIR) {
                 return;
             }
+
+            plugin.getLogger().info("Team selection clicked: " + clickedItem.getType());
 
             if (clickedItem.getType() == Material.ARROW) {
                 // Back button
@@ -174,10 +177,12 @@ public class GUIClickListener implements Listener {
 
             if (clickedItem.getType() == Material.NETHER_STAR) {
                 // 共通 team selected
+                plugin.getLogger().info("Opening 共通 generators");
                 managementGUI.openGeneratorListByTeam(player, "共通");
             } else if (clickedItem.getType() == Material.WHITE_BANNER) {
                 // Regular team selected
                 String teamName = PlainTextComponentSerializer.plainText().serialize(clickedItem.getItemMeta().displayName());
+                plugin.getLogger().info("Opening generators for team: " + teamName);
                 managementGUI.openGeneratorListByTeam(player, teamName);
             }
         }

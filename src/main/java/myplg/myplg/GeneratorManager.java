@@ -106,8 +106,9 @@ public class GeneratorManager {
             spawnLocation.getZ()
         );
 
-        // Drop the item without random velocity (no bouncing)
-        dropLocation.getWorld().dropItem(dropLocation, new ItemStack(generator.getMaterial(), 1));
+        // Drop the item and set velocity to zero (no bouncing or movement)
+        org.bukkit.entity.Item item = dropLocation.getWorld().dropItem(dropLocation, new ItemStack(generator.getMaterial(), 1));
+        item.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
 
         plugin.getLogger().info("Spawned " + generator.getMaterial().name() + " at " +
             String.format("(%.1f, %.1f, %.1f) for generator " + generator.getId(),
