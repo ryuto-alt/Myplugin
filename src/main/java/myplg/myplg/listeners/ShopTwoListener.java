@@ -70,6 +70,7 @@ public class ShopTwoListener implements Listener {
                                     skeleton.setAI(false);
                                     skeleton.setInvulnerable(true);
                                     skeleton.setSilent(true);
+                                    skeleton.setRemoveWhenFarAway(false); // Prevent despawning
 
                                     // Set skeleton to face the same direction as the player
                                     Location loc = skeleton.getLocation();

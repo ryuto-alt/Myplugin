@@ -70,6 +70,7 @@ public class ShopVillagerListener implements Listener {
                                     villager.setAI(false);
                                     villager.setInvulnerable(true);
                                     villager.setSilent(true);
+                                    villager.setRemoveWhenFarAway(false); // Prevent despawning
 
                                     // Set villager to face the same direction as the player
                                     Location loc = villager.getLocation();
