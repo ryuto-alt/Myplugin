@@ -31,17 +31,17 @@ public class Shop2Command implements CommandExecutor {
         ItemStack spawnEgg = new ItemStack(Material.SKELETON_SPAWN_EGG, 1);
         ItemMeta meta = spawnEgg.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName("§6§lショップ (陣地強化・武器強化・装備強化・トラップ)");
+            meta.setDisplayName("§6§lアップグレード (陣地強化・武器強化・装備強化・トラップ)");
             meta.setLore(Arrays.asList(
                 "§7右クリックでスケルトンを召喚",
-                "§7スケルトンを右クリックでショップを開く",
+                "§7スケルトンを右クリックでアップグレードショップを開く",
                 "§e通貨: ダイヤモンドのみ"
             ));
             spawnEgg.setItemMeta(meta);
         }
 
         player.getInventory().addItem(spawnEgg);
-        player.sendMessage("§aショップスケルトンのスポーンエッグを入手しました！");
+        player.sendMessage("§aアップグレードスケルトンのスポーンエッグを入手しました！");
         player.sendMessage("§7地面に右クリックでスケルトンを召喚できます。");
 
         return true;

@@ -70,8 +70,8 @@ public class ShopClickListener implements Listener {
             return;
         }
 
-        // Main shop navigation (Shop 1 and Shop 2 share same title)
-        if (title.equals("§6§lショップ - メイン")) {
+        // Main shop navigation (Shop 1 uses "ショップ", Shop 2 uses "アップグレード")
+        if (title.equals("§6§lショップ - メイン") || title.equals("§6§lアップグレード - メイン")) {
             event.setCancelled(true);
             handleMainShopClick(player, clickedItem);
             return;

@@ -30,7 +30,11 @@ public class ShopResetCommand implements CommandExecutor {
         // Reset all players' tool upgrades
         plugin.getToolUpgradeManager().resetAll();
 
+        // Reset all territory upgrades
+        plugin.getTerritoryUpgradeManager().resetAll();
+
         player.sendMessage("§a§l全プレイヤーのショップツールアップグレード状態をリセットしました！");
+        player.sendMessage("§a§l全チームの陣地強化アップグレード状態をリセットしました！");
         plugin.getLogger().info(player.getName() + " がショップ状態をリセットしました。");
 
         return true;

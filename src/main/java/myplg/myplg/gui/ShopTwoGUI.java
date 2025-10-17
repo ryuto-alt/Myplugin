@@ -18,7 +18,7 @@ public class ShopTwoGUI {
     }
 
     public void openMainShop(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 45, "§6§lショップ - メイン");
+        Inventory inv = Bukkit.createInventory(null, 45, "§6§lアップグレード - メイン");
 
         // Get player's team to check upgrade levels
         String teamName = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
@@ -36,22 +36,32 @@ public class ShopTwoGUI {
             // Lv I - Heal
             if (territoryLevel >= 1) {
                 lore.add("§9Lv I ヒール §7(ダイヤ x3)");
+                lore.add("§9  陣地にいると自動で体力回復");
             } else {
                 lore.add("§7Lv I ヒール §7(ダイヤ x3)");
+                lore.add("§7  陣地にいると自動で体力回復");
             }
+
+            lore.add("");
 
             // Lv II - Speed
             if (territoryLevel >= 2) {
                 lore.add("§9Lv II 加速 §7(ダイヤ x4)");
+                lore.add("§9  ジェネレーターの生成速度が2倍");
             } else {
                 lore.add("§7Lv II 加速 §7(ダイヤ x4)");
+                lore.add("§7  ジェネレーターの生成速度が2倍");
             }
+
+            lore.add("");
 
             // Lv III - Evolution
             if (territoryLevel >= 3) {
                 lore.add("§9Lv III 進化 §7(ダイヤ x5)");
+                lore.add("§9  ジェネレーターが進化");
             } else {
                 lore.add("§7Lv III 進化 §7(ダイヤ x5)");
+                lore.add("§7  ジェネレーターが進化");
             }
 
             lore.add("");
