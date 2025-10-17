@@ -70,17 +70,10 @@ public class ShopClickListener implements Listener {
             return;
         }
 
-        // Main shop navigation (Shop 1)
+        // Main shop navigation (Shop 1 and Shop 2 share same title)
         if (title.equals("§6§lショップ - メイン")) {
             event.setCancelled(true);
             handleMainShopClick(player, clickedItem);
-            return;
-        }
-
-        // Shop 2 main menu
-        if (title.equals("§6§lショップ - メイン")) {
-            event.setCancelled(true);
-            handleShopTwoMainClick(player, clickedItem);
             return;
         }
 
@@ -121,6 +114,12 @@ public class ShopClickListener implements Listener {
         if (clickedItem.hasItemMeta() && clickedItem.getItemMeta().hasDisplayName()) {
             String displayName = clickedItem.getItemMeta().getDisplayName();
 
+            // Category button: Territory Enhancement (陣地強化) - Shop 2
+            if (type == Material.BEACON && displayName.contains("陣地強化")) {
+                handleTerritoryUpgradeClick(player);
+                return;
+            }
+
             // Category button: Blocks
             if (displayName.contains("ブロック") && amount == 1) {
                 shopGUI.openBlocksShop(player);
@@ -128,13 +127,13 @@ public class ShopClickListener implements Listener {
             }
 
             // Category button: Equipment
-            if (displayName.contains("装備") && amount == 1) {
+            if (displayName.contains("装備") && amount == 1 && type != Material.IRON_SWORD) {
                 shopGUI.openEquipmentShop(player);
                 return;
             }
 
-            // Category button: Enhancement
-            if (displayName.contains("強化") && amount == 1) {
+            // Category button: Enhancement (強化 but not 陣地強化)
+            if (displayName.contains("強化") && amount == 1 && !displayName.contains("陣地")) {
                 shopGUI.openEnhancementShop(player);
                 return;
             }
@@ -810,6 +809,80 @@ public class ShopClickListener implements Listener {
         } else if (type == Material.ARROW) {
             // Close button
             player.closeInventory();
+        }
+    }
+
+    private void handleTerritoryUpgradeClick(Player player) {
+        // Get player's team
+        String teamName = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
+        if (teamName == null) {
+            player.sendMessage("§cエラー: チームに所属していません。");
+            player.closeInventory();
+            return;
+        }
+
+        // Get current upgrade level
+        int currentLevel = plugin.getTerritoryUpgradeManager().getUpgradeLevel(teamName);
+        int nextLevel = currentLevel + 1;
+
+        // Check if max level reached
+        if (nextLevel > 3) {
+            player.sendMessage("§c陣地強化は既に最大レベルです！");
+            return;
+        }
+
+        // Determine cost based on level
+        int cost;
+        String upgradeName;
+        switch (nextLevel) {
+            case 1:
+                cost = 3;
+                upgradeName = "Lv I ヒール";
+                break;
+            case 2:
+                cost = 4;
+                upgradeName = "Lv II 加速";
+                break;
+            case 3:
+                cost = 5;
+                upgradeName = "Lv III 進化";
+                break;
+            default:
+                return;
+        }
+
+        // Check if player has enough diamonds
+        if (!hasEnoughItems(player, Material.DIAMOND, cost)) {
+            player.sendMessage("§c購入に必要な通貨が不足しています！ 必要: ダイヤ x" + cost);
+            return;
+        }
+
+        // Remove diamonds
+        removeItems(player, Material.DIAMOND, cost);
+
+        // Upgrade territory
+        boolean success = plugin.getTerritoryUpgradeManager().upgradeTerritory(teamName, nextLevel);
+
+        if (success) {
+            // Broadcast to team
+            for (java.util.UUID memberUUID : plugin.getGameManager().getTeamMembers(teamName)) {
+                org.bukkit.entity.Player member = plugin.getServer().getPlayer(memberUUID);
+                if (member != null && member.isOnline()) {
+                    member.sendMessage("§a§l陣地強化: " + upgradeName + " §aが購入されました！");
+                }
+            }
+
+            // Play sound
+            player.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_BEACON_ACTIVATE, 1.0f, 1.0f);
+
+            // Reopen shop to show updated status
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                new myplg.myplg.gui.ShopTwoGUI(plugin).openMainShop(player);
+            }, 1L);
+        } else {
+            // Refund if upgrade failed
+            player.getInventory().addItem(new ItemStack(Material.DIAMOND, cost));
+            player.sendMessage("§cアップグレードに失敗しました。");
         }
     }
 
