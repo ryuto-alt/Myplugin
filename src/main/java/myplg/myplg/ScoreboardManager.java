@@ -6,6 +6,7 @@ import org.bukkit.scoreboard.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class ScoreboardManager {
     private final PvPGame plugin;
@@ -39,18 +40,57 @@ public class ScoreboardManager {
 
         int score = 15;
 
+        // Get player's team
+        String playerTeamName = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
+
         // Title spacing
         objective.getScore(" ").setScore(score--);
 
-        // Display each team's bed status
+        // Display player's own team info
+        if (playerTeamName != null) {
+            Team playerTeam = plugin.getGameManager().getTeam(playerTeamName);
+            if (playerTeam != null) {
+                String prefix = getTeamPrefix(playerTeamName);
+                objective.getScore("§l§n自分のチーム:").setScore(score--);
+                objective.getScore(prefix + " §l" + playerTeamName).setScore(score--);
+                objective.getScore("   ").setScore(score--);
+            }
+        }
+
+        // Teams section
+        objective.getScore("§l§nチーム状況:").setScore(score--);
+
+        // Display each team's bed status and player count
         for (Team team : plugin.getGameManager().getTeams().values()) {
             String teamName = team.getName();
             boolean bedAlive = bedStatus.getOrDefault(teamName, true);
 
             String prefix = getTeamPrefix(teamName);
-            String status = bedAlive ? "§a✓" : "§c✗";
 
-            String line = prefix + " " + teamName + ": " + status;
+            // Count alive players in team
+            int aliveCount = 0;
+            for (UUID memberUUID : team.getMembers()) {
+                Player member = Bukkit.getPlayer(memberUUID);
+                if (member != null && member.isOnline()) {
+                    aliveCount++;
+                }
+            }
+
+            String status;
+            if (bedAlive) {
+                status = "§a✓";
+            } else {
+                // Show player count if bed is destroyed
+                status = "§c" + aliveCount;
+            }
+
+            // Highlight player's own team
+            String teamDisplay = teamName;
+            if (teamName.equals(playerTeamName)) {
+                teamDisplay = "§l" + teamName + " §7(YOU)";
+            }
+
+            String line = prefix + " " + teamDisplay + " " + status;
             objective.getScore(line).setScore(score--);
         }
 
