@@ -167,6 +167,39 @@ public class GUIClickListener implements Listener {
                 managementGUI.openTeamList(player);
             } else if (clickedItem.getType() == Material.DROPPER) {
                 managementGUI.openGeneratorTeamSelection(player);
+            } else if (clickedItem.getType() == Material.COMPARATOR) {
+                managementGUI.openGameModeSelection(player);
+            }
+        }
+        // Game mode selection
+        else if (title.equals("ゲームモード選択")) {
+            event.setCancelled(true);
+
+            ItemStack clickedItem = event.getCurrentItem();
+            if (clickedItem == null || clickedItem.getType() == Material.AIR) {
+                return;
+            }
+
+            if (clickedItem.getType() == Material.ARROW) {
+                // Back button
+                managementGUI.openMainMenu(player);
+                return;
+            }
+
+            if (clickedItem.getType() == Material.IRON_SWORD) {
+                // Solo mode selected
+                plugin.getGameManager().setGameMode(myplg.myplg.GameMode.SOLO);
+                player.sendMessage(Component.text("ゲームモードを ", NamedTextColor.GREEN)
+                        .append(Component.text("ソロ", NamedTextColor.GOLD))
+                        .append(Component.text(" に設定しました！", NamedTextColor.GREEN)));
+                managementGUI.openMainMenu(player);
+            } else if (clickedItem.getType() == Material.DIAMOND_SWORD) {
+                // Duel mode selected
+                plugin.getGameManager().setGameMode(myplg.myplg.GameMode.DUEL);
+                player.sendMessage(Component.text("ゲームモードを ", NamedTextColor.GREEN)
+                        .append(Component.text("デュオ", NamedTextColor.AQUA))
+                        .append(Component.text(" に設定しました！", NamedTextColor.GREEN)));
+                managementGUI.openMainMenu(player);
             }
         }
         // Team selection for generator management

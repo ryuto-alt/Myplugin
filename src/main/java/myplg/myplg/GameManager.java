@@ -1,5 +1,6 @@
 package myplg.myplg;
 
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 
@@ -10,12 +11,14 @@ public class GameManager {
     private final Map<String, Team> teams;
     private final Map<UUID, String> playerTeams;
     private boolean gameRunning;
+    private myplg.myplg.GameMode currentGameMode;
 
     public GameManager(PvPGame plugin) {
         this.plugin = plugin;
         this.teams = new HashMap<>();
         this.playerTeams = new HashMap<>();
         this.gameRunning = false;
+        this.currentGameMode = myplg.myplg.GameMode.SOLO; // Default mode
     }
 
     public void addTeam(Team team) {
@@ -53,8 +56,18 @@ public class GameManager {
         this.gameRunning = running;
     }
 
+    public myplg.myplg.GameMode getGameMode() {
+        return currentGameMode;
+    }
+
+    public void setGameMode(myplg.myplg.GameMode mode) {
+        this.currentGameMode = mode;
+        plugin.getLogger().info("Game mode set to: " + mode.getDisplayName());
+    }
+
     public void assignPlayersToTeams(List<Player> players) {
         if (teams.isEmpty()) {
+            plugin.getLogger().warning("No teams available for assignment!");
             return;
         }
 
@@ -68,17 +81,47 @@ public class GameManager {
         List<Player> shuffledPlayers = new ArrayList<>(players);
         Collections.shuffle(shuffledPlayers);
 
-        // Get teams as list for round-robin assignment
+        // Get teams as list
         List<Team> teamList = new ArrayList<>(teams.values());
 
-        // Assign players to teams in round-robin fashion
+        plugin.getLogger().info("Assigning " + shuffledPlayers.size() + " players to " + teamList.size() + " teams in " + currentGameMode.getDisplayName() + " mode");
+
+        int maxPlayersPerTeam = currentGameMode.getMaxPlayersPerTeam();
         int teamIndex = 0;
+        int teamPlayerCount = 0;
+
         for (Player player : shuffledPlayers) {
+            // Skip to next team if current team is full
+            while (teamPlayerCount >= maxPlayersPerTeam && teamIndex < teamList.size() - 1) {
+                teamIndex++;
+                teamPlayerCount = 0;
+            }
+
+            // If we've filled all teams, stop assignment
+            if (teamIndex >= teamList.size()) {
+                plugin.getLogger().warning("Not enough teams for all players! Player " + player.getName() + " not assigned.");
+                player.sendMessage("§c全てのチームが満員です！観戦モードになります。");
+                continue;
+            }
+
             Team team = teamList.get(teamIndex);
             team.addMember(player.getUniqueId());
             playerTeams.put(player.getUniqueId(), team.getName());
+            teamPlayerCount++;
 
-            teamIndex = (teamIndex + 1) % teamList.size();
+            plugin.getLogger().info("Assigned " + player.getName() + " to team " + team.getName() + " (Player " + teamPlayerCount + "/" + maxPlayersPerTeam + ")");
+            player.sendMessage("§aあなたは §e" + team.getName() + " §aチームに配属されました！");
+
+            // Move to next team if current team is full
+            if (teamPlayerCount >= maxPlayersPerTeam) {
+                teamIndex++;
+                teamPlayerCount = 0;
+            }
+        }
+
+        // Log final team assignments
+        for (Team team : teamList) {
+            plugin.getLogger().info("Team " + team.getName() + ": " + team.getMembers().size() + " players");
         }
     }
 
