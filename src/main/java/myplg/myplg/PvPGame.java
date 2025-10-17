@@ -120,6 +120,10 @@ public final class PvPGame extends JavaPlugin {
         TimeControlListener timeControl = new TimeControlListener(this);
         timeControl.startTimeControl();
 
+        // Start territory heal task (runs every 2 seconds = 40 ticks)
+        TerritoryHealTask healTask = new TerritoryHealTask(this);
+        healTask.runTaskTimer(this, 0L, 40L);
+
         getLogger().info("PvPGame has been enabled!");
     }
 
