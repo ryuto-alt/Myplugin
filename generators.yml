@@ -12,7 +12,7 @@ generators:
       x: 102.0
       y: 71.0
       z: 31.0
-    spawnInterval: 10
+    spawnInterval: 20
   ピンク_gold_1760654522985:
     teamName: ピンク
     material: GOLD_INGOT
@@ -40,7 +40,7 @@ generators:
       x: 29.0
       y: 71.0
       z: 102.0
-    spawnInterval: 10
+    spawnInterval: 20
   イエロー_gold_1760654377788:
     teamName: イエロー
     material: GOLD_INGOT
@@ -68,7 +68,7 @@ generators:
       x: -102.0
       y: 71.0
       z: -31.0
-    spawnInterval: 10
+    spawnInterval: 20
   ピンク_iron_1760654515432:
     teamName: ピンク
     material: IRON_INGOT
@@ -82,7 +82,7 @@ generators:
       x: -102.0
       y: 71.0
       z: 29.0
-    spawnInterval: 10
+    spawnInterval: 20
   ホワイト_iron_1760654537340:
     teamName: ホワイト
     material: IRON_INGOT
@@ -96,7 +96,7 @@ generators:
       x: -31.0
       y: 71.0
       z: 102.0
-    spawnInterval: 10
+    spawnInterval: 20
   共通_diamond_1760654587938:
     teamName: 共通
     material: DIAMOND
@@ -166,7 +166,7 @@ generators:
       x: 31.0
       y: 71.0
       z: -102.0
-    spawnInterval: 10
+    spawnInterval: 20
   共通_diamond_1760654563485:
     teamName: 共通
     material: DIAMOND
@@ -236,7 +236,7 @@ generators:
       x: 102.0
       y: 71.0
       z: -29.0
-    spawnInterval: 10
+    spawnInterval: 20
   ブルー_gold_1760654443034:
     teamName: ブルー
     material: GOLD_INGOT
@@ -292,7 +292,7 @@ generators:
       x: -29.0
       y: 71.0
       z: -102.0
-    spawnInterval: 10
+    spawnInterval: 20
   共通_diamond_1760654612036:
     teamName: 共通
     material: DIAMOND

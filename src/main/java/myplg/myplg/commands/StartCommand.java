@@ -123,6 +123,11 @@ public class StartCommand implements CommandExecutor {
         // Start all generators
         plugin.getGeneratorManager().startAllGenerators();
 
+        // Start health regeneration for all players
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            plugin.getHealthRegenListener().startAllRegenTasks();
+        }, 40L); // 2 second delay to ensure players are fully loaded
+
         // Teleport players to their team spawns and give initial equipment
         for (Player player : onlinePlayers) {
             plugin.getGameManager().teleportPlayerToTeamSpawn(player);

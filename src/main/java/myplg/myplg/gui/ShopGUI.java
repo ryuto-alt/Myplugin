@@ -199,11 +199,11 @@ public class ShopGUI {
         }
         inv.setItem(41, jumpPotion);
 
-        // Row 3: Quick buy: Enchanted Golden Apple (below tools)
-        ItemStack goldenApple = new ItemStack(Material.ENCHANTED_GOLDEN_APPLE);
+        // Row 3: Quick buy: Golden Apple (below tools)
+        ItemStack goldenApple = new ItemStack(Material.GOLDEN_APPLE);
         ItemMeta goldenAppleMeta = goldenApple.getItemMeta();
         if (goldenAppleMeta != null) {
-            goldenAppleMeta.setDisplayName("§6エンチャント金リンゴ");
+            goldenAppleMeta.setDisplayName("§6金リンゴ");
             goldenAppleMeta.setLore(Arrays.asList(
                 "§7コスト: §6ゴールド 3個",
                 "",
@@ -219,7 +219,7 @@ public class ShopGUI {
         if (tntItemMeta != null) {
             tntItemMeta.setDisplayName("§cTNT");
             tntItemMeta.setLore(Arrays.asList(
-                "§7コスト: §6ゴールド 8個",
+                "§7コスト: §6ゴールド 5個",
                 "",
                 "§eクリックして購入！"
             ));
@@ -419,6 +419,21 @@ public class ShopGUI {
         inv.setItem(16, netheriteSword);
 
         // Row 3: Armor (evenly spaced)
+        // Chainmail Armor (boots icon) - Below iron armor
+        ItemStack chainArmor = new ItemStack(Material.CHAINMAIL_BOOTS);
+        ItemMeta chainArmorMeta = chainArmor.getItemMeta();
+        if (chainArmorMeta != null) {
+            chainArmorMeta.setDisplayName("§fチェーンの装備");
+            chainArmorMeta.setLore(Arrays.asList(
+                "§7コスト: §f鉄 40個",
+                "§7レギンスとブーツを装備",
+                "",
+                "§eクリックして購入！"
+            ));
+            chainArmor.setItemMeta(chainArmorMeta);
+        }
+        inv.setItem(19, chainArmor);
+
         // Iron Armor (boots icon)
         ItemStack ironArmor = new ItemStack(Material.IRON_BOOTS);
         ItemMeta ironArmorMeta = ironArmor.getItemMeta();
@@ -432,7 +447,7 @@ public class ShopGUI {
             ));
             ironArmor.setItemMeta(ironArmorMeta);
         }
-        inv.setItem(20, ironArmor);
+        inv.setItem(21, ironArmor);
 
         // Diamond Armor (boots icon)
         ItemStack diamondArmor = new ItemStack(Material.DIAMOND_BOOTS);
@@ -447,7 +462,7 @@ public class ShopGUI {
             ));
             diamondArmor.setItemMeta(diamondArmorMeta);
         }
-        inv.setItem(22, diamondArmor);
+        inv.setItem(23, diamondArmor);
 
         // Netherite Armor (boots icon)
         ItemStack netheriteArmor = new ItemStack(Material.NETHERITE_BOOTS);
@@ -462,7 +477,7 @@ public class ShopGUI {
             ));
             netheriteArmor.setItemMeta(netheriteArmorMeta);
         }
-        inv.setItem(24, netheriteArmor);
+        inv.setItem(25, netheriteArmor);
 
         // Row 4: Bows and Arrows (evenly spaced)
         // Bow
@@ -654,11 +669,11 @@ public class ShopGUI {
         }
 
         // Row 2: First row of items (evenly spaced)
-        // Enchanted Golden Apple
-        ItemStack goldenApple = new ItemStack(Material.ENCHANTED_GOLDEN_APPLE);
+        // Golden Apple (non-enchanted)
+        ItemStack goldenApple = new ItemStack(Material.GOLDEN_APPLE);
         ItemMeta goldenAppleMeta = goldenApple.getItemMeta();
         if (goldenAppleMeta != null) {
-            goldenAppleMeta.setDisplayName("§6エンチャント金リンゴ");
+            goldenAppleMeta.setDisplayName("§6金リンゴ");
             goldenAppleMeta.setLore(Arrays.asList(
                 "§7コスト: §6ゴールド 3個",
                 "",
@@ -668,19 +683,48 @@ public class ShopGUI {
         }
         inv.setItem(11, goldenApple);
 
+        // Shears
+        ItemStack shears = new ItemStack(Material.SHEARS);
+        ItemMeta shearsMeta = shears.getItemMeta();
+        if (shearsMeta != null) {
+            shearsMeta.setDisplayName("§fハサミ");
+            shearsMeta.setLore(Arrays.asList(
+                "§7コスト: §f鉄 20個",
+                "",
+                "§eクリックして購入！"
+            ));
+            shears.setItemMeta(shearsMeta);
+        }
+        inv.setItem(12, shears);
+
+        // Water Bucket
+        ItemStack waterBucket = new ItemStack(Material.WATER_BUCKET);
+        ItemMeta waterBucketMeta = waterBucket.getItemMeta();
+        if (waterBucketMeta != null) {
+            waterBucketMeta.setDisplayName("§b水入りバケツ");
+            waterBucketMeta.setLore(Arrays.asList(
+                "§7コスト: §6ゴールド 4個",
+                "§7使用後はバケツごと消えます",
+                "",
+                "§eクリックして購入！"
+            ));
+            waterBucket.setItemMeta(waterBucketMeta);
+        }
+        inv.setItem(13, waterBucket);
+
         // TNT
         ItemStack tnt = new ItemStack(Material.TNT);
         ItemMeta tntMeta = tnt.getItemMeta();
         if (tntMeta != null) {
             tntMeta.setDisplayName("§cTNT");
             tntMeta.setLore(Arrays.asList(
-                "§7コスト: §6ゴールド 8個",
+                "§7コスト: §6ゴールド 5個",
                 "",
                 "§eクリックして購入！"
             ));
             tnt.setItemMeta(tntMeta);
         }
-        inv.setItem(13, tnt);
+        inv.setItem(14, tnt);
 
         // Ender Pearl
         ItemStack enderPearl = new ItemStack(Material.ENDER_PEARL);
@@ -694,7 +738,7 @@ public class ShopGUI {
             ));
             enderPearl.setItemMeta(enderPearlMeta);
         }
-        inv.setItem(15, enderPearl);
+        inv.setItem(16, enderPearl);
 
         // Row 3: Tools upgrade items (axes) - Show only next level
         int currentAxeLevel = plugin.getToolUpgradeManager().getAxeLevel(player.getUniqueId());
@@ -811,7 +855,7 @@ public class ShopGUI {
         if (fireballMeta != null) {
             fireballMeta.setDisplayName("§c火玉");
             fireballMeta.setLore(Arrays.asList(
-                "§7コスト: §f鉄 40個",
+                "§7コスト: §f鉄 60個",
                 "§7右クリックで火の玉を発射",
                 "",
                 "§eクリックして購入！"

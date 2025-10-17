@@ -50,6 +50,7 @@ public final class PvPGame extends JavaPlugin {
     private BedClickListener bedClickListener;
     private GUIClickListener guiClickListener;
     private PlayerDeathListener playerDeathListener;
+    private myplg.myplg.listeners.HealthRegenListener healthRegenListener;
     private boolean teamsLoaded = false;
 
     @Override
@@ -131,6 +132,20 @@ public final class PvPGame extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ExplosionProtectionListener(this), this);
         getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.UpgradeEnchantmentListener(this), this);
         getServer().getPluginManager().registerEvents(new HungerControlListener(this), this);
+
+        // Register new listeners
+        getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.AttackCooldownListener(this), this);
+        getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.CraftingListener(this), this);
+        getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.ItemModifierListener(this), this);
+        getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.TNTAutoIgniteListener(this), this);
+
+        // Initialize and register HealthRegenListener
+        healthRegenListener = new myplg.myplg.listeners.HealthRegenListener(this);
+        getServer().getPluginManager().registerEvents(healthRegenListener, this);
+
+        getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.WeaponDamageListener(this), this);
+        getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.WaterBucketListener(this), this);
+        getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.FallDamageListener(this), this);
 
         // Start time control
         TimeControlListener timeControl = new TimeControlListener(this);
@@ -223,5 +238,9 @@ public final class PvPGame extends JavaPlugin {
 
     public PlayerDeathListener getPlayerDeathListener() {
         return playerDeathListener;
+    }
+
+    public myplg.myplg.listeners.HealthRegenListener getHealthRegenListener() {
+        return healthRegenListener;
     }
 }

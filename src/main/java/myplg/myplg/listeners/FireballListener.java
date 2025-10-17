@@ -2,11 +2,14 @@ package myplg.myplg.listeners;
 
 import myplg.myplg.PvPGame;
 import org.bukkit.Material;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Fireball;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
@@ -18,11 +21,14 @@ import java.util.UUID;
 public class FireballListener implements Listener {
     private final PvPGame plugin;
     private final Map<UUID, Long> fireballCooldown;
-    private static final long COOLDOWN_MS = 500; // 0.5秒のクールダウン
+    private final Map<UUID, Long> fireballKnockbackTime; // Track when players were knocked back by fireball
+    private static final long COOLDOWN_MS = 700; // 0.7秒のクールダウン
+    private static final long FALL_DAMAGE_IMMUNITY_MS = 5000; // 5秒間落下ダメージ無効
 
     public FireballListener(PvPGame plugin) {
         this.plugin = plugin;
         this.fireballCooldown = new HashMap<>();
+        this.fireballKnockbackTime = new HashMap<>();
     }
 
     @EventHandler
@@ -62,15 +68,70 @@ public class FireballListener implements Listener {
 
             // Set fireball properties
             fireball.setShooter(player);
-            fireball.setVelocity(direction.multiply(0.8)); // Reduced from 1.5 to 0.8 for slower speed
-            fireball.setYield(2.0f); // Explosion power (smaller than TNT)
-            fireball.setIsIncendiary(true); // Sets blocks on fire
+            fireball.setVelocity(direction.multiply(0.24)); // 0.16 * 1.5 = 0.24 (1.5x faster deflection)
+            fireball.setYield(1.5f); // Reduced explosion power
+            fireball.setIsIncendiary(false); // Don't set blocks on fire
 
             // Update cooldown
             fireballCooldown.put(player.getUniqueId(), currentTime);
 
             // Play sound
             player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_GHAST_SHOOT, 1.0f, 1.0f);
+        }
+    }
+
+    @EventHandler
+    public void onFireballDamage(EntityDamageByEntityEvent event) {
+        // Check if damage is from a fireball
+        if (event.getDamager() instanceof Fireball && event.getEntity() instanceof Player) {
+            // Set damage to 3.0 (1.5 hearts)
+            event.setDamage(3.0);
+
+            // Apply strong knockback to the player
+            Player player = (Player) event.getEntity();
+            Fireball fireball = (Fireball) event.getDamager();
+
+            // Calculate knockback direction (away from fireball)
+            Vector knockbackDirection = player.getLocation().toVector()
+                .subtract(fireball.getLocation().toVector())
+                .normalize();
+
+            // Apply strong upward and horizontal knockback
+            knockbackDirection.setY(0.6); // Strong upward component
+            knockbackDirection.multiply(2.5); // Strong horizontal push
+
+            player.setVelocity(knockbackDirection);
+
+            // Mark player as recently hit by fireball for fall damage reduction
+            fireballKnockbackTime.put(player.getUniqueId(), System.currentTimeMillis());
+        }
+    }
+
+    @EventHandler
+    public void onPlayerFallDamage(EntityDamageEvent event) {
+        // Only handle fall damage for players
+        if (event.getCause() != EntityDamageEvent.DamageCause.FALL || !(event.getEntity() instanceof Player)) {
+            return;
+        }
+
+        Player player = (Player) event.getEntity();
+        Long knockbackTime = fireballKnockbackTime.get(player.getUniqueId());
+
+        // If player was recently hit by fireball, completely cancel fall damage
+        if (knockbackTime != null) {
+            long timeSinceKnockback = System.currentTimeMillis() - knockbackTime;
+
+            if (timeSinceKnockback < FALL_DAMAGE_IMMUNITY_MS) {
+                event.setCancelled(true);
+
+                // Clean up if immunity period has ended
+                if (timeSinceKnockback >= FALL_DAMAGE_IMMUNITY_MS - 100) {
+                    fireballKnockbackTime.remove(player.getUniqueId());
+                }
+            } else {
+                // Clean up expired entry
+                fireballKnockbackTime.remove(player.getUniqueId());
+            }
         }
     }
 }

@@ -55,12 +55,15 @@ public class UpgradeEnchantmentListener implements Listener {
             return;
         }
 
+        boolean modified = false;
+
         // Apply weapon enchantment
         if (item.getType().toString().contains("SWORD")) {
             if (plugin.getWeaponUpgradeManager().hasWeaponUpgrade(teamName)) {
                 // Remove existing sharpness and add Sharpness I
                 item.removeEnchantment(org.bukkit.enchantments.Enchantment.SHARPNESS);
                 item.addUnsafeEnchantment(org.bukkit.enchantments.Enchantment.SHARPNESS, 1);
+                modified = true;
             }
         }
 
@@ -75,6 +78,16 @@ public class UpgradeEnchantmentListener implements Listener {
                 // Remove existing protection and add current level
                 item.removeEnchantment(org.bukkit.enchantments.Enchantment.PROTECTION);
                 item.addUnsafeEnchantment(org.bukkit.enchantments.Enchantment.PROTECTION, armorLevel);
+                modified = true;
+            }
+        }
+
+        // Make upgraded items unbreakable
+        if (modified && item.hasItemMeta()) {
+            org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                meta.setUnbreakable(true);
+                item.setItemMeta(meta);
             }
         }
     }

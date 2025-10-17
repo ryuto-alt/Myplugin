@@ -182,12 +182,12 @@ public class ShopClickListener implements Listener {
                     processPotionPurchase(player, Material.EMERALD, 1, org.bukkit.potion.PotionEffectType.JUMP_BOOST, 60 * 20, 0);
                 }
             }
-        } else if (type == Material.ENCHANTED_GOLDEN_APPLE && amount == 1) {
-            // Quick buy: Enchanted Golden Apple for gold 3
+        } else if (type == Material.GOLDEN_APPLE && amount == 1) {
+            // Quick buy: Golden Apple for gold 3
             processPurchase(player, Material.GOLD_INGOT, 3, type, 1);
         } else if (type == Material.TNT && amount == 1) {
-            // Quick buy: TNT for gold 8
-            processPurchase(player, Material.GOLD_INGOT, 8, type, 1);
+            // Quick buy: TNT for gold 5
+            processPurchase(player, Material.GOLD_INGOT, 5, type, 1);
         }
     }
 
@@ -261,7 +261,9 @@ public class ShopClickListener implements Listener {
             processPurchase(player, Material.EMERALD, 7, type, 1);
         }
         // Armor (auto-equip leggings and boots)
-        else if (type == Material.IRON_BOOTS) {
+        else if (type == Material.CHAINMAIL_BOOTS) {
+            processArmorPurchase(player, Material.IRON_INGOT, 40, Material.CHAINMAIL_LEGGINGS, Material.CHAINMAIL_BOOTS);
+        } else if (type == Material.IRON_BOOTS) {
             processArmorPurchase(player, Material.GOLD_INGOT, 12, Material.IRON_LEGGINGS, Material.IRON_BOOTS);
         } else if (type == Material.DIAMOND_BOOTS) {
             processArmorPurchase(player, Material.EMERALD, 6, Material.DIAMOND_LEGGINGS, Material.DIAMOND_BOOTS);
@@ -340,10 +342,14 @@ public class ShopClickListener implements Listener {
         }
 
         // Simple items (no upgrades)
-        if (type == Material.ENCHANTED_GOLDEN_APPLE) {
+        if (type == Material.GOLDEN_APPLE) {
             processPurchase(player, Material.GOLD_INGOT, 3, type, 1);
+        } else if (type == Material.SHEARS) {
+            processPurchase(player, Material.IRON_INGOT, 20, type, 1);
+        } else if (type == Material.WATER_BUCKET) {
+            processPurchase(player, Material.GOLD_INGOT, 4, type, 1);
         } else if (type == Material.TNT) {
-            processPurchase(player, Material.GOLD_INGOT, 8, type, 1);
+            processPurchase(player, Material.GOLD_INGOT, 5, type, 1);
         } else if (type == Material.ENDER_PEARL) {
             processPurchase(player, Material.EMERALD, 4, type, 1);
         } else if (type == Material.FIRE_CHARGE && clickedItem.hasItemMeta() &&
@@ -382,14 +388,14 @@ public class ShopClickListener implements Listener {
             return;
         }
 
-        // Check if player has enough currency (iron 40)
-        if (!hasEnoughItems(player, Material.IRON_INGOT, 40)) {
-            player.sendMessage("§c購入に必要な通貨が不足しています！ 必要: 鉄 x40");
+        // Check if player has enough currency (iron 60)
+        if (!hasEnoughItems(player, Material.IRON_INGOT, 60)) {
+            player.sendMessage("§c購入に必要な通貨が不足しています！ 必要: 鉄 x60");
             return;
         }
 
         // Remove currency
-        removeItems(player, Material.IRON_INGOT, 40);
+        removeItems(player, Material.IRON_INGOT, 60);
 
         // Create fireball item with custom name
         ItemStack fireball = new ItemStack(Material.FIRE_CHARGE, 1);
@@ -407,7 +413,7 @@ public class ShopClickListener implements Listener {
 
         if (!leftover.isEmpty()) {
             // Return currency if inventory is full
-            player.getInventory().addItem(new ItemStack(Material.IRON_INGOT, 40));
+            player.getInventory().addItem(new ItemStack(Material.IRON_INGOT, 60));
             player.sendMessage("§cインベントリに空きがありません！");
             return;
         }
@@ -876,6 +882,12 @@ public class ShopClickListener implements Listener {
         boolean success = plugin.getTerritoryUpgradeManager().upgradeTerritory(teamName, nextLevel);
 
         if (success) {
+            // Apply level-specific upgrades
+            if (nextLevel == 2) {
+                // Level 2: Upgrade generator speed (1.3x faster)
+                plugin.getGeneratorManager().upgradeTeamGenerators(teamName);
+            }
+
             // Broadcast to team
             myplg.myplg.Team team = plugin.getGameManager().getTeam(teamName);
             if (team != null) {

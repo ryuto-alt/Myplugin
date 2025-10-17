@@ -120,6 +120,27 @@ public class GeneratorManager {
             );
         }
 
+        // Check if iron generator and count existing iron items in the area
+        if (generator.getMaterial() == Material.IRON_INGOT) {
+            int existingIronCount = 0;
+
+            // Count iron items within 5 block radius
+            for (org.bukkit.entity.Entity entity : dropLocation.getWorld().getNearbyEntities(dropLocation, 5, 5, 5)) {
+                if (entity instanceof org.bukkit.entity.Item) {
+                    org.bukkit.entity.Item itemEntity = (org.bukkit.entity.Item) entity;
+                    if (itemEntity.getItemStack().getType() == Material.IRON_INGOT) {
+                        existingIronCount += itemEntity.getItemStack().getAmount();
+                    }
+                }
+            }
+
+            // If already at max (3 stacks = 192), don't spawn more
+            if (existingIronCount >= 192) {
+                plugin.getLogger().info("Iron generator " + generator.getId() + " reached max capacity (192 items)");
+                return;
+            }
+        }
+
         // Drop the item and set velocity to zero (no bouncing or movement)
         org.bukkit.entity.Item item = dropLocation.getWorld().dropItem(dropLocation, new ItemStack(generator.getMaterial(), 1));
         item.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
@@ -144,6 +165,35 @@ public class GeneratorManager {
             if (plugin.getGeneratorDataManager() != null) {
                 plugin.getGeneratorDataManager().saveGenerators();
             }
+        }
+    }
+
+    /**
+     * Updates all generators for a specific team to run 1.3x faster
+     * @param teamName The team name to upgrade generators for
+     */
+    public void upgradeTeamGenerators(String teamName) {
+        for (Generator generator : generators.values()) {
+            if (generator.getTeamName().equals(teamName)) {
+                int currentInterval = generator.getSpawnInterval();
+                // Make 1.3x faster: divide by 1.3 (multiply by 1/1.3 ≈ 0.77)
+                int newInterval = (int) Math.max(1, currentInterval / 1.3);
+
+                generator.setSpawnInterval(newInterval);
+
+                // Restart generator with new interval if game is running
+                if (plugin.getGameManager().isGameRunning()) {
+                    startGenerator(generator);
+                }
+
+                plugin.getLogger().info("Upgraded generator speed for " + teamName + ": " +
+                    generator.getId() + " (" + currentInterval + " -> " + newInterval + " ticks)");
+            }
+        }
+
+        // Save the changes
+        if (plugin.getGeneratorDataManager() != null) {
+            plugin.getGeneratorDataManager().saveGenerators();
         }
     }
 
