@@ -41,6 +41,8 @@ public final class PvPGame extends JavaPlugin {
     private WorldBackupManager worldBackupManager;
     private ToolUpgradeManager toolUpgradeManager;
     private TerritoryUpgradeManager territoryUpgradeManager;
+    private WeaponUpgradeManager weaponUpgradeManager;
+    private ArmorUpgradeManager armorUpgradeManager;
     private ScoreboardManager scoreboardManager;
     private SetBedCommand setBedCommand;
     private BedClickListener bedClickListener;
@@ -58,6 +60,8 @@ public final class PvPGame extends JavaPlugin {
         worldBackupManager = new WorldBackupManager(this);
         toolUpgradeManager = new ToolUpgradeManager(this);
         territoryUpgradeManager = new TerritoryUpgradeManager(this);
+        weaponUpgradeManager = new WeaponUpgradeManager(this);
+        armorUpgradeManager = new ArmorUpgradeManager(this);
         scoreboardManager = new ScoreboardManager(this);
 
         // Load teams and generators from file after a delay to ensure worlds are loaded
@@ -110,6 +114,7 @@ public final class PvPGame extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new VoidDeathListener(this), this);
         getServer().getPluginManager().registerEvents(new BlockPlaceListener(this), this);
         getServer().getPluginManager().registerEvents(new ExplosionProtectionListener(this), this);
+        getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.UpgradeEnchantmentListener(this), this);
 
         // Start time control
         TimeControlListener timeControl = new TimeControlListener(this);
@@ -188,5 +193,13 @@ public final class PvPGame extends JavaPlugin {
 
     public TerritoryUpgradeManager getTerritoryUpgradeManager() {
         return territoryUpgradeManager;
+    }
+
+    public WeaponUpgradeManager getWeaponUpgradeManager() {
+        return weaponUpgradeManager;
+    }
+
+    public ArmorUpgradeManager getArmorUpgradeManager() {
+        return armorUpgradeManager;
     }
 }

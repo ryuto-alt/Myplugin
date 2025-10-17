@@ -120,6 +120,18 @@ public class ShopClickListener implements Listener {
                 return;
             }
 
+            // Category button: Weapon Enhancement (武器強化) - Shop 2
+            if (type == Material.IRON_SWORD && displayName.contains("武器強化")) {
+                handleWeaponUpgradeClick(player);
+                return;
+            }
+
+            // Category button: Armor Enhancement (装備強化) - Shop 2
+            if (type == Material.IRON_CHESTPLATE && displayName.contains("装備強化")) {
+                handleArmorUpgradeClick(player);
+                return;
+            }
+
             // Category button: Blocks
             if (displayName.contains("ブロック") && amount == 1) {
                 shopGUI.openBlocksShop(player);
@@ -877,6 +889,162 @@ public class ShopClickListener implements Listener {
 
             // Play sound
             player.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_BEACON_ACTIVATE, 1.0f, 1.0f);
+
+            // Reopen shop to show updated status
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                new myplg.myplg.gui.ShopTwoGUI(plugin).openMainShop(player);
+            }, 1L);
+        } else {
+            // Refund if upgrade failed
+            player.getInventory().addItem(new ItemStack(Material.DIAMOND, cost));
+            player.sendMessage("§cアップグレードに失敗しました。");
+        }
+    }
+
+    private void handleWeaponUpgradeClick(Player player) {
+        // Get player's team
+        String teamName = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
+        if (teamName == null) {
+            player.sendMessage("§cエラー: チームに所属していません。");
+            player.closeInventory();
+            return;
+        }
+
+        // Check if already upgraded
+        if (plugin.getWeaponUpgradeManager().hasWeaponUpgrade(teamName)) {
+            player.sendMessage("§c武器強化は既に購入済みです！");
+            return;
+        }
+
+        // Check if player has enough diamonds
+        int cost = 8;
+        if (!hasEnoughItems(player, Material.DIAMOND, cost)) {
+            player.sendMessage("§c購入に必要な通貨が不足しています！ 必要: ダイヤ x" + cost);
+            return;
+        }
+
+        // Remove diamonds
+        removeItems(player, Material.DIAMOND, cost);
+
+        // Upgrade weapon
+        boolean success = plugin.getWeaponUpgradeManager().upgradeWeapon(teamName);
+
+        if (success) {
+            // Broadcast to team and apply enchantment to all team members' swords
+            myplg.myplg.Team team = plugin.getGameManager().getTeam(teamName);
+            if (team != null) {
+                for (java.util.UUID memberUUID : team.getMembers()) {
+                    org.bukkit.entity.Player member = plugin.getServer().getPlayer(memberUUID);
+                    if (member != null && member.isOnline()) {
+                        member.sendMessage("§a§l武器強化: 攻撃力上昇 §aが購入されました！");
+
+                        // Apply Sharpness I to all swords in inventory
+                        for (ItemStack item : member.getInventory().getContents()) {
+                            if (item != null && item.getType().toString().contains("SWORD")) {
+                                item.addUnsafeEnchantment(org.bukkit.enchantments.Enchantment.SHARPNESS, 1);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Play sound
+            player.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_ANVIL_USE, 1.0f, 1.0f);
+
+            // Reopen shop to show updated status
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                new myplg.myplg.gui.ShopTwoGUI(plugin).openMainShop(player);
+            }, 1L);
+        } else {
+            // Refund if upgrade failed
+            player.getInventory().addItem(new ItemStack(Material.DIAMOND, cost));
+            player.sendMessage("§cアップグレードに失敗しました。");
+        }
+    }
+
+    private void handleArmorUpgradeClick(Player player) {
+        // Get player's team
+        String teamName = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
+        if (teamName == null) {
+            player.sendMessage("§cエラー: チームに所属していません。");
+            player.closeInventory();
+            return;
+        }
+
+        // Get current upgrade level
+        int currentLevel = plugin.getArmorUpgradeManager().getArmorLevel(teamName);
+        int nextLevel = currentLevel + 1;
+
+        // Check if max level reached
+        if (nextLevel > 3) {
+            player.sendMessage("§c装備強化は既に最大レベルです！");
+            return;
+        }
+
+        // Determine cost based on level
+        int cost;
+        String upgradeName;
+        switch (nextLevel) {
+            case 1:
+                cost = 4;
+                upgradeName = "Lv I 防御力アップ";
+                break;
+            case 2:
+                cost = 5;
+                upgradeName = "Lv II 防御力アップ";
+                break;
+            case 3:
+                cost = 6;
+                upgradeName = "Lv III 防御力アップ";
+                break;
+            default:
+                return;
+        }
+
+        // Check if player has enough diamonds
+        if (!hasEnoughItems(player, Material.DIAMOND, cost)) {
+            player.sendMessage("§c購入に必要な通貨が不足しています！ 必要: ダイヤ x" + cost);
+            return;
+        }
+
+        // Remove diamonds
+        removeItems(player, Material.DIAMOND, cost);
+
+        // Upgrade armor
+        boolean success = plugin.getArmorUpgradeManager().upgradeArmor(teamName, nextLevel);
+
+        if (success) {
+            // Broadcast to team and apply enchantment to all team members' armor
+            myplg.myplg.Team team = plugin.getGameManager().getTeam(teamName);
+            if (team != null) {
+                for (java.util.UUID memberUUID : team.getMembers()) {
+                    org.bukkit.entity.Player member = plugin.getServer().getPlayer(memberUUID);
+                    if (member != null && member.isOnline()) {
+                        member.sendMessage("§a§l装備強化: " + upgradeName + " §aが購入されました！");
+
+                        // Apply Protection enchantment to all armor pieces in inventory and equipped
+                        for (ItemStack item : member.getInventory().getContents()) {
+                            if (item != null && (item.getType().toString().contains("HELMET") ||
+                                item.getType().toString().contains("CHESTPLATE") ||
+                                item.getType().toString().contains("LEGGINGS") ||
+                                item.getType().toString().contains("BOOTS"))) {
+                                item.addUnsafeEnchantment(org.bukkit.enchantments.Enchantment.PROTECTION, nextLevel);
+                            }
+                        }
+
+                        // Also apply to equipped armor
+                        ItemStack[] armorContents = member.getInventory().getArmorContents();
+                        for (ItemStack item : armorContents) {
+                            if (item != null) {
+                                item.addUnsafeEnchantment(org.bukkit.enchantments.Enchantment.PROTECTION, nextLevel);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Play sound
+            player.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_ANVIL_USE, 1.0f, 1.0f);
 
             // Reopen shop to show updated status
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {

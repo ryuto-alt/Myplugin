@@ -23,6 +23,8 @@ public class ShopTwoGUI {
         // Get player's team to check upgrade levels
         String teamName = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
         int territoryLevel = teamName != null ? plugin.getTerritoryUpgradeManager().getUpgradeLevel(teamName) : 0;
+        int weaponLevel = teamName != null ? plugin.getWeaponUpgradeManager().getWeaponLevel(teamName) : 0;
+        int armorLevel = teamName != null ? plugin.getArmorUpgradeManager().getArmorLevel(teamName) : 0;
 
         // Row 2: Category buttons (evenly spaced)
         // 陣地強化 (Territory Enhancement) - Beacon icon
@@ -77,10 +79,21 @@ public class ShopTwoGUI {
         ItemMeta weaponMeta = weapon.getItemMeta();
         if (weaponMeta != null) {
             weaponMeta.setDisplayName("§c§l武器強化");
-            weaponMeta.setLore(Arrays.asList(
-                "§7武器のエンチャント強化",
-                "§aクリックして詳細を表示"
-            ));
+
+            java.util.List<String> weaponLore = new java.util.ArrayList<>();
+
+            if (weaponLevel >= 1) {
+                weaponLore.add("§9攻撃力上昇 §7(ダイヤ x8)");
+                weaponLore.add("§9  剣にSharpness Iを付与");
+            } else {
+                weaponLore.add("§7攻撃力上昇 §7(ダイヤ x8)");
+                weaponLore.add("§7  剣にSharpness Iを付与");
+            }
+
+            weaponLore.add("");
+            weaponLore.add("§aクリックして購入");
+
+            weaponMeta.setLore(weaponLore);
             weapon.setItemMeta(weaponMeta);
         }
         inv.setItem(13, weapon);
@@ -90,10 +103,44 @@ public class ShopTwoGUI {
         ItemMeta armorMeta = armor.getItemMeta();
         if (armorMeta != null) {
             armorMeta.setDisplayName("§9§l装備強化");
-            armorMeta.setLore(Arrays.asList(
-                "§7防具のエンチャント強化",
-                "§aクリックして詳細を表示"
-            ));
+
+            java.util.List<String> armorLore = new java.util.ArrayList<>();
+
+            // Lv I - Protection I
+            if (armorLevel >= 1) {
+                armorLore.add("§9Lv I 防御力アップ §7(ダイヤ x4)");
+                armorLore.add("§9  防具にProtection Iを付与");
+            } else {
+                armorLore.add("§7Lv I 防御力アップ §7(ダイヤ x4)");
+                armorLore.add("§7  防具にProtection Iを付与");
+            }
+
+            armorLore.add("");
+
+            // Lv II - Protection II
+            if (armorLevel >= 2) {
+                armorLore.add("§9Lv II 防御力アップ §7(ダイヤ x5)");
+                armorLore.add("§9  防具にProtection IIを付与");
+            } else {
+                armorLore.add("§7Lv II 防御力アップ §7(ダイヤ x5)");
+                armorLore.add("§7  防具にProtection IIを付与");
+            }
+
+            armorLore.add("");
+
+            // Lv III - Protection III
+            if (armorLevel >= 3) {
+                armorLore.add("§9Lv III 防御力アップ §7(ダイヤ x6)");
+                armorLore.add("§9  防具にProtection IIIを付与");
+            } else {
+                armorLore.add("§7Lv III 防御力アップ §7(ダイヤ x6)");
+                armorLore.add("§7  防具にProtection IIIを付与");
+            }
+
+            armorLore.add("");
+            armorLore.add("§aクリックして購入");
+
+            armorMeta.setLore(armorLore);
             armor.setItemMeta(armorMeta);
         }
         inv.setItem(15, armor);
