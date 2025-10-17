@@ -1,9 +1,11 @@
 package myplg.myplg.listeners;
 
 import myplg.myplg.PvPGame;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.title.Title;
+import org.bukkit.*;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -11,12 +13,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.time.Duration;
+import java.util.*;
 import java.util.UUID;
 
 public class PlayerDeathListener implements Listener {
@@ -334,9 +335,126 @@ public class PlayerDeathListener implements Listener {
     }
 
     private void announceVictory(String winningTeam) {
-        // This will be implemented in the next task
-        // For now, just broadcast
-        plugin.getServer().broadcastMessage("§6§l" + winningTeam + " チームの勝利！");
+        // Get winning team color
+        String teamColorCode = getTeamColorCode(winningTeam);
+
+        // Show victory title to all players
+        for (Player player : plugin.getServer().getOnlinePlayers()) {
+            String playerTeam = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
+
+            if (winningTeam.equals(playerTeam)) {
+                // Winner's title
+                Component title = Component.text("§6§l⭐ VICTORY! ⭐");
+                Component subtitle = Component.text(teamColorCode + "§l" + winningTeam + " チームの勝利！");
+
+                Title victoryTitle = Title.title(
+                    title,
+                    subtitle,
+                    Title.Times.times(
+                        Duration.ofMillis(1000),  // fade in
+                        Duration.ofMillis(5000),  // stay
+                        Duration.ofMillis(2000)   // fade out
+                    )
+                );
+                player.showTitle(victoryTitle);
+
+                // Launch fireworks around winner
+                launchFireworks(player.getLocation(), teamColorCode);
+            } else {
+                // Loser's title
+                Component title = Component.text("§c§lGAME OVER");
+                Component subtitle = Component.text(teamColorCode + "§l" + winningTeam + " チームの勝利！");
+
+                Title defeatTitle = Title.title(
+                    title,
+                    subtitle,
+                    Title.Times.times(
+                        Duration.ofMillis(1000),  // fade in
+                        Duration.ofMillis(5000),  // stay
+                        Duration.ofMillis(2000)   // fade out
+                    )
+                );
+                player.showTitle(defeatTitle);
+            }
+        }
+
+        // Broadcast message
+        plugin.getServer().broadcastMessage("");
+        plugin.getServer().broadcastMessage(teamColorCode + "§l═══════════════════════════");
+        plugin.getServer().broadcastMessage("§6§l⭐ " + teamColorCode + "§l" + winningTeam + " チームの勝利！ §6§l⭐");
+        plugin.getServer().broadcastMessage(teamColorCode + "§l═══════════════════════════");
+        plugin.getServer().broadcastMessage("");
+
+        // End game after 10 seconds
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                plugin.getGameManager().setGameRunning(false);
+                plugin.getServer().broadcastMessage("§eゲームが終了しました。");
+            }
+        }.runTaskLater(plugin, 200L); // 10 seconds
+    }
+
+    private void launchFireworks(Location location, String teamColorCode) {
+        // Launch 5 fireworks with 0.5 second intervals
+        for (int i = 0; i < 5; i++) {
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    // Random offset around player
+                    double offsetX = (Math.random() - 0.5) * 4;
+                    double offsetZ = (Math.random() - 0.5) * 4;
+                    Location fireworkLoc = location.clone().add(offsetX, 0, offsetZ);
+
+                    Firework firework = (Firework) location.getWorld().spawnEntity(fireworkLoc, EntityType.FIREWORK);
+                    FireworkMeta meta = firework.getFireworkMeta();
+
+                    // Get team color
+                    Color fireworkColor = getFireworkColor(teamColorCode);
+
+                    // Create firework effect
+                    FireworkEffect effect = FireworkEffect.builder()
+                        .with(FireworkEffect.Type.BALL_LARGE)
+                        .withColor(fireworkColor)
+                        .withFade(Color.YELLOW)
+                        .withFlicker()
+                        .withTrail()
+                        .build();
+
+                    meta.addEffect(effect);
+                    meta.setPower(1);
+                    firework.setFireworkMeta(meta);
+                }
+            }.runTaskLater(plugin, i * 10L); // 0.5 second intervals
+        }
+    }
+
+    private String getTeamColorCode(String teamName) {
+        switch (teamName) {
+            case "レッド": return "§c";
+            case "ブルー": return "§9";
+            case "グリーン": return "§a";
+            case "イエロー": return "§e";
+            case "アクア": return "§b";
+            case "ホワイト": return "§f";
+            case "ピンク": return "§d";
+            case "グレー": return "§7";
+            default: return "§f";
+        }
+    }
+
+    private Color getFireworkColor(String colorCode) {
+        switch (colorCode) {
+            case "§c": return Color.RED;
+            case "§9": return Color.BLUE;
+            case "§a": return Color.GREEN;
+            case "§e": return Color.YELLOW;
+            case "§b": return Color.AQUA;
+            case "§f": return Color.WHITE;
+            case "§d": return Color.FUCHSIA;
+            case "§7": return Color.GRAY;
+            default: return Color.WHITE;
+        }
     }
 
     public void reset() {
