@@ -21,7 +21,7 @@ public class HungerControlListener implements Listener {
         }
 
         // ゲーム中は満腹度を常にマックスに保つ
-        if (plugin.getGameManager().getGameMode() == GameMode.GAME) {
+        if (plugin.getGameManager().isGameRunning()) {
             event.setCancelled(true);
             Player player = (Player) event.getEntity();
             player.setFoodLevel(20);
