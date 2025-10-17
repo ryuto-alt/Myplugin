@@ -2,6 +2,8 @@ package myplg.myplg.listeners;
 
 import myplg.myplg.PvPGame;
 import myplg.myplg.Team;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -12,6 +14,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+
+import java.time.Duration;
+import java.util.UUID;
 
 public class BedBreakListener implements Listener {
     private final PvPGame plugin;
@@ -61,9 +66,41 @@ public class BedBreakListener implements Listener {
                 // Mark bed as destroyed
                 plugin.getScoreboardManager().setBedStatus(team.getName(), false);
 
-                // Broadcast message
-                Bukkit.broadcastMessage("§c§l" + team.getName() + " チームのベッドが破壊されました！");
-                Bukkit.broadcastMessage("§c" + team.getName() + " チームはリスポーンできなくなります！");
+                // Get team colors
+                String attackerColor = getTeamColor(playerTeam);
+                String victimColor = getTeamColor(team.getName());
+
+                // Notify all players
+                for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                    String onlinePlayerTeam = plugin.getGameManager().getPlayerTeam(onlinePlayer.getUniqueId());
+
+                    if (team.getName().equals(onlinePlayerTeam)) {
+                        // Show title to destroyed team members
+                        Component title = Component.text("§c§lベッドが破壊されました！");
+                        Component subtitle = Component.text("§7もうリスポーンできません！");
+
+                        Title titleDisplay = Title.title(
+                            title,
+                            subtitle,
+                            Title.Times.times(
+                                Duration.ofMillis(500),  // fade in
+                                Duration.ofMillis(3000), // stay
+                                Duration.ofMillis(1000)  // fade out
+                            )
+                        );
+                        onlinePlayer.showTitle(titleDisplay);
+
+                        // Also send chat message
+                        onlinePlayer.sendMessage("§c§l⚠ あなたのチームのベッドが破壊されました！");
+                    } else {
+                        // Send colored chat message to other teams
+                        onlinePlayer.sendMessage(
+                            attackerColor + playerTeam + "チーム§fの" +
+                            attackerColor + player.getName() + "§fが" +
+                            victimColor + team.getName() + "チーム§fのベッドを破壊！"
+                        );
+                    }
+                }
 
                 return;
             }
@@ -134,5 +171,21 @@ public class BedBreakListener implements Listener {
         }
 
         return false;
+    }
+
+    private String getTeamColor(String teamName) {
+        if (teamName == null) return "§f";
+
+        switch (teamName) {
+            case "レッド": return "§c";
+            case "ブルー": return "§9";
+            case "グリーン": return "§a";
+            case "イエロー": return "§e";
+            case "アクア": return "§b";
+            case "ホワイト": return "§f";
+            case "ピンク": return "§d";
+            case "グレー": return "§7";
+            default: return "§f";
+        }
     }
 }
