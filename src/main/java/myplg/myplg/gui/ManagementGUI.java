@@ -44,8 +44,61 @@ public class ManagementGUI {
         generatorMeta.lore(generatorLore);
         generatorManagement.setItemMeta(generatorMeta);
 
+        // Game mode selection button
+        ItemStack gameModeButton = new ItemStack(Material.COMPARATOR);
+        ItemMeta gameModeMeta = gameModeButton.getItemMeta();
+        gameModeMeta.displayName(Component.text("ゲームモード", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD));
+        List<Component> gameModeLore = new ArrayList<>();
+        myplg.myplg.GameMode currentMode = plugin.getGameManager().getGameMode();
+        gameModeLore.add(Component.text("現在: " + currentMode.getDisplayName(), NamedTextColor.YELLOW));
+        gameModeLore.add(Component.text(""));
+        gameModeLore.add(Component.text("クリックでモード選択", NamedTextColor.GRAY));
+        gameModeMeta.lore(gameModeLore);
+        gameModeButton.setItemMeta(gameModeMeta);
+
         gui.setItem(11, teamManagement);
+        gui.setItem(13, gameModeButton);
         gui.setItem(15, generatorManagement);
+
+        player.openInventory(gui);
+    }
+
+    public void openGameModeSelection(Player player) {
+        Inventory gui = Bukkit.createInventory(null, 27, Component.text("ゲームモード選択", NamedTextColor.DARK_BLUE, TextDecoration.BOLD));
+
+        // Solo mode
+        ItemStack soloMode = new ItemStack(Material.IRON_SWORD);
+        ItemMeta soloMeta = soloMode.getItemMeta();
+        soloMeta.displayName(Component.text("ソロ", NamedTextColor.GOLD, TextDecoration.BOLD));
+        List<Component> soloLore = new ArrayList<>();
+        soloLore.add(Component.text("1チーム1人", NamedTextColor.GRAY));
+        soloLore.add(Component.text("全プレイヤーが別々のチームに配置", NamedTextColor.GRAY));
+        soloLore.add(Component.text(""));
+        soloLore.add(Component.text("クリックして選択", NamedTextColor.GREEN));
+        soloMeta.lore(soloLore);
+        soloMode.setItemMeta(soloMeta);
+
+        // Duel mode
+        ItemStack duelMode = new ItemStack(Material.DIAMOND_SWORD);
+        ItemMeta duelMeta = duelMode.getItemMeta();
+        duelMeta.displayName(Component.text("デュオ", NamedTextColor.AQUA, TextDecoration.BOLD));
+        List<Component> duelLore = new ArrayList<>();
+        duelLore.add(Component.text("1チーム2人", NamedTextColor.GRAY));
+        duelLore.add(Component.text("2人1組でチームに配置", NamedTextColor.GRAY));
+        duelLore.add(Component.text(""));
+        duelLore.add(Component.text("クリックして選択", NamedTextColor.GREEN));
+        duelMeta.lore(duelLore);
+        duelMode.setItemMeta(duelMeta);
+
+        gui.setItem(11, soloMode);
+        gui.setItem(15, duelMode);
+
+        // Back button
+        ItemStack backButton = new ItemStack(Material.ARROW);
+        ItemMeta backMeta = backButton.getItemMeta();
+        backMeta.displayName(Component.text("戻る", NamedTextColor.RED, TextDecoration.BOLD));
+        backButton.setItemMeta(backMeta);
+        gui.setItem(22, backButton);
 
         player.openInventory(gui);
     }
