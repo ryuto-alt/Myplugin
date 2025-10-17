@@ -80,6 +80,9 @@ public class ShopTwoGUI {
         if (weaponMeta != null) {
             weaponMeta.setDisplayName("§c§l武器強化");
 
+            // Hide attribute modifiers (removes "When in Main Hand:" display)
+            weaponMeta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES);
+
             java.util.List<String> weaponLore = new java.util.ArrayList<>();
 
             if (weaponLevel >= 1) {
@@ -101,6 +104,9 @@ public class ShopTwoGUI {
         ItemMeta armorMeta = armor.getItemMeta();
         if (armorMeta != null) {
             armorMeta.setDisplayName("§9§l装備強化");
+
+            // Hide attribute modifiers (removes armor/toughness display)
+            armorMeta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES);
 
             java.util.List<String> armorLore = new java.util.ArrayList<>();
 
