@@ -48,6 +48,7 @@ public final class PvPGame extends JavaPlugin {
     private SetBedCommand setBedCommand;
     private BedClickListener bedClickListener;
     private GUIClickListener guiClickListener;
+    private PlayerDeathListener playerDeathListener;
     private boolean teamsLoaded = false;
 
     @Override
@@ -95,7 +96,11 @@ public final class PvPGame extends JavaPlugin {
         // Register listeners
         getServer().getPluginManager().registerEvents(bedClickListener, this);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
-        getServer().getPluginManager().registerEvents(new PlayerDeathListener(this), this);
+
+        // Initialize and register PlayerDeathListener
+        playerDeathListener = new PlayerDeathListener(this);
+        getServer().getPluginManager().registerEvents(playerDeathListener, this);
+
         getServer().getPluginManager().registerEvents(guiClickListener, this);
         getServer().getPluginManager().registerEvents(new MobSpawnListener(this), this);
         getServer().getPluginManager().registerEvents(new GeneratorSelectionListener(this), this);
@@ -205,5 +210,9 @@ public final class PvPGame extends JavaPlugin {
 
     public ArmorUpgradeManager getArmorUpgradeManager() {
         return armorUpgradeManager;
+    }
+
+    public PlayerDeathListener getPlayerDeathListener() {
+        return playerDeathListener;
     }
 }

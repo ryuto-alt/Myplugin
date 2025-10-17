@@ -308,7 +308,10 @@ public class PlayerDeathListener implements Listener {
         }
     }
 
-    private void checkVictoryCondition() {
+    /**
+     * Public method to check victory condition - can be called from other listeners
+     */
+    public void checkVictoryCondition() {
         // Count teams that are NOT eliminated (either have bed alive OR have alive players)
         int remainingTeams = 0;
         String winningTeam = null;

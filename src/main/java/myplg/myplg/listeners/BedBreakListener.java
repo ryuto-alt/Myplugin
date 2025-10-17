@@ -74,6 +74,9 @@ public class BedBreakListener implements Listener {
                 String attackerColor = getTeamColor(playerTeam);
                 String victimColor = getTeamColor(team.getName());
 
+                // Check for victory after bed destruction
+                plugin.getPlayerDeathListener().checkVictoryCondition();
+
                 // Notify all players with sounds
                 for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
                     String onlinePlayerTeam = plugin.getGameManager().getPlayerTeam(onlinePlayer.getUniqueId());
