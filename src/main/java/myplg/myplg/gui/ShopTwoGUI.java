@@ -290,4 +290,32 @@ public class ShopTwoGUI {
 
         player.openInventory(inv);
     }
+
+    /**
+     * Update the GUI for all team members who currently have the upgrade shop open
+     * @param teamName The team whose members' GUIs should be updated
+     */
+    public void updateTeamGUIs(String teamName) {
+        if (teamName == null) {
+            return;
+        }
+
+        myplg.myplg.Team team = plugin.getGameManager().getTeam(teamName);
+        if (team == null) {
+            return;
+        }
+
+        // Update GUI for all online team members
+        for (java.util.UUID memberUUID : team.getMembers()) {
+            Player member = plugin.getServer().getPlayer(memberUUID);
+            if (member != null && member.isOnline()) {
+                // Check if player has the upgrade shop open
+                String viewTitle = member.getOpenInventory().getTitle();
+                if (viewTitle.equals("§6§lアップグレード - メイン")) {
+                    // Reopen the main shop to refresh the GUI
+                    openMainShop(member);
+                }
+            }
+        }
+    }
 }

@@ -3,6 +3,7 @@ package myplg.myplg;
 import myplg.myplg.commands.EditCommand;
 import myplg.myplg.commands.EndCommand;
 import myplg.myplg.commands.GeneCommand;
+import myplg.myplg.commands.GeneReloadCommand;
 import myplg.myplg.commands.SaveCommand;
 import myplg.myplg.commands.SetBedCommand;
 import myplg.myplg.commands.Shop1Command;
@@ -86,6 +87,7 @@ public final class PvPGame extends JavaPlugin {
         getCommand("save").setExecutor(new SaveCommand(this));
         getCommand("end").setExecutor(new EndCommand(this));
         getCommand("gene").setExecutor(new GeneCommand(this));
+        getCommand("genereload").setExecutor(new GeneReloadCommand(this));
         getCommand("shop1").setExecutor(new Shop1Command(this));
         getCommand("shop2").setExecutor(new Shop2Command(this));
         getCommand("sreset").setExecutor(new ShopResetCommand(this));
@@ -137,11 +139,9 @@ public final class PvPGame extends JavaPlugin {
             getLogger().warning("Teams were not fully loaded yet, skipping save to prevent data loss.");
         }
 
-        // Save generators
-        if (generatorDataManager != null && generatorManager != null) {
-            getLogger().info("Saving generators on disable. Current generator count: " + generatorManager.getGenerators().size());
-            generatorDataManager.saveGenerators();
-        }
+        // DON'T save generators on disable to prevent overwriting manual changes to generators.yml
+        // Use /genereload command to reload generators from generators.yml
+        // Generators are only saved when modified through commands like /gene
 
         // Stop all generators
         if (generatorManager != null) {

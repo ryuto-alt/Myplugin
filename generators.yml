@@ -1,0 +1,337 @@
+generators:
+  イエロー_iron_1760654371482:
+    teamName: イエロー
+    material: IRON_INGOT
+    corner1:
+      world: world
+      x: 103.0
+      y: 71.0
+      z: 29.0
+    corner2:
+      world: world
+      x: 102.0
+      y: 71.0
+      z: 31.0
+    spawnInterval: 10
+  ピンク_gold_1760654522985:
+    teamName: ピンク
+    material: GOLD_INGOT
+    corner1:
+      world: world
+      x: -103.0
+      y: 71.0
+      z: 31.0
+    corner2:
+      world: world
+      x: -102.0
+      y: 71.0
+      z: 29.0
+    spawnInterval: 300
+  アクア_iron_1760654336090:
+    teamName: アクア
+    material: IRON_INGOT
+    corner1:
+      world: world
+      x: 31.0
+      y: 71.0
+      z: 103.0
+    corner2:
+      world: world
+      x: 29.0
+      y: 71.0
+      z: 102.0
+    spawnInterval: 10
+  イエロー_gold_1760654377788:
+    teamName: イエロー
+    material: GOLD_INGOT
+    corner1:
+      world: world
+      x: 103.0
+      y: 71.0
+      z: 29.0
+    corner2:
+      world: world
+      x: 102.0
+      y: 71.0
+      z: 31.0
+    spawnInterval: 300
+  グレー_iron_1760654491535:
+    teamName: グレー
+    material: IRON_INGOT
+    corner1:
+      world: world
+      x: -103.0
+      y: 71.0
+      z: -29.0
+    corner2:
+      world: world
+      x: -102.0
+      y: 71.0
+      z: -31.0
+    spawnInterval: 10
+  ピンク_iron_1760654515432:
+    teamName: ピンク
+    material: IRON_INGOT
+    corner1:
+      world: world
+      x: -103.0
+      y: 71.0
+      z: 31.0
+    corner2:
+      world: world
+      x: -102.0
+      y: 71.0
+      z: 29.0
+    spawnInterval: 10
+  ホワイト_iron_1760654537340:
+    teamName: ホワイト
+    material: IRON_INGOT
+    corner1:
+      world: world
+      x: -29.0
+      y: 71.0
+      z: 103.0
+    corner2:
+      world: world
+      x: -31.0
+      y: 71.0
+      z: 102.0
+    spawnInterval: 10
+  共通_diamond_1760654587938:
+    teamName: 共通
+    material: DIAMOND
+    corner1:
+      world: world
+      x: 58.0
+      y: 75.0
+      z: -59.0
+    corner2:
+      world: world
+      x: 58.0
+      y: 75.0
+      z: -59.0
+    spawnInterval: 1200
+  レッド_gold_1760654467132:
+    teamName: レッド
+    material: GOLD_INGOT
+    corner1:
+      world: world
+      x: -31.0
+      y: 71.0
+      z: -103.0
+    corner2:
+      world: world
+      x: -29.0
+      y: 71.0
+      z: -102.0
+    spawnInterval: 300
+  グリーン_gold_1760654416785:
+    teamName: グリーン
+    material: GOLD_INGOT
+    corner1:
+      world: world
+      x: 103.0
+      y: 71.0
+      z: -31.0
+    corner2:
+      world: world
+      x: 102.0
+      y: 71.0
+      z: -29.0
+    spawnInterval: 300
+  共通_emerald_1760654643338:
+    teamName: 共通
+    material: EMERALD
+    corner1:
+      world: world
+      x: 0.0
+      y: 77.0
+      z: -24.0
+    corner2:
+      world: world
+      x: 0.0
+      y: 77.0
+      z: -24.0
+    spawnInterval: 3600
+  ブルー_iron_1760654434534:
+    teamName: ブルー
+    material: IRON_INGOT
+    corner1:
+      world: world
+      x: 29.0
+      y: 71.0
+      z: -103.0
+    corner2:
+      world: world
+      x: 31.0
+      y: 71.0
+      z: -102.0
+    spawnInterval: 10
+  共通_diamond_1760654563485:
+    teamName: 共通
+    material: DIAMOND
+    corner1:
+      world: world
+      x: 59.0
+      y: 75.0
+      z: 58.0
+    corner2:
+      world: world
+      x: 59.0
+      y: 75.0
+      z: 58.0
+    spawnInterval: 1200
+  共通_emerald_1760654622134:
+    teamName: 共通
+    material: EMERALD
+    corner1:
+      world: world
+      x: 0.0
+      y: 77.0
+      z: 24.0
+    corner2:
+      world: world
+      x: 0.0
+      y: 77.0
+      z: 24.0
+    spawnInterval: 3600
+  共通_diamond_1760654600731:
+    teamName: 共通
+    material: DIAMOND
+    corner1:
+      world: world
+      x: -59.0
+      y: 75.0
+      z: -58.0
+    corner2:
+      world: world
+      x: -59.0
+      y: 75.0
+      z: -58.0
+    spawnInterval: 1200
+  グレー_gold_1760654498884:
+    teamName: グレー
+    material: GOLD_INGOT
+    corner1:
+      world: world
+      x: -103.0
+      y: 71.0
+      z: -29.0
+    corner2:
+      world: world
+      x: -102.0
+      y: 71.0
+      z: -31.0
+    spawnInterval: 300
+  グリーン_iron_1760654410434:
+    teamName: グリーン
+    material: IRON_INGOT
+    corner1:
+      world: world
+      x: 103.0
+      y: 71.0
+      z: -31.0
+    corner2:
+      world: world
+      x: 102.0
+      y: 71.0
+      z: -29.0
+    spawnInterval: 10
+  ブルー_gold_1760654443034:
+    teamName: ブルー
+    material: GOLD_INGOT
+    corner1:
+      world: world
+      x: 29.0
+      y: 71.0
+      z: -103.0
+    corner2:
+      world: world
+      x: 31.0
+      y: 71.0
+      z: -102.0
+    spawnInterval: 300
+  共通_emerald_1760654652537:
+    teamName: 共通
+    material: EMERALD
+    corner1:
+      world: world
+      x: -24.0
+      y: 77.0
+      z: 0.0
+    corner2:
+      world: world
+      x: -24.0
+      y: 77.0
+      z: 0.0
+    spawnInterval: 3600
+  ホワイト_gold_1760654545140:
+    teamName: ホワイト
+    material: GOLD_INGOT
+    corner1:
+      world: world
+      x: -29.0
+      y: 71.0
+      z: 103.0
+    corner2:
+      world: world
+      x: -31.0
+      y: 71.0
+      z: 102.0
+    spawnInterval: 300
+  レッド_iron_1760654459833:
+    teamName: レッド
+    material: IRON_INGOT
+    corner1:
+      world: world
+      x: -31.0
+      y: 71.0
+      z: -103.0
+    corner2:
+      world: world
+      x: -29.0
+      y: 71.0
+      z: -102.0
+    spawnInterval: 10
+  共通_diamond_1760654612036:
+    teamName: 共通
+    material: DIAMOND
+    corner1:
+      world: world
+      x: -58.0
+      y: 75.0
+      z: 59.0
+    corner2:
+      world: world
+      x: -58.0
+      y: 75.0
+      z: 59.0
+    spawnInterval: 1200
+  アクア_gold_1760654348138:
+    teamName: アクア
+    material: GOLD_INGOT
+    corner1:
+      world: world
+      x: 31.0
+      y: 71.0
+      z: 103.0
+    corner2:
+      world: world
+      x: 29.0
+      y: 71.0
+      z: 102.0
+    spawnInterval: 300
+  共通_emerald_1760654630787:
+    teamName: 共通
+    material: EMERALD
+    corner1:
+      world: world
+      x: 24.0
+      y: 77.0
+      z: 0.0
+    corner2:
+      world: world
+      x: 24.0
+      y: 77.0
+      z: 0.0
+    spawnInterval: 3600

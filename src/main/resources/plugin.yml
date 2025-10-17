@@ -21,6 +21,9 @@ commands:
   gene:
     description: ジェネレーターを設定します
     usage: /gene <diamond|gold|iron|emerald>
+  genereload:
+    description: generators.ymlからジェネレーター設定を再読み込みします
+    usage: /genereload
   shop1:
     description: ショップ村人のスポーンエッグを入手します
     usage: /shop1

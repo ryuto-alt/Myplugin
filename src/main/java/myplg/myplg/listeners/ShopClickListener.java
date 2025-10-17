@@ -890,9 +890,9 @@ public class ShopClickListener implements Listener {
             // Play sound
             player.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_BEACON_ACTIVATE, 1.0f, 1.0f);
 
-            // Reopen shop to show updated status
+            // Update GUIs for all team members in real-time
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                new myplg.myplg.gui.ShopTwoGUI(plugin).openMainShop(player);
+                new myplg.myplg.gui.ShopTwoGUI(plugin).updateTeamGUIs(teamName);
             }, 1L);
         } else {
             // Refund if upgrade failed
@@ -951,9 +951,9 @@ public class ShopClickListener implements Listener {
             // Play sound
             player.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_ANVIL_USE, 1.0f, 1.0f);
 
-            // Reopen shop to show updated status
+            // Update GUIs for all team members in real-time
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                new myplg.myplg.gui.ShopTwoGUI(plugin).openMainShop(player);
+                new myplg.myplg.gui.ShopTwoGUI(plugin).updateTeamGUIs(teamName);
             }, 1L);
         } else {
             // Refund if upgrade failed
@@ -1046,9 +1046,9 @@ public class ShopClickListener implements Listener {
             // Play sound
             player.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_ANVIL_USE, 1.0f, 1.0f);
 
-            // Reopen shop to show updated status
+            // Update GUIs for all team members in real-time
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                new myplg.myplg.gui.ShopTwoGUI(plugin).openMainShop(player);
+                new myplg.myplg.gui.ShopTwoGUI(plugin).updateTeamGUIs(teamName);
             }, 1L);
         } else {
             // Refund if upgrade failed
