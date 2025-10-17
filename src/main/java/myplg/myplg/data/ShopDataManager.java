@@ -43,7 +43,13 @@ public class ShopDataManager {
         shopConfig.set(path + ".x", location.getX());
         shopConfig.set(path + ".y", location.getY());
         shopConfig.set(path + ".z", location.getZ());
+        shopConfig.set(path + ".yaw", location.getYaw());
+        shopConfig.set(path + ".pitch", location.getPitch());
         saveConfig();
+
+        plugin.getLogger().info("Saved shop: type=" + shopType + ", team=" + teamName +
+            ", location=" + location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ() +
+            ", yaw=" + location.getYaw() + ", UUID=" + entityUUID);
     }
 
     public void removeShopVillager(UUID entityUUID) {
@@ -64,6 +70,27 @@ public class ShopDataManager {
             return new ArrayList<>();
         }
         return new ArrayList<>(shopConfig.getConfigurationSection("villagers").getKeys(false));
+    }
+
+    public Location getShopLocation(UUID entityUUID) {
+        String path = "villagers." + entityUUID.toString();
+        String worldName = shopConfig.getString(path + ".world");
+        if (worldName == null) {
+            return null;
+        }
+
+        org.bukkit.World world = plugin.getServer().getWorld(worldName);
+        if (world == null) {
+            return null;
+        }
+
+        double x = shopConfig.getDouble(path + ".x");
+        double y = shopConfig.getDouble(path + ".y");
+        double z = shopConfig.getDouble(path + ".z");
+        float yaw = (float) shopConfig.getDouble(path + ".yaw", 0.0);
+        float pitch = (float) shopConfig.getDouble(path + ".pitch", 0.0);
+
+        return new Location(world, x, y, z, yaw, pitch);
     }
 
     private void saveConfig() {

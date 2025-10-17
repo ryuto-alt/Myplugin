@@ -170,4 +170,92 @@ public class ShopTwoListener implements Listener {
     public ShopConfigGUI getConfigGUI() {
         return configGUI;
     }
+
+    public void loadShopsFromConfig() {
+        plugin.getLogger().info("Loading shop 2 skeletons from config...");
+
+        // First, remove all existing shop 2 skeletons from all worlds
+        plugin.getServer().getWorlds().forEach(world -> {
+            world.getEntities().forEach(entity -> {
+                if (entity.getType() == org.bukkit.entity.EntityType.SKELETON) {
+                    org.bukkit.entity.Skeleton skeleton = (org.bukkit.entity.Skeleton) entity;
+                    if (skeleton.getPersistentDataContainer().has(shopTypeKey, PersistentDataType.STRING)) {
+                        String shopType = skeleton.getPersistentDataContainer().get(shopTypeKey, PersistentDataType.STRING);
+                        if ("shop2".equals(shopType)) {
+                            skeleton.remove();
+                            plugin.getLogger().info("Removed existing shop 2 skeleton at " +
+                                skeleton.getLocation().getBlockX() + "," +
+                                skeleton.getLocation().getBlockY() + "," +
+                                skeleton.getLocation().getBlockZ());
+                        }
+                    }
+                }
+            });
+        });
+
+        // Now load shops from config
+        int loadedCount = 0;
+        for (String uuidString : plugin.getShopDataManager().getAllShopVillagers()) {
+            try {
+                UUID skeletonUUID = UUID.fromString(uuidString);
+                String shopType = plugin.getShopDataManager().getShopType(skeletonUUID);
+
+                // Only load shop2 type
+                if (!"shop2".equals(shopType)) {
+                    continue;
+                }
+
+                String teamName = plugin.getShopDataManager().getShopTeam(skeletonUUID);
+                Location location = plugin.getShopDataManager().getShopLocation(skeletonUUID);
+
+                if (location == null) {
+                    plugin.getLogger().warning("Could not load location for shop 2 skeleton: " + uuidString);
+                    continue;
+                }
+
+                if (teamName == null) {
+                    plugin.getLogger().warning("Incomplete shop data for skeleton: " + uuidString);
+                    continue;
+                }
+
+                // Spawn skeleton at saved location with correct orientation
+                Skeleton skeleton = (Skeleton) location.getWorld().spawnEntity(location, EntityType.SKELETON);
+
+                // Set properties
+                skeleton.setCustomName("§6§lアップグレード §7(" + teamName + ")");
+                skeleton.setCustomNameVisible(true);
+                skeleton.setAI(false);
+                skeleton.setInvulnerable(true);
+                skeleton.setSilent(true);
+                skeleton.setRemoveWhenFarAway(false);
+
+                // Set persistent data
+                skeleton.getPersistentDataContainer().set(shopTypeKey, PersistentDataType.STRING, shopType);
+                skeleton.getPersistentDataContainer().set(shopTeamKey, PersistentDataType.STRING, teamName);
+
+                // Teleport to exact location with correct yaw/pitch
+                skeleton.teleport(location);
+
+                // Update saved UUID if it changed (it will change after respawn)
+                UUID newUUID = skeleton.getUniqueId();
+                if (!newUUID.equals(skeletonUUID)) {
+                    // Remove old entry
+                    plugin.getShopDataManager().removeShopVillager(skeletonUUID);
+                    // Save with new UUID
+                    plugin.getShopDataManager().saveShopVillager(shopType, newUUID, location, teamName);
+                }
+
+                loadedCount++;
+                plugin.getLogger().info("Loaded shop2 skeleton for team " + teamName + " at " +
+                    location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ() +
+                    " facing yaw=" + location.getYaw());
+
+            } catch (Exception e) {
+                plugin.getLogger().severe("Error loading shop 2 skeleton " + uuidString + ": " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+
+        plugin.getLogger().info("Shop2 loading completed. Loaded " + loadedCount + " skeleton(s).");
+    }
 }

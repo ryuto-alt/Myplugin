@@ -115,6 +115,13 @@ public final class PvPGame extends JavaPlugin {
         getServer().getPluginManager().registerEvents(shopVillagerListener, this);
         getServer().getPluginManager().registerEvents(shopTwoListener, this);
         getServer().getPluginManager().registerEvents(shopClickListener, this);
+
+        // Load shops from config after worlds are loaded
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            shopVillagerListener.loadShopsFromConfig();
+            shopTwoListener.loadShopsFromConfig();
+            getLogger().info("Shop loading completed.");
+        }, 40L); // 2 second delay to ensure worlds are fully loaded
         getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.FireballListener(this), this);
         getServer().getPluginManager().registerEvents(new ArmorRemoveListener(this), this);
         getServer().getPluginManager().registerEvents(new BedBreakListener(this), this);

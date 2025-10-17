@@ -138,8 +138,8 @@ public class ShopClickListener implements Listener {
                 return;
             }
 
-            // Category button: Equipment
-            if (displayName.contains("装備") && amount == 1 && type != Material.IRON_SWORD) {
+            // Category button: Equipment (装備 but not 装備強化 which uses IRON_CHESTPLATE)
+            if (type == Material.IRON_SWORD && displayName.contains("装備") && !displayName.contains("強化")) {
                 shopGUI.openEquipmentShop(player);
                 return;
             }

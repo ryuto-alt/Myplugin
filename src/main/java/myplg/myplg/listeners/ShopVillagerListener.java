@@ -163,4 +163,92 @@ public class ShopVillagerListener implements Listener {
     public ShopConfigGUI getConfigGUI() {
         return configGUI;
     }
+
+    public void loadShopsFromConfig() {
+        plugin.getLogger().info("Loading shop villagers from config...");
+
+        // First, remove all existing shop villagers from all worlds
+        plugin.getServer().getWorlds().forEach(world -> {
+            world.getEntities().forEach(entity -> {
+                if (entity.getType() == org.bukkit.entity.EntityType.VILLAGER) {
+                    org.bukkit.entity.Villager villager = (org.bukkit.entity.Villager) entity;
+                    if (villager.getPersistentDataContainer().has(shopTypeKey, PersistentDataType.STRING)) {
+                        String shopType = villager.getPersistentDataContainer().get(shopTypeKey, PersistentDataType.STRING);
+                        if ("shop1".equals(shopType)) {
+                            villager.remove();
+                            plugin.getLogger().info("Removed existing shop villager at " +
+                                villager.getLocation().getBlockX() + "," +
+                                villager.getLocation().getBlockY() + "," +
+                                villager.getLocation().getBlockZ());
+                        }
+                    }
+                }
+            });
+        });
+
+        // Now load shops from config
+        int loadedCount = 0;
+        for (String uuidString : plugin.getShopDataManager().getAllShopVillagers()) {
+            try {
+                UUID villagerUUID = UUID.fromString(uuidString);
+                String shopType = plugin.getShopDataManager().getShopType(villagerUUID);
+
+                // Only load shop1 type (villagers)
+                if (!"shop1".equals(shopType)) {
+                    continue;
+                }
+
+                String teamName = plugin.getShopDataManager().getShopTeam(villagerUUID);
+                Location location = plugin.getShopDataManager().getShopLocation(villagerUUID);
+
+                if (location == null) {
+                    plugin.getLogger().warning("Could not load location for shop villager: " + uuidString);
+                    continue;
+                }
+
+                if (teamName == null) {
+                    plugin.getLogger().warning("Incomplete shop data for villager: " + uuidString);
+                    continue;
+                }
+
+                // Spawn villager at saved location with correct orientation
+                Villager villager = (Villager) location.getWorld().spawnEntity(location, EntityType.VILLAGER);
+
+                // Set properties
+                villager.setCustomName("§a§lショップ §7(" + teamName + ")");
+                villager.setCustomNameVisible(true);
+                villager.setAI(false);
+                villager.setInvulnerable(true);
+                villager.setSilent(true);
+                villager.setRemoveWhenFarAway(false);
+
+                // Set persistent data
+                villager.getPersistentDataContainer().set(shopTypeKey, PersistentDataType.STRING, shopType);
+                villager.getPersistentDataContainer().set(shopTeamKey, PersistentDataType.STRING, teamName);
+
+                // Teleport to exact location with correct yaw/pitch
+                villager.teleport(location);
+
+                // Update saved UUID if it changed (it will change after respawn)
+                UUID newUUID = villager.getUniqueId();
+                if (!newUUID.equals(villagerUUID)) {
+                    // Remove old entry
+                    plugin.getShopDataManager().removeShopVillager(villagerUUID);
+                    // Save with new UUID
+                    plugin.getShopDataManager().saveShopVillager(shopType, newUUID, location, teamName);
+                }
+
+                loadedCount++;
+                plugin.getLogger().info("Loaded shop1 villager for team " + teamName + " at " +
+                    location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ() +
+                    " facing yaw=" + location.getYaw());
+
+            } catch (Exception e) {
+                plugin.getLogger().severe("Error loading shop villager " + uuidString + ": " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+
+        plugin.getLogger().info("Shop1 loading completed. Loaded " + loadedCount + " villager(s).");
+    }
 }
