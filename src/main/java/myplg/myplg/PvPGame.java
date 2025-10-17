@@ -21,6 +21,7 @@ import myplg.myplg.listeners.BlockPlaceListener;
 import myplg.myplg.listeners.ExplosionProtectionListener;
 import myplg.myplg.listeners.GeneratorSelectionListener;
 import myplg.myplg.listeners.GUIClickListener;
+import myplg.myplg.listeners.HungerControlListener;
 import myplg.myplg.listeners.MobSpawnListener;
 import myplg.myplg.listeners.PlayerDeathListener;
 import myplg.myplg.listeners.PlayerJoinListener;
@@ -129,6 +130,7 @@ public final class PvPGame extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new BlockPlaceListener(this), this);
         getServer().getPluginManager().registerEvents(new ExplosionProtectionListener(this), this);
         getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.UpgradeEnchantmentListener(this), this);
+        getServer().getPluginManager().registerEvents(new HungerControlListener(this), this);
 
         // Start time control
         TimeControlListener timeControl = new TimeControlListener(this);

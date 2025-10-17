@@ -103,6 +103,23 @@ public class StartCommand implements CommandExecutor {
         // Initialize scoreboard
         plugin.getScoreboardManager().initializeAllBeds();
 
+        // Handle teams with 0 members: remove bed and mark as eliminated
+        for (Team team : plugin.getGameManager().getTeams().values()) {
+            if (team.getMembers().isEmpty()) {
+                // Remove bed block
+                if (team.getBedBlock() != null) {
+                    team.getBedBlock().setType(Material.AIR);
+                    plugin.getLogger().info("Removed bed for empty team: " + team.getName());
+                }
+
+                // Mark bed as destroyed and team as eliminated in scoreboard
+                plugin.getScoreboardManager().setBedStatus(team.getName(), false);
+                plugin.getScoreboardManager().setTeamEliminated(team.getName());
+
+                Bukkit.broadcastMessage("§7チーム「" + team.getName() + "」はメンバーがいないため除外されました。");
+            }
+        }
+
         // Start all generators
         plugin.getGeneratorManager().startAllGenerators();
 
