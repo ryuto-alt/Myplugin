@@ -87,6 +87,13 @@ public class PlayerDeathListener implements Listener {
             player.getInventory().clear();
             player.setGameMode(GameMode.SPECTATOR);
             player.sendTitle("§c§l死んでしまった！", "§cあなたは脱落しました", 10, 70, 20);
+
+            // Update scoreboard to reflect player elimination
+            plugin.getScoreboardManager().updateAllScoreboards();
+
+            // Check if team is completely eliminated
+            checkTeamElimination(teamName);
+
             processingDeath.remove(playerUUID);
             return;
         }
@@ -275,6 +282,61 @@ public class PlayerDeathListener implements Listener {
             case "DIAMOND": return 4;
             default: return 0;
         }
+    }
+
+    private void checkTeamElimination(String teamName) {
+        myplg.myplg.Team team = plugin.getGameManager().getTeam(teamName);
+        if (team == null) return;
+
+        // Count alive players in team
+        int aliveCount = 0;
+        for (UUID memberUUID : team.getMembers()) {
+            Player member = plugin.getServer().getPlayer(memberUUID);
+            if (member != null && member.isOnline() && !eliminatedPlayers.contains(memberUUID)) {
+                aliveCount++;
+            }
+        }
+
+        // If no players alive, team is eliminated
+        if (aliveCount == 0) {
+            plugin.getScoreboardManager().setTeamEliminated(teamName);
+            plugin.getServer().broadcastMessage("§c§l" + teamName + " チームが全滅しました！");
+
+            // Check for victory
+            checkVictoryCondition();
+        }
+    }
+
+    private void checkVictoryCondition() {
+        // Count remaining teams with alive players
+        int remainingTeams = 0;
+        String winningTeam = null;
+
+        for (myplg.myplg.Team team : plugin.getGameManager().getTeams().values()) {
+            int aliveCount = 0;
+            for (UUID memberUUID : team.getMembers()) {
+                Player member = plugin.getServer().getPlayer(memberUUID);
+                if (member != null && member.isOnline() && !eliminatedPlayers.contains(memberUUID)) {
+                    aliveCount++;
+                }
+            }
+
+            if (aliveCount > 0) {
+                remainingTeams++;
+                winningTeam = team.getName();
+            }
+        }
+
+        // If only one team remains, they win
+        if (remainingTeams == 1 && winningTeam != null) {
+            announceVictory(winningTeam);
+        }
+    }
+
+    private void announceVictory(String winningTeam) {
+        // This will be implemented in the next task
+        // For now, just broadcast
+        plugin.getServer().broadcastMessage("§6§l" + winningTeam + " チームの勝利！");
     }
 
     public void reset() {

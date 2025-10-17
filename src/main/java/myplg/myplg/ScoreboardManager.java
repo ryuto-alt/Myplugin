@@ -11,10 +11,12 @@ import java.util.UUID;
 public class ScoreboardManager {
     private final PvPGame plugin;
     private final Map<String, Boolean> bedStatus; // Team name -> Bed alive status
+    private final Map<String, Boolean> teamEliminated; // Team name -> Eliminated status
 
     public ScoreboardManager(PvPGame plugin) {
         this.plugin = plugin;
         this.bedStatus = new HashMap<>();
+        this.teamEliminated = new HashMap<>();
     }
 
     /**
@@ -64,6 +66,7 @@ public class ScoreboardManager {
         for (Team team : plugin.getGameManager().getTeams().values()) {
             String teamName = team.getName();
             boolean bedAlive = bedStatus.getOrDefault(teamName, true);
+            boolean eliminated = teamEliminated.getOrDefault(teamName, false);
 
             String prefix = getTeamPrefix(teamName);
 
@@ -77,10 +80,14 @@ public class ScoreboardManager {
             }
 
             String status;
-            if (bedAlive) {
+            if (eliminated) {
+                // Team is completely eliminated - show X mark
+                status = "§c✗";
+            } else if (bedAlive) {
+                // Bed is alive - show checkmark
                 status = "§a✓";
             } else {
-                // Show player count if bed is destroyed
+                // Bed destroyed but team has players - show player count
                 status = "§c" + aliveCount;
             }
 
@@ -130,12 +137,22 @@ public class ScoreboardManager {
     }
 
     /**
+     * Set team as eliminated
+     */
+    public void setTeamEliminated(String teamName) {
+        teamEliminated.put(teamName, true);
+        updateAllScoreboards();
+    }
+
+    /**
      * Initialize all teams' beds as alive
      */
     public void initializeAllBeds() {
         bedStatus.clear();
+        teamEliminated.clear();
         for (Team team : plugin.getGameManager().getTeams().values()) {
             bedStatus.put(team.getName(), true);
+            teamEliminated.put(team.getName(), false);
         }
     }
 
