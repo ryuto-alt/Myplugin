@@ -3,16 +3,21 @@ package myplg.myplg.commands;
 import myplg.myplg.PvPGame;
 import myplg.myplg.Team;
 import myplg.myplg.listeners.BlockPlaceListener;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
+import org.bukkit.scheduler.BukkitRunnable;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,6 +47,50 @@ public class StartCommand implements CommandExecutor {
             return true;
         }
 
+        // Start countdown
+        startCountdown(onlinePlayers);
+
+        return true;
+    }
+
+    private void startCountdown(List<Player> onlinePlayers) {
+        // Countdown: 5, 4, 3, 2, 1
+        for (int i = 5; i >= 1; i--) {
+            final int count = i;
+            final long delay = (5 - i) * 20L; // 0, 20, 40, 60, 80 ticks
+
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                // Title display
+                Component title = Component.text("§e§l" + count);
+                Component subtitle = Component.text("§7ゲーム開始まで...");
+
+                Title countTitle = Title.title(
+                    title,
+                    subtitle,
+                    Title.Times.times(
+                        Duration.ofMillis(0),    // fade in
+                        Duration.ofMillis(1000), // stay
+                        Duration.ofMillis(250)   // fade out
+                    )
+                );
+
+                // Broadcast and show title to all players
+                Bukkit.broadcastMessage("§e§l" + count + "...");
+
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    player.showTitle(countTitle);
+                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 1.0f, 1.0f);
+                }
+            }, delay);
+        }
+
+        // Start game after countdown (at 6 seconds = 120 ticks)
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            startGame(onlinePlayers);
+        }, 120L);
+    }
+
+    private void startGame(List<Player> onlinePlayers) {
         // Start the game
         plugin.getGameManager().setGameRunning(true);
 
@@ -69,11 +118,30 @@ public class StartCommand implements CommandExecutor {
             plugin.getScoreboardManager().createScoreboard(player);
 
             player.sendMessage("§aゲーム開始！あなたは「" + teamName + "」チームです。");
+
+            // Play start sound
+            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+        }
+
+        // Show start title
+        Component startTitle = Component.text("§a§lゲーム開始！");
+        Component startSubtitle = Component.text("§7Good Luck!");
+
+        Title gameStartTitle = Title.title(
+            startTitle,
+            startSubtitle,
+            Title.Times.times(
+                Duration.ofMillis(500),  // fade in
+                Duration.ofMillis(2000), // stay
+                Duration.ofMillis(500)   // fade out
+            )
+        );
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.showTitle(gameStartTitle);
         }
 
         Bukkit.broadcastMessage("§6§lPvPゲームが開始されました！");
-
-        return true;
     }
 
     private void giveInitialEquipment(Player player, String teamName) {
