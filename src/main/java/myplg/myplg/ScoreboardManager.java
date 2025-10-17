@@ -88,12 +88,15 @@ public class ScoreboardManager {
             }
 
             String status;
-            if (eliminated || aliveCount == 0) {
-                // Team is completely eliminated or has no players - show X mark
+            if (eliminated) {
+                // Team is completely eliminated - show X mark
                 status = "§c✗";
             } else if (bedAlive) {
-                // Bed is alive - show checkmark
+                // Bed is alive - show checkmark (even if no members)
                 status = "§a✓";
+            } else if (aliveCount == 0) {
+                // Bed destroyed and no players - show X mark
+                status = "§c✗";
             } else {
                 // Bed destroyed but team has players - show player count
                 status = "§c" + aliveCount;

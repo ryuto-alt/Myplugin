@@ -184,16 +184,8 @@ public class BedBreakListener implements Listener {
     }
 
     private void playRandomEnderDragonSound(Player player) {
-        // Random ender dragon sounds
-        Sound[] dragonSounds = {
-            Sound.ENTITY_ENDER_DRAGON_AMBIENT,
-            Sound.ENTITY_ENDER_DRAGON_GROWL,
-            Sound.ENTITY_ENDER_DRAGON_HURT,
-            Sound.ENTITY_ENDER_DRAGON_FLAP
-        };
-
-        Sound randomSound = dragonSounds[random.nextInt(dragonSounds.length)];
-        player.playSound(player.getLocation(), randomSound, 1.0f, 1.0f);
+        // Play ender dragon growl sound
+        player.playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 1.0f);
     }
 
     private String getTeamColor(String teamName) {
