@@ -6,6 +6,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Skeleton;
 import org.bukkit.entity.Villager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -21,6 +22,7 @@ public class ShopClickListener implements Listener {
     private final PvPGame plugin;
     private final ShopGUI shopGUI;
     private ShopVillagerListener villagerListener;
+    private ShopTwoListener shopTwoListener;
     private final Map<UUID, Long> purchaseCooldown; // Player UUID -> Last purchase time
     private static final long COOLDOWN_MS = 200; // 0.2秒
 
@@ -32,6 +34,10 @@ public class ShopClickListener implements Listener {
 
     public void setVillagerListener(ShopVillagerListener villagerListener) {
         this.villagerListener = villagerListener;
+    }
+
+    public void setShopTwoListener(ShopTwoListener shopTwoListener) {
+        this.shopTwoListener = shopTwoListener;
     }
 
     @EventHandler
@@ -676,7 +682,7 @@ public class ShopClickListener implements Listener {
     }
 
     private void handleTeamSelectionClick(Player player, ItemStack clickedItem) {
-        if (villagerListener == null) {
+        if (villagerListener == null && shopTwoListener == null) {
             player.sendMessage("§cエラー: システムエラーが発生しました。");
             player.closeInventory();
             return;
@@ -691,30 +697,49 @@ public class ShopClickListener implements Listener {
         String displayName = clickedItem.getItemMeta().getDisplayName();
         String teamName = displayName.replace("§e§l", "");
 
-        // Get pending villager
-        UUID villagerUUID = villagerListener.getTeamSelectGUI().getPendingVillager(player.getUniqueId());
-        if (villagerUUID == null) {
-            player.sendMessage("§cエラー: 村人が見つかりません。");
+        // Get pending entity UUID - try both listeners
+        UUID entityUUID = null;
+        if (villagerListener != null) {
+            entityUUID = villagerListener.getTeamSelectGUI().getPendingVillager(player.getUniqueId());
+        }
+        if (entityUUID == null && shopTwoListener != null) {
+            entityUUID = shopTwoListener.getTeamSelectGUI().getPendingVillager(player.getUniqueId());
+        }
+
+        if (entityUUID == null) {
+            player.sendMessage("§cエラー: ショップが見つかりません。");
             player.closeInventory();
             return;
         }
 
-        // Find villager entity
-        Entity entity = Bukkit.getEntity(villagerUUID);
-        if (entity == null || !(entity instanceof Villager)) {
-            player.sendMessage("§cエラー: 村人が見つかりません。");
+        // Find entity (Villager or Skeleton)
+        Entity entity = Bukkit.getEntity(entityUUID);
+        if (entity == null) {
+            player.sendMessage("§cエラー: ショップが見つかりません。");
             player.closeInventory();
+            if (villagerListener != null) {
+                villagerListener.getTeamSelectGUI().removePendingVillager(player.getUniqueId());
+            }
+            if (shopTwoListener != null) {
+                shopTwoListener.getTeamSelectGUI().removePendingVillager(player.getUniqueId());
+            }
+            return;
+        }
+
+        // Set team based on entity type
+        if (entity instanceof Villager) {
+            Villager villager = (Villager) entity;
+            villagerListener.setVillagerTeam(villager, teamName);
             villagerListener.getTeamSelectGUI().removePendingVillager(player.getUniqueId());
+        } else if (entity instanceof Skeleton) {
+            Skeleton skeleton = (Skeleton) entity;
+            shopTwoListener.setSkeletonTeam(skeleton, teamName);
+            shopTwoListener.getTeamSelectGUI().removePendingVillager(player.getUniqueId());
+        } else {
+            player.sendMessage("§cエラー: 不明なショップタイプです。");
+            player.closeInventory();
             return;
         }
-
-        Villager villager = (Villager) entity;
-
-        // Set villager team
-        villagerListener.setVillagerTeam(villager, teamName);
-
-        // Remove pending
-        villagerListener.getTeamSelectGUI().removePendingVillager(player.getUniqueId());
 
         // Success message
         player.sendMessage("§a§lショップを " + teamName + " チームに設定しました！");
@@ -722,7 +747,7 @@ public class ShopClickListener implements Listener {
     }
 
     private void handleConfigClick(Player player, ItemStack clickedItem) {
-        if (villagerListener == null) {
+        if (villagerListener == null && shopTwoListener == null) {
             player.sendMessage("§cエラー: システムエラーが発生しました。");
             player.closeInventory();
             return;
@@ -731,32 +756,47 @@ public class ShopClickListener implements Listener {
         Material type = clickedItem.getType();
 
         if (type == Material.BARRIER) {
-            // Delete shop
-            UUID villagerUUID = villagerListener.getConfigGUI().getConfiguredVillager(player.getUniqueId());
-            if (villagerUUID == null) {
-                player.sendMessage("§cエラー: 村人が見つかりません。");
+            // Delete shop - try both listeners
+            UUID entityUUID = null;
+            if (villagerListener != null) {
+                entityUUID = villagerListener.getConfigGUI().getConfiguredVillager(player.getUniqueId());
+            }
+            if (entityUUID == null && shopTwoListener != null) {
+                entityUUID = shopTwoListener.getConfigGUI().getConfiguredVillager(player.getUniqueId());
+            }
+
+            if (entityUUID == null) {
+                player.sendMessage("§cエラー: ショップが見つかりません。");
                 player.closeInventory();
                 return;
             }
 
-            Entity entity = Bukkit.getEntity(villagerUUID);
-            if (entity == null || !(entity instanceof Villager)) {
-                player.sendMessage("§cエラー: 村人が見つかりません。");
+            Entity entity = Bukkit.getEntity(entityUUID);
+            if (entity == null) {
+                player.sendMessage("§cエラー: ショップが見つかりません。");
                 player.closeInventory();
-                villagerListener.getConfigGUI().removeConfiguredVillager(player.getUniqueId());
+                if (villagerListener != null) {
+                    villagerListener.getConfigGUI().removeConfiguredVillager(player.getUniqueId());
+                }
+                if (shopTwoListener != null) {
+                    shopTwoListener.getConfigGUI().removeConfiguredVillager(player.getUniqueId());
+                }
                 return;
             }
-
-            Villager villager = (Villager) entity;
 
             // Remove from config
-            plugin.getShopDataManager().removeShopVillager(villagerUUID);
+            plugin.getShopDataManager().removeShopVillager(entityUUID);
 
-            // Remove entity
-            villager.remove();
+            // Remove entity (works for both Villager and Skeleton)
+            entity.remove();
 
             // Remove from tracking
-            villagerListener.getConfigGUI().removeConfiguredVillager(player.getUniqueId());
+            if (villagerListener != null) {
+                villagerListener.getConfigGUI().removeConfiguredVillager(player.getUniqueId());
+            }
+            if (shopTwoListener != null) {
+                shopTwoListener.getConfigGUI().removeConfiguredVillager(player.getUniqueId());
+            }
 
             player.sendMessage("§a§lショップを削除しました。");
             player.closeInventory();

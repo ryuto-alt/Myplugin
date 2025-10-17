@@ -97,6 +97,7 @@ public final class PvPGame extends JavaPlugin {
         ShopTwoListener shopTwoListener = new ShopTwoListener(this);
         ShopClickListener shopClickListener = new ShopClickListener(this);
         shopClickListener.setVillagerListener(shopVillagerListener);
+        shopClickListener.setShopTwoListener(shopTwoListener);
 
         getServer().getPluginManager().registerEvents(shopVillagerListener, this);
         getServer().getPluginManager().registerEvents(shopTwoListener, this);
