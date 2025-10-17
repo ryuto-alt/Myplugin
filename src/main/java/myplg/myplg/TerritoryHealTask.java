@@ -1,7 +1,6 @@
 package myplg.myplg;
 
 import org.bukkit.Location;
-import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -52,7 +51,7 @@ public class TerritoryHealTask extends BukkitRunnable {
             double distance = bedLocation.distance(playerLocation);
             if (distance <= HEAL_RADIUS) {
                 // Heal player if not at max health
-                double maxHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue();
+                double maxHealth = player.getMaxHealth();
                 double currentHealth = player.getHealth();
 
                 if (currentHealth < maxHealth) {
