@@ -31,7 +31,7 @@ public class Shop2Command implements CommandExecutor {
         ItemStack spawnEgg = new ItemStack(Material.SKELETON_SPAWN_EGG, 1);
         ItemMeta meta = spawnEgg.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName("§6§lショップ2 (陣地強化・武器強化・装備強化・トラップ)");
+            meta.setDisplayName("§6§lショップ (陣地強化・武器強化・装備強化・トラップ)");
             meta.setLore(Arrays.asList(
                 "§7右クリックでスケルトンを召喚",
                 "§7スケルトンを右クリックでショップを開く",
@@ -41,7 +41,7 @@ public class Shop2Command implements CommandExecutor {
         }
 
         player.getInventory().addItem(spawnEgg);
-        player.sendMessage("§aショップ2スケルトンのスポーンエッグを入手しました！");
+        player.sendMessage("§aショップスケルトンのスポーンエッグを入手しました！");
         player.sendMessage("§7地面に右クリックでスケルトンを召喚できます。");
 
         return true;

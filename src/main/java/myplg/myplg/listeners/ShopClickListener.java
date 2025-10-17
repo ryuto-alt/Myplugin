@@ -70,10 +70,17 @@ public class ShopClickListener implements Listener {
             return;
         }
 
-        // Main shop navigation
+        // Main shop navigation (Shop 1)
         if (title.equals("§6§lショップ - メイン")) {
             event.setCancelled(true);
             handleMainShopClick(player, clickedItem);
+            return;
+        }
+
+        // Shop 2 main menu
+        if (title.equals("§6§lショップ - メイン")) {
+            event.setCancelled(true);
+            handleShopTwoMainClick(player, clickedItem);
             return;
         }
 

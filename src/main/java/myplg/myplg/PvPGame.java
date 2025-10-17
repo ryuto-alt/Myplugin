@@ -40,6 +40,7 @@ public final class PvPGame extends JavaPlugin {
     private ShopDataManager shopDataManager;
     private WorldBackupManager worldBackupManager;
     private ToolUpgradeManager toolUpgradeManager;
+    private TerritoryUpgradeManager territoryUpgradeManager;
     private ScoreboardManager scoreboardManager;
     private SetBedCommand setBedCommand;
     private BedClickListener bedClickListener;
@@ -56,6 +57,7 @@ public final class PvPGame extends JavaPlugin {
         shopDataManager = new ShopDataManager(this);
         worldBackupManager = new WorldBackupManager(this);
         toolUpgradeManager = new ToolUpgradeManager(this);
+        territoryUpgradeManager = new TerritoryUpgradeManager(this);
         scoreboardManager = new ScoreboardManager(this);
 
         // Load teams and generators from file after a delay to ensure worlds are loaded
@@ -182,5 +184,9 @@ public final class PvPGame extends JavaPlugin {
 
     public ScoreboardManager getScoreboardManager() {
         return scoreboardManager;
+    }
+
+    public TerritoryUpgradeManager getTerritoryUpgradeManager() {
+        return territoryUpgradeManager;
     }
 }

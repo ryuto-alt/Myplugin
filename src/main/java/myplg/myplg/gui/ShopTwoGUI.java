@@ -18,7 +18,11 @@ public class ShopTwoGUI {
     }
 
     public void openMainShop(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 45, "§6§lショップ2 - メイン");
+        Inventory inv = Bukkit.createInventory(null, 45, "§6§lショップ - メイン");
+
+        // Get player's team to check upgrade levels
+        String teamName = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
+        int territoryLevel = teamName != null ? plugin.getTerritoryUpgradeManager().getUpgradeLevel(teamName) : 0;
 
         // Row 2: Category buttons (evenly spaced)
         // 陣地強化 (Territory Enhancement) - Beacon icon
@@ -26,10 +30,34 @@ public class ShopTwoGUI {
         ItemMeta territoryMeta = territory.getItemMeta();
         if (territoryMeta != null) {
             territoryMeta.setDisplayName("§e§l陣地強化");
-            territoryMeta.setLore(Arrays.asList(
-                "§7シャープネス、プロテクションなど",
-                "§aクリックして詳細を表示"
-            ));
+
+            java.util.List<String> lore = new java.util.ArrayList<>();
+
+            // Lv I - Heal
+            if (territoryLevel >= 1) {
+                lore.add("§9Lv I ヒール §7(ダイヤ x3)");
+            } else {
+                lore.add("§7Lv I ヒール §7(ダイヤ x3)");
+            }
+
+            // Lv II - Speed
+            if (territoryLevel >= 2) {
+                lore.add("§9Lv II 加速 §7(ダイヤ x4)");
+            } else {
+                lore.add("§7Lv II 加速 §7(ダイヤ x4)");
+            }
+
+            // Lv III - Evolution
+            if (territoryLevel >= 3) {
+                lore.add("§9Lv III 進化 §7(ダイヤ x5)");
+            } else {
+                lore.add("§7Lv III 進化 §7(ダイヤ x5)");
+            }
+
+            lore.add("");
+            lore.add("§aクリックして購入");
+
+            territoryMeta.setLore(lore);
             territory.setItemMeta(territoryMeta);
         }
         inv.setItem(11, territory);

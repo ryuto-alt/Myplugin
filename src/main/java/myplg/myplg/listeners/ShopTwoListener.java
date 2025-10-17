@@ -50,8 +50,8 @@ public class ShopTwoListener implements Listener {
             if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
                 String displayName = item.getItemMeta().getDisplayName();
 
-                // Check if it's a shop 2 skeleton spawn egg
-                if (displayName.contains("ショップ2")) {
+                // Check if it's a shop skeleton spawn egg (but not shop1)
+                if (displayName.contains("ショップ") && !displayName.contains("ブロック")) {
                     // Get player's yaw at the time of spawning
                     final float playerYaw = player.getLocation().getYaw();
 
@@ -65,7 +65,7 @@ public class ShopTwoListener implements Listener {
                                 // Check if this skeleton doesn't have a shop type yet
                                 if (!skeleton.getPersistentDataContainer().has(shopTypeKey, PersistentDataType.STRING)) {
                                     // Set basic properties
-                                    skeleton.setCustomName("§6§lショップ2");
+                                    skeleton.setCustomName("§6§lショップ");
                                     skeleton.setCustomNameVisible(true);
                                     skeleton.setAI(false);
                                     skeleton.setInvulnerable(true);
@@ -159,7 +159,7 @@ public class ShopTwoListener implements Listener {
         );
 
         // Update custom name with team
-        skeleton.setCustomName("§6§lショップ2 §7(" + teamName + ")");
+        skeleton.setCustomName("§6§lショップ §7(" + teamName + ")");
     }
 
     public ShopTeamSelectGUI getTeamSelectGUI() {
