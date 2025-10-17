@@ -865,10 +865,13 @@ public class ShopClickListener implements Listener {
 
         if (success) {
             // Broadcast to team
-            for (java.util.UUID memberUUID : plugin.getGameManager().getTeamMembers(teamName)) {
-                org.bukkit.entity.Player member = plugin.getServer().getPlayer(memberUUID);
-                if (member != null && member.isOnline()) {
-                    member.sendMessage("§a§l陣地強化: " + upgradeName + " §aが購入されました！");
+            myplg.myplg.Team team = plugin.getGameManager().getTeam(teamName);
+            if (team != null) {
+                for (java.util.UUID memberUUID : team.getMembers()) {
+                    org.bukkit.entity.Player member = plugin.getServer().getPlayer(memberUUID);
+                    if (member != null && member.isOnline()) {
+                        member.sendMessage("§a§l陣地強化: " + upgradeName + " §aが購入されました！");
+                    }
                 }
             }
 
