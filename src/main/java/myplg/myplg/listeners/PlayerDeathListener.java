@@ -309,11 +309,15 @@ public class PlayerDeathListener implements Listener {
     }
 
     private void checkVictoryCondition() {
-        // Count remaining teams with alive players
+        // Count teams that are NOT eliminated (either have bed alive OR have alive players)
         int remainingTeams = 0;
         String winningTeam = null;
 
         for (myplg.myplg.Team team : plugin.getGameManager().getTeams().values()) {
+            String teamName = team.getName();
+            boolean bedAlive = plugin.getScoreboardManager().isBedAlive(teamName);
+
+            // Count alive players in team
             int aliveCount = 0;
             for (UUID memberUUID : team.getMembers()) {
                 Player member = plugin.getServer().getPlayer(memberUUID);
@@ -322,9 +326,10 @@ public class PlayerDeathListener implements Listener {
                 }
             }
 
-            if (aliveCount > 0) {
+            // Team is still in the game if bed is alive OR has alive players
+            if (bedAlive || aliveCount > 0) {
                 remainingTeams++;
-                winningTeam = team.getName();
+                winningTeam = teamName;
             }
         }
 
