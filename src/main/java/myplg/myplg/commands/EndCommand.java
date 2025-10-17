@@ -64,9 +64,10 @@ public class EndCommand implements CommandExecutor {
         Bukkit.broadcast(Component.text("ワールドを復元しています...", NamedTextColor.YELLOW));
         Bukkit.broadcast(Component.text("==================", NamedTextColor.GOLD));
 
-        // Teleport all players to lobby
+        // Clear all players' inventories and teleport to lobby
         World lobbyWorld = Bukkit.getWorlds().get(0);
         for (Player player : Bukkit.getOnlinePlayers()) {
+            player.getInventory().clear();
             player.setGameMode(GameMode.ADVENTURE);
             player.teleport(lobbyWorld.getSpawnLocation());
         }

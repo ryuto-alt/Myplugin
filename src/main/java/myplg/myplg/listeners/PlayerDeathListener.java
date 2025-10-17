@@ -1,6 +1,7 @@
 package myplg.myplg.listeners;
 
 import myplg.myplg.PvPGame;
+import myplg.myplg.listeners.BlockPlaceListener;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
@@ -397,8 +398,7 @@ public class PlayerDeathListener implements Listener {
         new BukkitRunnable() {
             @Override
             public void run() {
-                plugin.getGameManager().setGameRunning(false);
-                plugin.getServer().broadcastMessage("§eゲームが終了しました。");
+                endGame();
             }
         }.runTaskLater(plugin, 200L); // 10 seconds
     }
@@ -462,6 +462,55 @@ public class PlayerDeathListener implements Listener {
             case "§d": return Color.FUCHSIA;
             case "§7": return Color.GRAY;
             default: return Color.WHITE;
+        }
+    }
+
+    private void endGame() {
+        // End game
+        plugin.getGameManager().setGameRunning(false);
+
+        // Stop all generators
+        plugin.getGeneratorManager().stopAllGenerators();
+
+        // Clear player-placed blocks tracking
+        BlockPlaceListener.clearPlayerPlacedBlocks();
+
+        // Get the game world (assuming first player's world or default world)
+        World gameWorld = null;
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            gameWorld = player.getWorld();
+            break;
+        }
+        if (gameWorld == null) {
+            gameWorld = Bukkit.getWorlds().get(0);
+        }
+
+        // Clear all players' inventories and teleport to lobby
+        World lobbyWorld = Bukkit.getWorlds().get(0);
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.getInventory().clear();
+            player.setGameMode(GameMode.ADVENTURE);
+            player.teleport(lobbyWorld.getSpawnLocation());
+        }
+
+        Bukkit.broadcastMessage("§e§lゲームが終了しました！");
+        Bukkit.broadcastMessage("§6ワールドを復元しています...");
+
+        final String worldName = gameWorld.getName();
+
+        // Check if backup exists and restore world
+        if (plugin.getWorldBackupManager().hasBackup(worldName)) {
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                boolean success = plugin.getWorldBackupManager().restoreWorld(worldName);
+
+                if (success) {
+                    Bukkit.broadcastMessage("§aワールド「" + worldName + "」の復元が完了しました！");
+                } else {
+                    Bukkit.broadcastMessage("§cワールドの復元に失敗しました。");
+                }
+            }, 60L); // 3 seconds delay
+        } else {
+            Bukkit.broadcastMessage("§c警告: ワールドのバックアップが見つかりません。");
         }
     }
 
