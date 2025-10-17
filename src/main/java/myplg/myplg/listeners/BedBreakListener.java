@@ -6,6 +6,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -16,13 +17,16 @@ import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 
 import java.time.Duration;
+import java.util.Random;
 import java.util.UUID;
 
 public class BedBreakListener implements Listener {
     private final PvPGame plugin;
+    private final Random random;
 
     public BedBreakListener(PvPGame plugin) {
         this.plugin = plugin;
+        this.random = new Random();
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -70,7 +74,7 @@ public class BedBreakListener implements Listener {
                 String attackerColor = getTeamColor(playerTeam);
                 String victimColor = getTeamColor(team.getName());
 
-                // Notify all players
+                // Notify all players with sounds
                 for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
                     String onlinePlayerTeam = plugin.getGameManager().getPlayerTeam(onlinePlayer.getUniqueId());
 
@@ -92,6 +96,9 @@ public class BedBreakListener implements Listener {
 
                         // Also send chat message
                         onlinePlayer.sendMessage("§c§l⚠ あなたのチームのベッドが破壊されました！");
+
+                        // Play wither death sound for destroyed team
+                        onlinePlayer.playSound(onlinePlayer.getLocation(), Sound.ENTITY_WITHER_DEATH, 1.0f, 1.0f);
                     } else {
                         // Send colored chat message to other teams
                         onlinePlayer.sendMessage(
@@ -99,6 +106,9 @@ public class BedBreakListener implements Listener {
                             attackerColor + player.getName() + "§fが" +
                             victimColor + team.getName() + "チーム§fのベッドを破壊！"
                         );
+
+                        // Play random ender dragon sound for other teams
+                        playRandomEnderDragonSound(onlinePlayer);
                     }
                 }
 
@@ -171,6 +181,19 @@ public class BedBreakListener implements Listener {
         }
 
         return false;
+    }
+
+    private void playRandomEnderDragonSound(Player player) {
+        // Random ender dragon sounds
+        Sound[] dragonSounds = {
+            Sound.ENTITY_ENDER_DRAGON_AMBIENT,
+            Sound.ENTITY_ENDER_DRAGON_GROWL,
+            Sound.ENTITY_ENDER_DRAGON_HURT,
+            Sound.ENTITY_ENDER_DRAGON_FLAP
+        };
+
+        Sound randomSound = dragonSounds[random.nextInt(dragonSounds.length)];
+        player.playSound(player.getLocation(), randomSound, 1.0f, 1.0f);
     }
 
     private String getTeamColor(String teamName) {

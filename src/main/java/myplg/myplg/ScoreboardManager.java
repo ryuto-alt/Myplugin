@@ -12,11 +12,19 @@ public class ScoreboardManager {
     private final PvPGame plugin;
     private final Map<String, Boolean> bedStatus; // Team name -> Bed alive status
     private final Map<String, Boolean> teamEliminated; // Team name -> Eliminated status
+    private int rainbowIndex = 0; // For rainbow animation
+    private final String[] RAINBOW_COLORS = {"§c", "§6", "§e", "§a", "§b", "§9", "§d"}; // Red, Gold, Yellow, Green, Aqua, Blue, Pink
 
     public ScoreboardManager(PvPGame plugin) {
         this.plugin = plugin;
         this.bedStatus = new HashMap<>();
         this.teamEliminated = new HashMap<>();
+
+        // Start rainbow animation task (updates every 10 ticks = 0.5 seconds)
+        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            rainbowIndex = (rainbowIndex + 1) % RAINBOW_COLORS.length;
+            updateAllScoreboards();
+        }, 0L, 10L);
     }
 
     /**
@@ -80,8 +88,8 @@ public class ScoreboardManager {
             }
 
             String status;
-            if (eliminated) {
-                // Team is completely eliminated - show X mark
+            if (eliminated || aliveCount == 0) {
+                // Team is completely eliminated or has no players - show X mark
                 status = "§c✗";
             } else if (bedAlive) {
                 // Bed is alive - show checkmark
@@ -103,7 +111,10 @@ public class ScoreboardManager {
 
         // Bottom spacing
         objective.getScore("  ").setScore(score--);
-        objective.getScore("§ewww.hypixel.net").setScore(score--);
+
+        // Rainbow UnoPixel.net
+        String rainbowText = getRainbowText("www.UnoPixel.net");
+        objective.getScore(rainbowText).setScore(score--);
     }
 
     /**
@@ -163,6 +174,18 @@ public class ScoreboardManager {
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
         }
+    }
+
+    /**
+     * Get rainbow text with cycling colors
+     */
+    private String getRainbowText(String text) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            int colorIndex = (rainbowIndex + i) % RAINBOW_COLORS.length;
+            result.append(RAINBOW_COLORS[colorIndex]).append(text.charAt(i));
+        }
+        return result.toString();
     }
 
     /**
