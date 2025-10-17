@@ -51,6 +51,7 @@ public final class PvPGame extends JavaPlugin {
     private GUIClickListener guiClickListener;
     private PlayerDeathListener playerDeathListener;
     private myplg.myplg.listeners.HealthRegenListener healthRegenListener;
+    private myplg.myplg.listeners.NametagVisibilityListener nametagVisibilityListener;
     private boolean teamsLoaded = false;
 
     @Override
@@ -146,6 +147,14 @@ public final class PvPGame extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.WeaponDamageListener(this), this);
         getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.WaterBucketListener(this), this);
         getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.FallDamageListener(this), this);
+        getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.GolemTargetListener(this), this);
+
+        // Initialize and register NametagVisibilityListener
+        nametagVisibilityListener = new myplg.myplg.listeners.NametagVisibilityListener(this);
+        getServer().getPluginManager().registerEvents(nametagVisibilityListener, this);
+
+        // Register BridgeBuilderListener
+        getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.BridgeBuilderListener(this), this);
 
         // Start time control
         TimeControlListener timeControl = new TimeControlListener(this);
@@ -242,5 +251,9 @@ public final class PvPGame extends JavaPlugin {
 
     public myplg.myplg.listeners.HealthRegenListener getHealthRegenListener() {
         return healthRegenListener;
+    }
+
+    public myplg.myplg.listeners.NametagVisibilityListener getNametagVisibilityListener() {
+        return nametagVisibilityListener;
     }
 }

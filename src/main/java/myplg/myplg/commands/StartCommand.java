@@ -6,9 +6,13 @@ import myplg.myplg.listeners.BlockPlaceListener;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.World;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.Chest;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -97,6 +101,9 @@ public class StartCommand implements CommandExecutor {
         // Clear player-placed blocks tracking from previous game
         BlockPlaceListener.clearPlayerPlacedBlocks();
 
+        // Clear all chests and ender chests in all worlds
+        clearAllChests();
+
         // Assign players to teams
         plugin.getGameManager().assignPlayersToTeams(onlinePlayers);
 
@@ -127,6 +134,9 @@ public class StartCommand implements CommandExecutor {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             plugin.getHealthRegenListener().startAllRegenTasks();
         }, 40L); // 2 second delay to ensure players are fully loaded
+
+        // Start nametag visibility task (20m distance limit)
+        plugin.getNametagVisibilityListener().startVisibilityTask();
 
         // Teleport players to their team spawns and give initial equipment
         for (Player player : onlinePlayers) {
@@ -216,5 +226,35 @@ public class StartCommand implements CommandExecutor {
             case "グレー": return Color.GRAY;
             default: return Color.WHITE;
         }
+    }
+
+    private void clearAllChests() {
+        int chestCount = 0;
+        int enderChestCount = 0;
+
+        // Clear all chests in all worlds
+        for (World world : Bukkit.getWorlds()) {
+            for (Chunk chunk : world.getLoadedChunks()) {
+                for (BlockState blockState : chunk.getTileEntities()) {
+                    if (blockState instanceof Chest) {
+                        Chest chest = (Chest) blockState;
+                        chest.getInventory().clear();
+                        chestCount++;
+                    } else if (blockState instanceof org.bukkit.block.EnderChest) {
+                        org.bukkit.block.EnderChest enderChest = (org.bukkit.block.EnderChest) blockState;
+                        // Note: EnderChest block doesn't have inventory, player ender chests are cleared below
+                        enderChestCount++;
+                    }
+                }
+            }
+        }
+
+        // Clear all player ender chest inventories
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.getEnderChest().clear();
+        }
+
+        plugin.getLogger().info("Cleared " + chestCount + " chests and " +
+            Bukkit.getOnlinePlayers().size() + " player ender chests");
     }
 }

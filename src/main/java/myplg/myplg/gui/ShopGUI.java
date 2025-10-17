@@ -548,11 +548,11 @@ public class ShopGUI {
             knockbackStickMeta.setDisplayName("§fノックバック棒");
             knockbackStickMeta.setLore(Arrays.asList(
                 "§7コスト: §6ゴールド 8個",
-                "§9ノックバック III",
+                "§9ノックバック II",
                 "",
                 "§eクリックして購入！"
             ));
-            knockbackStickMeta.addEnchant(org.bukkit.enchantments.Enchantment.KNOCKBACK, 3, true);
+            knockbackStickMeta.addEnchant(org.bukkit.enchantments.Enchantment.KNOCKBACK, 2, true);
             knockbackStick.setItemMeta(knockbackStickMeta);
         }
         inv.setItem(40, knockbackStick);
@@ -636,6 +636,22 @@ public class ShopGUI {
             speedPotion.setItemMeta(speedMeta);
         }
         inv.setItem(15, speedPotion);
+
+        // Row 3: Bridge Builder Egg
+        ItemStack bridgeEgg = new ItemStack(Material.EGG);
+        ItemMeta bridgeEggMeta = bridgeEgg.getItemMeta();
+        if (bridgeEggMeta != null) {
+            bridgeEggMeta.setDisplayName("§bBridge Builder Egg");
+            bridgeEggMeta.setLore(Arrays.asList(
+                "§7コスト: §aエメラルド 1個",
+                "§7右クリックで投げると軌道上に羊毛を生成",
+                "§7最大距離: 25ブロック",
+                "",
+                "§eクリックして購入！"
+            ));
+            bridgeEgg.setItemMeta(bridgeEggMeta);
+        }
+        inv.setItem(20, bridgeEgg);
 
         // Back button
         ItemStack backButton = new ItemStack(Material.ARROW);
@@ -848,7 +864,7 @@ public class ShopGUI {
             inv.setItem(31, pickaxe);
         }
 
-        // Row 5: Fireball item (centered)
+        // Row 5: Fireball item and Iron Golem (centered)
         // Fireball (fire charge that shoots fireballs on right-click)
         ItemStack fireball = new ItemStack(Material.FIRE_CHARGE);
         ItemMeta fireballMeta = fireball.getItemMeta();
@@ -862,7 +878,22 @@ public class ShopGUI {
             ));
             fireball.setItemMeta(fireballMeta);
         }
-        inv.setItem(40, fireball);
+        inv.setItem(38, fireball);
+
+        // Iron Golem (spawns golem that attacks enemies)
+        ItemStack ironGolem = new ItemStack(Material.IRON_BLOCK);
+        ItemMeta ironGolemMeta = ironGolem.getItemMeta();
+        if (ironGolemMeta != null) {
+            ironGolemMeta.setDisplayName("§7アイアンゴーレム");
+            ironGolemMeta.setLore(Arrays.asList(
+                "§7コスト: §f鉄 120個",
+                "§7自チームの敵を攻撃するゴーレムを召喚",
+                "",
+                "§eクリックして購入！"
+            ));
+            ironGolem.setItemMeta(ironGolemMeta);
+        }
+        inv.setItem(42, ironGolem);
 
         // Back button
         ItemStack backButton = new ItemStack(Material.ARROW);

@@ -55,6 +55,9 @@ public class EndCommand implements CommandExecutor {
         // Stop all generators
         plugin.getGeneratorManager().stopAllGenerators();
 
+        // Stop nametag visibility task
+        plugin.getNametagVisibilityListener().stopVisibilityTask();
+
         // Clear player-placed blocks tracking
         BlockPlaceListener.clearPlayerPlacedBlocks();
 

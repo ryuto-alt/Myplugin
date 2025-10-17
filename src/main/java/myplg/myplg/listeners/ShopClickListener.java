@@ -166,10 +166,10 @@ public class ShopClickListener implements Listener {
             processPurchase(player, Material.GOLD_INGOT, 6, type, 10);
         } else if (type == Material.STONE_SWORD && amount == 1) {
             // Quick buy: Stone Sword for iron 10
-            processPurchase(player, Material.IRON_INGOT, 10, type, 1);
+            processSwordPurchase(player, Material.IRON_INGOT, 10, type);
         } else if (type == Material.IRON_SWORD && amount == 1) {
             // Quick buy: Iron Sword for gold 7
-            processPurchase(player, Material.GOLD_INGOT, 7, type, 1);
+            processSwordPurchase(player, Material.GOLD_INGOT, 7, type);
         } else if (type == Material.POTION && amount == 1) {
             // Check potion type by display name
             if (clickedItem.hasItemMeta() && clickedItem.getItemMeta().hasDisplayName()) {
@@ -252,13 +252,13 @@ public class ShopClickListener implements Listener {
 
         // Swords
         if (type == Material.STONE_SWORD) {
-            processPurchase(player, Material.IRON_INGOT, 10, type, 1);
+            processSwordPurchase(player, Material.IRON_INGOT, 10, type);
         } else if (type == Material.IRON_SWORD) {
-            processPurchase(player, Material.GOLD_INGOT, 7, type, 1);
+            processSwordPurchase(player, Material.GOLD_INGOT, 7, type);
         } else if (type == Material.DIAMOND_SWORD) {
-            processPurchase(player, Material.EMERALD, 3, type, 1);
+            processSwordPurchase(player, Material.EMERALD, 3, type);
         } else if (type == Material.NETHERITE_SWORD) {
-            processPurchase(player, Material.EMERALD, 7, type, 1);
+            processSwordPurchase(player, Material.EMERALD, 7, type);
         }
         // Armor (auto-equip leggings and boots)
         else if (type == Material.CHAINMAIL_BOOTS) {
@@ -288,7 +288,7 @@ public class ShopClickListener implements Listener {
         // Knockback Stick
         else if (type == Material.STICK && hasEnchant) {
             processEnchantedPurchase(player, Material.GOLD_INGOT, 8, Material.STICK,
-                org.bukkit.enchantments.Enchantment.KNOCKBACK, 3);
+                org.bukkit.enchantments.Enchantment.KNOCKBACK, 2);
         }
     }
 
@@ -323,6 +323,13 @@ public class ShopClickListener implements Listener {
                 processPotionPurchase(player, Material.EMERALD, 1, org.bukkit.potion.PotionEffectType.SPEED, 60 * 20, 0);
             }
         }
+
+        // Bridge Builder Egg
+        if (type == Material.EGG && clickedItem.hasItemMeta() &&
+            clickedItem.getItemMeta().hasDisplayName() &&
+            clickedItem.getItemMeta().getDisplayName().contains("Bridge Builder Egg")) {
+            processBridgeEggPurchase(player);
+        }
     }
 
     private void handleToolsShopClick(Player player, ItemStack clickedItem) {
@@ -356,6 +363,10 @@ public class ShopClickListener implements Listener {
                    clickedItem.getItemMeta().hasDisplayName() &&
                    clickedItem.getItemMeta().getDisplayName().contains("火玉")) {
             processFireballPurchase(player);
+        } else if (type == Material.IRON_BLOCK && clickedItem.hasItemMeta() &&
+                   clickedItem.getItemMeta().hasDisplayName() &&
+                   clickedItem.getItemMeta().getDisplayName().contains("アイアンゴーレム")) {
+            processGolemPurchase(player);
         }
         // Tool upgrades - Axes
         else if (type == Material.WOODEN_AXE) {
@@ -414,6 +425,143 @@ public class ShopClickListener implements Listener {
         if (!leftover.isEmpty()) {
             // Return currency if inventory is full
             player.getInventory().addItem(new ItemStack(Material.IRON_INGOT, 60));
+            player.sendMessage("§cインベントリに空きがありません！");
+            return;
+        }
+
+        // Update cooldown
+        purchaseCooldown.put(player.getUniqueId(), currentTime);
+
+        // Play sound
+        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
+    }
+
+    private void processGolemPurchase(Player player) {
+        // Check cooldown
+        long currentTime = System.currentTimeMillis();
+        Long lastPurchaseTime = purchaseCooldown.get(player.getUniqueId());
+
+        if (lastPurchaseTime != null && (currentTime - lastPurchaseTime) < COOLDOWN_MS) {
+            return;
+        }
+
+        // Check if player has enough currency (iron 120)
+        if (!hasEnoughItems(player, Material.IRON_INGOT, 120)) {
+            player.sendMessage("§c購入に必要な通貨が不足しています！ 必要: 鉄 x120");
+            return;
+        }
+
+        // Get player's team
+        String teamName = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
+        if (teamName == null) {
+            player.sendMessage("§cエラー: チームに所属していません。");
+            return;
+        }
+
+        // Remove currency
+        removeItems(player, Material.IRON_INGOT, 120);
+
+        // Spawn Iron Golem at player's location
+        org.bukkit.Location spawnLoc = player.getLocation();
+        org.bukkit.entity.IronGolem golem = (org.bukkit.entity.IronGolem) player.getWorld().spawnEntity(spawnLoc, org.bukkit.entity.EntityType.IRON_GOLEM);
+
+        // Store team name in golem's metadata for later reference
+        golem.setCustomName("§7" + teamName + "のゴーレム");
+        golem.setCustomNameVisible(true);
+        golem.setPlayerCreated(false); // Prevent it from giving poppies
+
+        // Add metadata to track owner team
+        golem.setPersistent(true);
+        golem.setMetadata("ownerTeam", new org.bukkit.metadata.FixedMetadataValue(plugin, teamName));
+
+        // Update cooldown
+        purchaseCooldown.put(player.getUniqueId(), currentTime);
+
+        // Play sound
+        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_IRON_GOLEM_HURT, 1.0f, 1.0f);
+        player.sendMessage("§aアイアンゴーレムを召喚しました！");
+    }
+
+    private void processBridgeEggPurchase(Player player) {
+        // Check cooldown
+        long currentTime = System.currentTimeMillis();
+        Long lastPurchaseTime = purchaseCooldown.get(player.getUniqueId());
+
+        if (lastPurchaseTime != null && (currentTime - lastPurchaseTime) < COOLDOWN_MS) {
+            return;
+        }
+
+        // Check if player has enough currency (emerald 1)
+        if (!hasEnoughItems(player, Material.EMERALD, 1)) {
+            player.sendMessage("§c購入に必要な通貨が不足しています！ 必要: エメラルド x1");
+            return;
+        }
+
+        // Remove currency
+        removeItems(player, Material.EMERALD, 1);
+
+        // Create Bridge Builder Egg item with custom name
+        ItemStack bridgeEgg = new ItemStack(Material.EGG, 1);
+        org.bukkit.inventory.meta.ItemMeta meta = bridgeEgg.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName("§bBridge Builder Egg");
+            meta.setLore(java.util.Arrays.asList(
+                "§7右クリックで投げると軌道上に羊毛を生成",
+                "§7最大距離: 25ブロック"
+            ));
+            bridgeEgg.setItemMeta(meta);
+        }
+
+        // Give item to player
+        java.util.HashMap<Integer, ItemStack> leftover = player.getInventory().addItem(bridgeEgg);
+
+        if (!leftover.isEmpty()) {
+            // Return currency if inventory is full
+            player.getInventory().addItem(new ItemStack(Material.EMERALD, 1));
+            player.sendMessage("§cインベントリに空きがありません！");
+            return;
+        }
+
+        // Update cooldown
+        purchaseCooldown.put(player.getUniqueId(), currentTime);
+
+        // Play sound
+        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
+    }
+
+    private void processSwordPurchase(Player player, Material currency, int cost, Material swordType) {
+        // Check cooldown
+        long currentTime = System.currentTimeMillis();
+        Long lastPurchaseTime = purchaseCooldown.get(player.getUniqueId());
+
+        if (lastPurchaseTime != null && (currentTime - lastPurchaseTime) < COOLDOWN_MS) {
+            return;
+        }
+
+        // Check if player has enough currency
+        if (!hasEnoughItems(player, currency, cost)) {
+            player.sendMessage("§c購入に必要な通貨が不足しています！ 必要: " + getItemDisplayName(currency) + " x" + cost);
+            return;
+        }
+
+        // Remove currency
+        removeItems(player, currency, cost);
+
+        // Create sword
+        ItemStack sword = new ItemStack(swordType, 1);
+
+        // Check if player's team has weapon upgrade and apply it
+        String teamName = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
+        if (teamName != null && plugin.getWeaponUpgradeManager().hasWeaponUpgrade(teamName)) {
+            sword.addUnsafeEnchantment(org.bukkit.enchantments.Enchantment.SHARPNESS, 1);
+        }
+
+        // Give sword to player
+        HashMap<Integer, ItemStack> leftover = player.getInventory().addItem(sword);
+
+        if (!leftover.isEmpty()) {
+            // Return currency if inventory is full
+            player.getInventory().addItem(new ItemStack(currency, cost));
             player.sendMessage("§cインベントリに空きがありません！");
             return;
         }

@@ -12,11 +12,14 @@ public class GeneratorManager {
     private final PvPGame plugin;
     private final Map<String, Generator> generators;
     private final Map<String, BukkitTask> generatorTasks;
+    // Track bonus spawn credits for each generator (when team members are nearby)
+    private final Map<String, Double> generatorBonusCredits;
 
     public GeneratorManager(PvPGame plugin) {
         this.plugin = plugin;
         this.generators = new HashMap<>();
         this.generatorTasks = new HashMap<>();
+        this.generatorBonusCredits = new HashMap<>();
     }
 
     public void addGenerator(String id, String teamName, Material material, Location corner1, Location corner2, int spawnInterval) {
@@ -93,6 +96,57 @@ public class GeneratorManager {
     }
 
     private void spawnItem(Generator generator) {
+        // Check if team members with territory upgrade are nearby
+        boolean hasNearbyUpgradedTeamMember = checkNearbyUpgradedTeamMembers(generator);
+
+        // Add bonus credits if team members are nearby (30% faster = 0.3 extra spawns per tick)
+        String genId = generator.getId();
+        if (hasNearbyUpgradedTeamMember) {
+            double currentCredits = generatorBonusCredits.getOrDefault(genId, 0.0);
+            generatorBonusCredits.put(genId, currentCredits + 0.3);
+        }
+
+        // Check if we have enough credits for a bonus spawn
+        double credits = generatorBonusCredits.getOrDefault(genId, 0.0);
+        int bonusSpawns = (int) credits; // Number of bonus items to spawn
+        if (bonusSpawns > 0) {
+            generatorBonusCredits.put(genId, credits - bonusSpawns); // Deduct used credits
+        }
+
+        // Spawn regular item + any bonus items
+        int totalSpawns = 1 + bonusSpawns;
+        for (int i = 0; i < totalSpawns; i++) {
+            spawnSingleItem(generator);
+        }
+    }
+
+    private boolean checkNearbyUpgradedTeamMembers(Generator generator) {
+        String teamName = generator.getTeamName();
+
+        // Check if this team has purchased the territory upgrade
+        if (plugin.getTerritoryUpgradeManager().getUpgradeLevel(teamName) < 2) {
+            return false; // No upgrade purchased
+        }
+
+        // Check for nearby team members (within 10 blocks of generator center)
+        Location center = generator.getRandomLocationInRegion();
+        double range = 10.0;
+
+        for (org.bukkit.entity.Entity entity : center.getWorld().getNearbyEntities(center, range, range, range)) {
+            if (entity instanceof org.bukkit.entity.Player) {
+                org.bukkit.entity.Player player = (org.bukkit.entity.Player) entity;
+                String playerTeam = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
+
+                if (playerTeam != null && playerTeam.equals(teamName)) {
+                    return true; // Found a team member nearby
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private void spawnSingleItem(Generator generator) {
         Location spawnLocation = generator.getRandomLocationInRegion();
 
         // Get the minimum Y from the selected region (the floor of the selection)
@@ -170,31 +224,15 @@ public class GeneratorManager {
 
     /**
      * Updates all generators for a specific team to run 1.3x faster
+     * ONLY when team members are nearby (within 10 blocks)
      * @param teamName The team name to upgrade generators for
      */
     public void upgradeTeamGenerators(String teamName) {
-        for (Generator generator : generators.values()) {
-            if (generator.getTeamName().equals(teamName)) {
-                int currentInterval = generator.getSpawnInterval();
-                // Make 1.3x faster: divide by 1.3 (multiply by 1/1.3 ≈ 0.77)
-                int newInterval = (int) Math.max(1, currentInterval / 1.3);
-
-                generator.setSpawnInterval(newInterval);
-
-                // Restart generator with new interval if game is running
-                if (plugin.getGameManager().isGameRunning()) {
-                    startGenerator(generator);
-                }
-
-                plugin.getLogger().info("Upgraded generator speed for " + teamName + ": " +
-                    generator.getId() + " (" + currentInterval + " -> " + newInterval + " ticks)");
-            }
-        }
-
-        // Save the changes
-        if (plugin.getGeneratorDataManager() != null) {
-            plugin.getGeneratorDataManager().saveGenerators();
-        }
+        // Note: This method is called when team purchases the upgrade
+        // The actual speed upgrade is now applied dynamically in spawnItem()
+        // based on nearby players, so we don't permanently change generator speeds here
+        plugin.getLogger().info("Territory upgrade purchased for team: " + teamName);
+        plugin.getLogger().info("Generators will now run 1.3x faster when " + teamName + " members are nearby");
     }
 
     public void reset() {

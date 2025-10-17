@@ -10,6 +10,7 @@ public class Generator {
     private final Location corner1;
     private final Location corner2;
     private int spawnInterval; // in ticks (20 ticks = 1 second)
+    private final int baseSpawnInterval; // Original spawn interval before any upgrades
 
     public Generator(String id, String teamName, Material material, Location corner1, Location corner2, int spawnInterval) {
         this.id = id;
@@ -18,6 +19,7 @@ public class Generator {
         this.corner1 = corner1;
         this.corner2 = corner2;
         this.spawnInterval = spawnInterval;
+        this.baseSpawnInterval = spawnInterval; // Store the original interval
     }
 
     public String getId() {
@@ -46,6 +48,10 @@ public class Generator {
 
     public void setSpawnInterval(int spawnInterval) {
         this.spawnInterval = spawnInterval;
+    }
+
+    public int getBaseSpawnInterval() {
+        return baseSpawnInterval;
     }
 
     public Location getRandomLocationInRegion() {
