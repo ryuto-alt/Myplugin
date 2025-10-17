@@ -215,11 +215,33 @@ public class WorldBackupManager {
             }
             plugin.getLogger().info("ワールドアンロード成功");
 
-            // Delete current world folder
-            plugin.getLogger().info("Step 7: 既存ワールドフォルダを削除");
+            // Delete only specific folders that contain world data
+            plugin.getLogger().info("Step 7: ワールドデータフォルダを削除");
             File worldFolder = new File(Bukkit.getWorldContainer(), worldName);
-            plugin.getLogger().info("削除対象: " + worldFolder.getAbsolutePath());
-            deleteDirectory(worldFolder);
+            plugin.getLogger().info("対象: " + worldFolder.getAbsolutePath());
+
+            // Delete only these specific folders to preserve server-managed files
+            String[] foldersToDelete = {"region", "entities", "poi", "data", "playerdata", "stats", "advancements", "DIM1", "DIM-1"};
+            for (String folderName : foldersToDelete) {
+                File folder = new File(worldFolder, folderName);
+                if (folder.exists()) {
+                    plugin.getLogger().info("  削除中: " + folderName);
+                    deleteDirectory(folder);
+                }
+            }
+
+            // Delete level.dat files
+            File levelDat = new File(worldFolder, "level.dat");
+            if (levelDat.exists()) {
+                levelDat.delete();
+                plugin.getLogger().info("  削除: level.dat");
+            }
+            File levelDatOld = new File(worldFolder, "level.dat_old");
+            if (levelDatOld.exists()) {
+                levelDatOld.delete();
+                plugin.getLogger().info("  削除: level.dat_old");
+            }
+
             plugin.getLogger().info("削除完了");
 
             // Copy backup to world folder
@@ -227,10 +249,49 @@ public class WorldBackupManager {
             copyDirectory(backupSource.toPath(), worldFolder.toPath());
             plugin.getLogger().info("コピー完了");
 
+            // Wait for file system to fully sync
+            plugin.getLogger().info("Step 8.5: ファイルシステム同期待機中...");
+            try {
+                Thread.sleep(2000); // 2 seconds wait for file sync
+            } catch (InterruptedException e) {
+                plugin.getLogger().severe("待機中に例外が発生: " + e.getMessage());
+                e.printStackTrace();
+            }
+            plugin.getLogger().info("同期待機完了");
+
+            // Verify backup files were copied
+            File regionFolder = new File(worldFolder, "region");
+            if (regionFolder.exists()) {
+                int mcaCount = regionFolder.listFiles((dir, name) -> name.endsWith(".mca") && !name.contains(".backup")).length;
+                plugin.getLogger().info("検証: " + mcaCount + " 個のチャンクファイル (.mca) が確認されました");
+            } else {
+                plugin.getLogger().severe("エラー: regionフォルダが見つかりません！");
+            }
+
             // Reload world
             plugin.getLogger().info("Step 9: ワールドを再ロード中...");
-            World restoredWorld = Bukkit.createWorld(new org.bukkit.WorldCreator(worldName));
+            org.bukkit.WorldCreator creator = new org.bukkit.WorldCreator(worldName);
+            creator.generateStructures(true);
+            World restoredWorld = Bukkit.createWorld(creator);
             plugin.getLogger().info("再ロード完了: " + (restoredWorld != null ? "成功" : "失敗"));
+
+            // Preload spawn area to ensure chunks are ready
+            if (restoredWorld != null) {
+                plugin.getLogger().info("Step 10: スポーン周辺チャンクをプリロード中...");
+                org.bukkit.Location spawnLoc = restoredWorld.getSpawnLocation();
+                int centerChunkX = spawnLoc.getBlockX() >> 4;
+                int centerChunkZ = spawnLoc.getBlockZ() >> 4;
+
+                // Load a 5x5 chunk area around spawn (can adjust size if needed)
+                int loadedChunks = 0;
+                for (int x = -2; x <= 2; x++) {
+                    for (int z = -2; z <= 2; z++) {
+                        restoredWorld.getChunkAt(centerChunkX + x, centerChunkZ + z).load(true);
+                        loadedChunks++;
+                    }
+                }
+                plugin.getLogger().info("プリロード完了: " + loadedChunks + " チャンク");
+            }
 
             plugin.getLogger().info("===== リアルタイムワールドの復元完了 =====");
             return restoredWorld != null;

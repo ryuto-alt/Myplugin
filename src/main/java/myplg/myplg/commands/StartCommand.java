@@ -138,10 +138,57 @@ public class StartCommand implements CommandExecutor {
         // Start nametag visibility task (20m distance limit)
         plugin.getNametagVisibilityListener().startVisibilityTask();
 
+        // Preload all team spawn chunks before teleporting
+        plugin.getLogger().info("===== チームスポーンのチャンクをプリロード開始 =====");
+        for (myplg.myplg.Team team : plugin.getGameManager().getTeams().values()) {
+            org.bukkit.Location spawnLoc = team.getSpawnLocation();
+            if (spawnLoc != null) {
+                plugin.getLogger().info("チーム「" + team.getName() + "」のスポーン座標:");
+                plugin.getLogger().info("  World: " + (spawnLoc.getWorld() != null ? spawnLoc.getWorld().getName() : "null"));
+                plugin.getLogger().info("  X: " + spawnLoc.getX() + ", Y: " + spawnLoc.getY() + ", Z: " + spawnLoc.getZ());
+                plugin.getLogger().info("  Chunk: (" + (spawnLoc.getBlockX() >> 4) + ", " + (spawnLoc.getBlockZ() >> 4) + ")");
+
+                if (spawnLoc.getWorld() != null) {
+                    // Load 3x3 chunk area around spawn location for safety
+                    int centerChunkX = spawnLoc.getBlockX() >> 4;
+                    int centerChunkZ = spawnLoc.getBlockZ() >> 4;
+
+                    plugin.getLogger().info("  ロード開始: 3x3チャンク範囲");
+                    for (int dx = -1; dx <= 1; dx++) {
+                        for (int dz = -1; dz <= 1; dz++) {
+                            org.bukkit.Chunk chunk = spawnLoc.getWorld().getChunkAt(centerChunkX + dx, centerChunkZ + dz);
+                            chunk.load(true);
+                            chunk.setForceLoaded(true); // Keep chunk loaded
+                            plugin.getLogger().info("    チャンク (" + (centerChunkX + dx) + ", " + (centerChunkZ + dz) + ") ロード完了");
+                        }
+                    }
+                    plugin.getLogger().info("  チーム「" + team.getName() + "」のチャンクロード完了");
+                } else {
+                    plugin.getLogger().severe("  エラー: ワールドがnullです！");
+                }
+            } else {
+                plugin.getLogger().warning("チーム「" + team.getName() + "」のスポーン座標がnullです");
+            }
+        }
+        plugin.getLogger().info("===== チャンクプリロード完了 =====");
+
+        // Wait a bit to ensure chunks are fully loaded
+        try {
+            Thread.sleep(1000); // 1 second wait
+            plugin.getLogger().info("チャンク安定化待機完了");
+        } catch (InterruptedException e) {
+            plugin.getLogger().severe("待機中にエラー: " + e.getMessage());
+        }
+
         // Teleport players to their team spawns and give initial equipment
+        plugin.getLogger().info("===== プレイヤーテレポート開始 =====");
         for (Player player : onlinePlayers) {
-            plugin.getGameManager().teleportPlayerToTeamSpawn(player);
             String teamName = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
+            plugin.getLogger().info("プレイヤー「" + player.getName() + "」をチーム「" + teamName + "」にテレポート中...");
+
+            plugin.getGameManager().teleportPlayerToTeamSpawn(player);
+
+            plugin.getLogger().info("  テレポート完了");
 
             // Give initial equipment
             giveInitialEquipment(player, teamName);
@@ -153,7 +200,10 @@ public class StartCommand implements CommandExecutor {
 
             // Play start sound
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+
+            plugin.getLogger().info("プレイヤー「" + player.getName() + "」の初期化完了");
         }
+        plugin.getLogger().info("===== プレイヤーテレポート完了 =====");
 
         // Show start title
         Component startTitle = Component.text("§a§lゲーム開始！");

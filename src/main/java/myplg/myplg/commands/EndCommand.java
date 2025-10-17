@@ -95,13 +95,39 @@ public class EndCommand implements CommandExecutor {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             boolean success = plugin.getWorldBackupManager().restoreWorldRealtime(worldName);
 
-            // Notify only OPs about restoration result
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player.isOp()) {
-                    if (success) {
-                        player.sendMessage(Component.text("ワールド「" + worldName + "」の復元が完了しました！", NamedTextColor.GREEN));
-                        player.sendMessage(Component.text("[ゲームの準備ができました]", NamedTextColor.GOLD));
-                    } else {
+            if (success) {
+                // Notify OPs that plugin will reload
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    if (player.isOp()) {
+                        player.sendMessage(Component.text("ワールド復元完了！プラグインを再読み込みしています...", NamedTextColor.YELLOW));
+                    }
+                }
+
+                // Wait 2 seconds then reload plugin
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    plugin.getLogger().info("===== プラグイン再読み込み開始 =====");
+
+                    // Reload plugin using Bukkit's plugin manager
+                    org.bukkit.plugin.PluginManager pluginManager = Bukkit.getPluginManager();
+                    pluginManager.disablePlugin(plugin);
+                    pluginManager.enablePlugin(plugin);
+
+                    plugin.getLogger().info("===== プラグイン再読み込み完了 =====");
+
+                    // Notify OPs
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        for (Player player : Bukkit.getOnlinePlayers()) {
+                            if (player.isOp()) {
+                                player.sendMessage(Component.text("ワールド「" + worldName + "」の復元が完了しました！", NamedTextColor.GREEN));
+                                player.sendMessage(Component.text("[ゲームの準備ができました]", NamedTextColor.GOLD));
+                                player.sendMessage(Component.text("§7/gameworld でゲームワールドに移動してください", NamedTextColor.GRAY));
+                            }
+                        }
+                    }, 20L); // 1 second after plugin reload
+                }, 40L); // 2 seconds wait before reload
+            } else {
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    if (player.isOp()) {
                         player.sendMessage(Component.text("ワールドの復元に失敗しました。", NamedTextColor.RED));
                     }
                 }
