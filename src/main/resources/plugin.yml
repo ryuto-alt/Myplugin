@@ -33,3 +33,6 @@ commands:
   sreset:
     description: 全プレイヤーのショップツールアップグレード状態をリセットします
     usage: /sreset
+  gameworld:
+    description: 全プレイヤーをゲームワールドに移動します（OP専用）
+    usage: /gameworld

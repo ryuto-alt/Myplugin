@@ -2,6 +2,7 @@ package myplg.myplg;
 
 import myplg.myplg.commands.EditCommand;
 import myplg.myplg.commands.EndCommand;
+import myplg.myplg.commands.GameWorldCommand;
 import myplg.myplg.commands.GeneCommand;
 import myplg.myplg.commands.GeneReloadCommand;
 import myplg.myplg.commands.SaveCommand;
@@ -56,6 +57,12 @@ public final class PvPGame extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        // Load lobby world first
+        loadLobbyWorld();
+
+        // Load game world (world)
+        loadGameWorld();
+
         // Initialize managers
         gameManager = new GameManager(this);
         generatorManager = new GeneratorManager(this);
@@ -71,13 +78,19 @@ public final class PvPGame extends JavaPlugin {
 
         // Load teams and generators from file after a delay to ensure worlds are loaded
         Bukkit.getScheduler().runTaskLater(this, () -> {
+            getLogger().info("===== Starting delayed data loading =====");
+            getLogger().info("Available worlds:");
+            for (org.bukkit.World w : Bukkit.getWorlds()) {
+                getLogger().info("  - " + w.getName());
+            }
+
             teamDataManager.loadTeams();
             teamsLoaded = true;
             getLogger().info("Team data loading completed. Loaded " + gameManager.getTeams().size() + " teams.");
 
             generatorDataManager.loadGenerators();
             getLogger().info("Generator data loading completed. Loaded " + generatorManager.getGenerators().size() + " generators.");
-        }, 20L); // 1 second delay
+        }, 40L); // 2 second delay to ensure world is fully loaded
 
         // Initialize commands
         setBedCommand = new SetBedCommand(this);
@@ -95,6 +108,7 @@ public final class PvPGame extends JavaPlugin {
         getCommand("shop1").setExecutor(new Shop1Command(this));
         getCommand("shop2").setExecutor(new Shop2Command(this));
         getCommand("sreset").setExecutor(new ShopResetCommand(this));
+        getCommand("gameworld").setExecutor(new GameWorldCommand(this));
 
         // Register listeners
         getServer().getPluginManager().registerEvents(bedClickListener, this);
@@ -169,13 +183,9 @@ public final class PvPGame extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Save teams before disabling, but only if teams were loaded
-        if (teamDataManager != null && gameManager != null && teamsLoaded) {
-            getLogger().info("Saving teams on disable. Current team count: " + gameManager.getTeams().size());
-            teamDataManager.saveTeams();
-        } else if (!teamsLoaded) {
-            getLogger().warning("Teams were not fully loaded yet, skipping save to prevent data loss.");
-        }
+        // DON'T save teams on disable to prevent overwriting manual changes to teams.yml
+        // Teams are only saved when modified through commands like /setbed or during game end
+        getLogger().info("Skipping team save on disable to preserve manual edits.");
 
         // DON'T save generators on disable to prevent overwriting manual changes to generators.yml
         // Use /genereload command to reload generators from generators.yml
@@ -255,5 +265,53 @@ public final class PvPGame extends JavaPlugin {
 
     public myplg.myplg.listeners.NametagVisibilityListener getNametagVisibilityListener() {
         return nametagVisibilityListener;
+    }
+
+    private void loadLobbyWorld() {
+        // Check if lobby world folder exists
+        java.io.File lobbyFolder = new java.io.File(Bukkit.getWorldContainer(), "lobby");
+
+        if (!lobbyFolder.exists()) {
+            getLogger().warning("Lobbyワールドフォルダが見つかりません: " + lobbyFolder.getAbsolutePath());
+            getLogger().warning("サーバーディレクトリに 'lobby' フォルダを配置してください。");
+            return;
+        }
+
+        // Load lobby world
+        getLogger().info("Lobbyワールドをロード中...");
+        org.bukkit.WorldCreator worldCreator = new org.bukkit.WorldCreator("lobby");
+        org.bukkit.World lobbyWorld = Bukkit.createWorld(worldCreator);
+
+        if (lobbyWorld != null) {
+            getLogger().info("Lobbyワールドのロードに成功しました: " + lobbyWorld.getName());
+
+            // Set spawn location
+            lobbyWorld.setSpawnLocation(-210, 7, 15);
+            getLogger().info("Lobbyスポーン地点を設定: -210, 7, 15");
+        } else {
+            getLogger().severe("Lobbyワールドのロードに失敗しました！");
+        }
+    }
+
+    private void loadGameWorld() {
+        // Check if world folder exists
+        java.io.File worldFolder = new java.io.File(Bukkit.getWorldContainer(), "world");
+
+        if (!worldFolder.exists()) {
+            getLogger().warning("ゲームワールドフォルダが見つかりません: " + worldFolder.getAbsolutePath());
+            getLogger().warning("サーバーディレクトリに 'world' フォルダを配置してください。");
+            return;
+        }
+
+        // Load game world
+        getLogger().info("ゲームワールドをロード中...");
+        org.bukkit.WorldCreator worldCreator = new org.bukkit.WorldCreator("world");
+        org.bukkit.World gameWorld = Bukkit.createWorld(worldCreator);
+
+        if (gameWorld != null) {
+            getLogger().info("ゲームワールドのロードに成功しました: " + gameWorld.getName());
+        } else {
+            getLogger().severe("ゲームワールドのロードに失敗しました！");
+        }
     }
 }

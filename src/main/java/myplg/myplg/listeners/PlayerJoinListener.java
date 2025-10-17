@@ -20,11 +20,17 @@ public class PlayerJoinListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
 
-        // Get the main world (or you can specify a specific world)
-        World world = Bukkit.getWorlds().get(0);
+        // Get lobby world
+        World lobbyWorld = Bukkit.getWorld("lobby");
+        if (lobbyWorld == null) {
+            plugin.getLogger().warning("Lobbyワールドが見つかりません！プレイヤー: " + player.getName());
+            return;
+        }
 
-        // Teleport to 0, 143, 0
-        Location spawnLocation = new Location(world, 0.5, 143, 0.5);
-        player.teleport(spawnLocation);
+        // Teleport to lobby spawn: -210, 7, 15
+        Location lobbySpawn = new Location(lobbyWorld, -210.5, 7, 15.5);
+        player.teleport(lobbySpawn);
+
+        plugin.getLogger().info(player.getName() + " をLobbyにテレポートしました: -210, 7, 15");
     }
 }
