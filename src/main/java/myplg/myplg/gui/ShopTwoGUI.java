@@ -84,10 +84,8 @@ public class ShopTwoGUI {
 
             if (weaponLevel >= 1) {
                 weaponLore.add("§9攻撃力上昇 §7(ダイヤ x8)");
-                weaponLore.add("§9  剣にSharpness Iを付与");
             } else {
                 weaponLore.add("§7攻撃力上昇 §7(ダイヤ x8)");
-                weaponLore.add("§7  剣にSharpness Iを付与");
             }
 
             weaponLore.add("");
@@ -109,10 +107,8 @@ public class ShopTwoGUI {
             // Lv I - Protection I
             if (armorLevel >= 1) {
                 armorLore.add("§9Lv I 防御力アップ §7(ダイヤ x4)");
-                armorLore.add("§9  防具にProtection Iを付与");
             } else {
                 armorLore.add("§7Lv I 防御力アップ §7(ダイヤ x4)");
-                armorLore.add("§7  防具にProtection Iを付与");
             }
 
             armorLore.add("");
@@ -120,10 +116,8 @@ public class ShopTwoGUI {
             // Lv II - Protection II
             if (armorLevel >= 2) {
                 armorLore.add("§9Lv II 防御力アップ §7(ダイヤ x5)");
-                armorLore.add("§9  防具にProtection IIを付与");
             } else {
                 armorLore.add("§7Lv II 防御力アップ §7(ダイヤ x5)");
-                armorLore.add("§7  防具にProtection IIを付与");
             }
 
             armorLore.add("");
@@ -131,10 +125,8 @@ public class ShopTwoGUI {
             // Lv III - Protection III
             if (armorLevel >= 3) {
                 armorLore.add("§9Lv III 防御力アップ §7(ダイヤ x6)");
-                armorLore.add("§9  防具にProtection IIIを付与");
             } else {
                 armorLore.add("§7Lv III 防御力アップ §7(ダイヤ x6)");
-                armorLore.add("§7  防具にProtection IIIを付与");
             }
 
             armorLore.add("");
