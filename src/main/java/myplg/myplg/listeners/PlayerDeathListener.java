@@ -406,7 +406,7 @@ public class PlayerDeathListener implements Listener {
                     double offsetZ = (Math.random() - 0.5) * 4;
                     Location fireworkLoc = location.clone().add(offsetX, 0, offsetZ);
 
-                    Firework firework = (Firework) location.getWorld().spawnEntity(fireworkLoc, EntityType.FIREWORK);
+                    Firework firework = (Firework) location.getWorld().spawnEntity(fireworkLoc, EntityType.FIREWORK_ROCKET);
                     FireworkMeta meta = firework.getFireworkMeta();
 
                     // Get team color
