@@ -13,8 +13,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -461,25 +464,28 @@ public class ShopClickListener implements Listener {
         // Remove currency
         removeItems(player, Material.IRON_INGOT, 120);
 
-        // Spawn Iron Golem at player's location
-        org.bukkit.Location spawnLoc = player.getLocation();
-        org.bukkit.entity.IronGolem golem = (org.bukkit.entity.IronGolem) player.getWorld().spawnEntity(spawnLoc, org.bukkit.entity.EntityType.IRON_GOLEM);
+        // Give Iron Golem spawn egg
+        ItemStack golemEgg = new ItemStack(Material.IRON_GOLEM_SPAWN_EGG, 1);
+        ItemMeta eggMeta = golemEgg.getItemMeta();
+        if (eggMeta != null) {
+            eggMeta.setDisplayName("§e§l" + teamName + "のアイアンゴーレム");
+            List<String> lore = new ArrayList<>();
+            lore.add("§7");
+            lore.add("§7このスポーンエッグで召喚されたゴーレムは");
+            lore.add("§7" + teamName + "チームのために戦います");
+            eggMeta.setLore(lore);
+            golemEgg.setItemMeta(eggMeta);
+        }
 
-        // Store team name in golem's metadata for later reference
-        golem.setCustomName("§7" + teamName + "のゴーレム");
-        golem.setCustomNameVisible(true);
-        golem.setPlayerCreated(false); // Prevent it from giving poppies
-
-        // Add metadata to track owner team
-        golem.setPersistent(true);
-        golem.setMetadata("ownerTeam", new org.bukkit.metadata.FixedMetadataValue(plugin, teamName));
+        // Add to inventory
+        player.getInventory().addItem(golemEgg);
 
         // Update cooldown
         purchaseCooldown.put(player.getUniqueId(), currentTime);
 
         // Play sound
         player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_IRON_GOLEM_HURT, 1.0f, 1.0f);
-        player.sendMessage("§aアイアンゴーレムを召喚しました！");
+        player.sendMessage("§aアイアンゴーレムのスポーンエッグを購入しました！");
     }
 
     private void processBridgeEggPurchase(Player player) {

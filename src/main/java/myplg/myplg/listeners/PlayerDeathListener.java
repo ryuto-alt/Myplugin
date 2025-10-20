@@ -565,4 +565,11 @@ public class PlayerDeathListener implements Listener {
         savedAxe.clear();
         savedPickaxe.clear();
     }
+
+    /**
+     * Clear processing death set for clean game restart
+     */
+    public void clearProcessingDeaths() {
+        processingDeath.clear();
+    }
 }

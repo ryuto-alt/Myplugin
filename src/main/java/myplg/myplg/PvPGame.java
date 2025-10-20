@@ -221,6 +221,62 @@ public final class PvPGame extends JavaPlugin {
         getLogger().info("PvPGame has been disabled!");
     }
 
+    /**
+     * Reset all game state for a fresh game start
+     * Call this after /end to prepare for the next game
+     * This performs a complete reinitialization of all game systems
+     */
+    public void resetGameState() {
+        getLogger().info("===== ゲーム状態を完全初期化中 =====");
+
+        // Stop all generators first
+        if (generatorManager != null) {
+            generatorManager.stopAllGenerators();
+        }
+
+        // Stop nametag visibility
+        if (nametagVisibilityListener != null) {
+            nametagVisibilityListener.stopVisibilityTask();
+        }
+
+        // Clear player placed blocks
+        BlockPlaceListener.clearPlayerPlacedBlocks();
+
+        // Reset player death listener state
+        if (playerDeathListener != null) {
+            playerDeathListener.clearProcessingDeaths();
+            playerDeathListener.reset();
+        }
+
+        // Reinitialize all managers (fresh state)
+        getLogger().info("マネージャーを再初期化中...");
+        gameManager = new GameManager(this);
+        generatorManager = new GeneratorManager(this);
+        toolUpgradeManager = new ToolUpgradeManager(this);
+        territoryUpgradeManager = new TerritoryUpgradeManager(this);
+        weaponUpgradeManager = new WeaponUpgradeManager(this);
+        armorUpgradeManager = new ArmorUpgradeManager(this);
+        scoreboardManager = new ScoreboardManager(this);
+        gameSetupManager = new GameSetupManager(this);
+
+        // Reload game world
+        getLogger().info("ゲームワールドを再読み込み中...");
+        loadGameWorld();
+
+        // Reload teams and generators from files
+        getLogger().info("チームとジェネレーターデータを再読み込み中...");
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            teamDataManager.loadTeams();
+            teamsLoaded = true;
+            getLogger().info("チームデータ再読み込み完了: " + gameManager.getTeams().size() + " チーム");
+
+            generatorDataManager.loadGenerators();
+            getLogger().info("ジェネレーターデータ再読み込み完了: " + generatorManager.getGenerators().size() + " ジェネレーター");
+
+            getLogger().info("===== ゲーム状態の完全初期化完了 =====");
+        }, 20L); // 1 second delay to ensure world is reloaded
+    }
+
     public GameManager getGameManager() {
         return gameManager;
     }
