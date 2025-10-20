@@ -15,6 +15,9 @@ import myplg.myplg.data.GeneratorDataManager;
 import myplg.myplg.data.ShopDataManager;
 import myplg.myplg.data.TeamDataManager;
 import myplg.myplg.data.WorldBackupManager;
+import myplg.myplg.gui.CustomTeamSetupGUI;
+import myplg.myplg.gui.GameModeSelector;
+import myplg.myplg.gui.TeamSelectorGUI;
 import myplg.myplg.listeners.ArmorRemoveListener;
 import myplg.myplg.listeners.BedBreakListener;
 import myplg.myplg.listeners.BedClickListener;
@@ -26,6 +29,8 @@ import myplg.myplg.listeners.HungerControlListener;
 import myplg.myplg.listeners.MobSpawnListener;
 import myplg.myplg.listeners.PlayerDeathListener;
 import myplg.myplg.listeners.PlayerJoinListener;
+import myplg.myplg.listeners.PlayerQuitListener;
+import myplg.myplg.listeners.WorldChangeListener;
 import myplg.myplg.listeners.ShopClickListener;
 import myplg.myplg.listeners.ShopTwoListener;
 import myplg.myplg.listeners.ShopVillagerListener;
@@ -47,6 +52,11 @@ public final class PvPGame extends JavaPlugin {
     private WeaponUpgradeManager weaponUpgradeManager;
     private ArmorUpgradeManager armorUpgradeManager;
     private ScoreboardManager scoreboardManager;
+    private MusicManager musicManager;
+    private GameSetupManager gameSetupManager;
+    private GameModeSelector gameModeSelector;
+    private TeamSelectorGUI teamSelectorGUI;
+    private CustomTeamSetupGUI customTeamSetupGUI;
     private SetBedCommand setBedCommand;
     private BedClickListener bedClickListener;
     private GUIClickListener guiClickListener;
@@ -75,6 +85,11 @@ public final class PvPGame extends JavaPlugin {
         weaponUpgradeManager = new WeaponUpgradeManager(this);
         armorUpgradeManager = new ArmorUpgradeManager(this);
         scoreboardManager = new ScoreboardManager(this);
+        musicManager = new MusicManager(this);
+        gameSetupManager = new GameSetupManager(this);
+        gameModeSelector = new GameModeSelector(this);
+        teamSelectorGUI = new TeamSelectorGUI(this);
+        customTeamSetupGUI = new CustomTeamSetupGUI(this);
 
         // Load teams and generators from file after a delay to ensure worlds are loaded
         Bukkit.getScheduler().runTaskLater(this, () -> {
@@ -113,6 +128,8 @@ public final class PvPGame extends JavaPlugin {
         // Register listeners
         getServer().getPluginManager().registerEvents(bedClickListener, this);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
+        getServer().getPluginManager().registerEvents(new PlayerQuitListener(this), this);
+        getServer().getPluginManager().registerEvents(new WorldChangeListener(this), this);
 
         // Initialize and register PlayerDeathListener
         playerDeathListener = new PlayerDeathListener(this);
@@ -196,6 +213,11 @@ public final class PvPGame extends JavaPlugin {
             generatorManager.stopAllGenerators();
         }
 
+        // Cleanup music
+        if (musicManager != null) {
+            musicManager.cleanup();
+        }
+
         getLogger().info("PvPGame has been disabled!");
     }
 
@@ -265,6 +287,26 @@ public final class PvPGame extends JavaPlugin {
 
     public myplg.myplg.listeners.NametagVisibilityListener getNametagVisibilityListener() {
         return nametagVisibilityListener;
+    }
+
+    public MusicManager getMusicManager() {
+        return musicManager;
+    }
+
+    public GameSetupManager getGameSetupManager() {
+        return gameSetupManager;
+    }
+
+    public GameModeSelector getGameModeSelector() {
+        return gameModeSelector;
+    }
+
+    public TeamSelectorGUI getTeamSelectorGUI() {
+        return teamSelectorGUI;
+    }
+
+    public CustomTeamSetupGUI getCustomTeamSetupGUI() {
+        return customTeamSetupGUI;
     }
 
     private void loadLobbyWorld() {

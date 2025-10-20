@@ -21,6 +21,11 @@ public class EndCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!sender.isOp()) {
+            sender.sendMessage(Component.text("このコマンドはOP権限が必要です。", NamedTextColor.RED));
+            return true;
+        }
+
         if (!plugin.getGameManager().isGameRunning()) {
             sender.sendMessage(Component.text("ゲームは開始されていません。", NamedTextColor.RED));
             return true;
@@ -52,6 +57,9 @@ public class EndCommand implements CommandExecutor {
         // End game
         plugin.getGameManager().setGameRunning(false);
 
+        // DON'T stop game music - let it continue playing
+        // plugin.getMusicManager().stopGameMusic();
+
         // Stop all generators
         plugin.getGeneratorManager().stopAllGenerators();
 
@@ -80,6 +88,12 @@ public class EndCommand implements CommandExecutor {
             player.getInventory().clear();
             player.setGameMode(GameMode.ADVENTURE);
             player.teleport(lobbySpawn);
+
+            // DON'T start lobby music - let the current music continue playing
+            // final Player finalPlayer = player;
+            // Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            //     plugin.getMusicManager().startLobbyMusic(finalPlayer);
+            // }, 20L);
         }
 
         final String worldName = world.getName();

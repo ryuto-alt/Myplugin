@@ -52,8 +52,102 @@ public class GUIClickListener implements Listener {
         String title = PlainTextComponentSerializer.plainText().serialize(event.getView().title());
         plugin.getLogger().info("GUI clicked - Title: '" + title + "'");
 
+        // ゲームモード選択GUI（/start用）
+        if (title.equals("ゲームモード選択")) {
+            event.setCancelled(true);
+
+            ItemStack clickedItem = event.getCurrentItem();
+            if (clickedItem == null || clickedItem.getType() == Material.AIR) {
+                return;
+            }
+
+            if (clickedItem.getType() == Material.IRON_SWORD) {
+                // ソロモード
+                plugin.getGameModeSelector().handleGameModeSelection(player, "SOLO");
+            } else if (clickedItem.getType() == Material.DIAMOND_SWORD) {
+                // デュオモード
+                plugin.getGameModeSelector().handleGameModeSelection(player, "DUO");
+            } else if (clickedItem.getType() == Material.NETHERITE_SWORD) {
+                // トリプルモード
+                plugin.getGameModeSelector().handleGameModeSelection(player, "TRIPLE");
+            } else if (clickedItem.getType() == Material.NETHER_STAR) {
+                // カスタムモード
+                plugin.getGameModeSelector().handleGameModeSelection(player, "CUSTOM");
+            }
+        }
+        // チーム選択GUI（ソロ/デュオ/トリプル用）
+        else if (title.equals("チーム選択")) {
+            event.setCancelled(true);
+
+            ItemStack clickedItem = event.getCurrentItem();
+            if (clickedItem == null || clickedItem.getType() == Material.AIR) {
+                return;
+            }
+
+            if (clickedItem.getType() == Material.EMERALD_BLOCK) {
+                // ゲーム開始ボタン
+                plugin.getTeamSelectorGUI().startGame();
+            } else if (clickedItem.getType() == Material.BARRIER) {
+                // 戻るボタン
+                plugin.getGameModeSelector().openGameModeSelector(player);
+            } else {
+                // チーム選択
+                String teamName = getTeamNameFromMaterial(clickedItem.getType());
+                if (teamName != null) {
+                    plugin.getTeamSelectorGUI().handleTeamSelection(player, teamName);
+                }
+            }
+        }
+        // カスタムチーム設定GUI
+        else if (title.equals("カスタムチーム設定")) {
+            event.setCancelled(true);
+
+            ItemStack clickedItem = event.getCurrentItem();
+            if (clickedItem == null || clickedItem.getType() == Material.AIR) {
+                return;
+            }
+
+            if (clickedItem.getType() == Material.EMERALD_BLOCK) {
+                // ゲーム開始ボタン
+                plugin.getCustomTeamSetupGUI().startGame();
+            } else if (clickedItem.getType() == Material.BARRIER) {
+                // 戻るボタン
+                plugin.getGameModeSelector().openGameModeSelector(player);
+            } else {
+                // チーム選択
+                String teamName = getTeamNameFromMaterial(clickedItem.getType());
+                if (teamName != null) {
+                    if (event.getClick() == ClickType.LEFT) {
+                        // 左クリック: チームに参加
+                        plugin.getCustomTeamSetupGUI().handleTeamJoin(player, teamName);
+                    } else if (event.getClick() == ClickType.RIGHT) {
+                        // 右クリック: 人数上限を変更
+                        plugin.getCustomTeamSetupGUI().handleTeamLimitChange(player, teamName);
+                    }
+                }
+            }
+        }
+        // 人数上限選択GUI
+        else if (title.contains("の人数上限")) {
+            event.setCancelled(true);
+
+            ItemStack clickedItem = event.getCurrentItem();
+            if (clickedItem == null || clickedItem.getType() == Material.AIR) {
+                return;
+            }
+
+            if (clickedItem.getType() == Material.BARRIER) {
+                // 戻るボタン
+                plugin.getCustomTeamSetupGUI().openCustomSetup(player);
+            } else if (clickedItem.getType() == Material.PLAYER_HEAD) {
+                // 人数を選択
+                String teamName = title.replace("の人数上限", "");
+                int limit = clickedItem.getAmount();
+                plugin.getCustomTeamSetupGUI().handleLimitSelection(player, teamName, limit);
+            }
+        }
         // Generator type selection menu
-        if (title.equals("ジェネレーター作成")) {
+        else if (title.equals("ジェネレーター作成")) {
             event.setCancelled(true);
 
             ItemStack clickedItem = event.getCurrentItem();
@@ -517,5 +611,22 @@ public class GUIClickListener implements Listener {
 
     public ManagementGUI getManagementGUI() {
         return managementGUI;
+    }
+
+    /**
+     * マテリアルからチーム名を取得
+     */
+    private String getTeamNameFromMaterial(Material material) {
+        switch (material) {
+            case RED_WOOL: return "レッド";
+            case BLUE_WOOL: return "ブルー";
+            case GREEN_WOOL: return "グリーン";
+            case YELLOW_WOOL: return "イエロー";
+            case CYAN_WOOL: return "アクア";
+            case WHITE_WOOL: return "ホワイト";
+            case PINK_WOOL: return "ピンク";
+            case GRAY_WOOL: return "グレー";
+            default: return null;
+        }
     }
 }

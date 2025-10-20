@@ -15,17 +15,17 @@ public class ShopResetCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!sender.isOp()) {
+            sender.sendMessage("§cこのコマンドはOP権限が必要です。");
+            return true;
+        }
+
         if (!(sender instanceof Player)) {
             sender.sendMessage("§cこのコマンドはプレイヤーのみ実行できます。");
             return true;
         }
 
         Player player = (Player) sender;
-
-        if (!player.isOp()) {
-            player.sendMessage("§cこのコマンドを実行する権限がありません。");
-            return true;
-        }
 
         // Reset all players' tool upgrades
         plugin.getToolUpgradeManager().resetAll();

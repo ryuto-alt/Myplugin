@@ -38,7 +38,25 @@ public class PlayerDeathListener implements Listener {
         this.processingDeath = new HashSet<>();
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        // Prevent actual death screen from appearing during game
+        if (plugin.getGameManager().isGameRunning()) {
+            // This should never happen if our damage handler works, but just in case
+            event.setCancelled(true);
+            Player player = event.getEntity();
+            plugin.getLogger().warning("Player " + player.getName() + " triggered actual death event - this shouldn't happen!");
+
+            // Force handle as custom death
+            if (!processingDeath.contains(player.getUniqueId())) {
+                processingDeath.add(player.getUniqueId());
+                player.setHealth(0.1);
+                handleInstantDeath(player);
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onEntityDamage(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof Player)) {
             return;
@@ -51,17 +69,20 @@ public class PlayerDeathListener implements Listener {
         Player player = (Player) event.getEntity();
         UUID playerUUID = player.getUniqueId();
 
-        // Check if player will die from this damage (health <= 0.2 after damage)
+        // Check if player will die from this damage (health <= 0.5 after damage to prevent actual death)
         double healthAfterDamage = player.getHealth() - event.getFinalDamage();
 
-        if (healthAfterDamage <= 0.2 && !processingDeath.contains(playerUUID)) {
-            // Cancel the damage event
+        if (healthAfterDamage <= 0.5 && !processingDeath.contains(playerUUID)) {
+            // Cancel the damage event to prevent actual death
             event.setCancelled(true);
 
             // Mark as processing
             processingDeath.add(playerUUID);
 
-            // Trigger instant death
+            // Set health to 0.1 to keep player alive but appear "dead"
+            player.setHealth(0.1);
+
+            // Trigger custom death handling (spectator mode)
             handleInstantDeath(player);
         }
     }
@@ -69,6 +90,9 @@ public class PlayerDeathListener implements Listener {
     private void handleInstantDeath(Player player) {
         UUID playerUUID = player.getUniqueId();
         String teamName = plugin.getGameManager().getPlayerTeam(playerUUID);
+
+        plugin.getLogger().info("=== Death Handler Started for " + player.getName() + " ===");
+        plugin.getLogger().info("Team: " + teamName);
 
         // Save all armor BEFORE clearing inventory (leather, iron, diamond, netherite)
         ItemStack[] armor = player.getInventory().getArmorContents();
@@ -82,13 +106,18 @@ public class PlayerDeathListener implements Listener {
 
         // Check if bed is alive
         boolean bedAlive = plugin.getScoreboardManager().isBedAlive(teamName);
+        plugin.getLogger().info("Bed alive: " + bedAlive);
 
         if (!bedAlive) {
             // Player is eliminated
+            plugin.getLogger().info("Player eliminated - no respawn");
             eliminatedPlayers.add(playerUUID);
             player.getInventory().clear();
             player.setGameMode(GameMode.SPECTATOR);
             player.sendTitle("§c§l死んでしまった！", "§cあなたは脱落しました", 10, 70, 20);
+
+            // Set health to max to prevent issues
+            player.setHealth(player.getMaxHealth());
 
             // Update scoreboard to reflect player elimination
             plugin.getScoreboardManager().updateAllScoreboards();
@@ -99,6 +128,8 @@ public class PlayerDeathListener implements Listener {
             processingDeath.remove(playerUUID);
             return;
         }
+
+        plugin.getLogger().info("Player will respawn in 5 seconds");
 
         // Find and save axe/pickaxe (downgrade level)
         ItemStack currentAxe = null;
@@ -152,7 +183,9 @@ public class PlayerDeathListener implements Listener {
 
         // Set to spectator mode
         player.setGameMode(GameMode.SPECTATOR);
-        player.setHealth(20.0); // Reset health
+
+        // Set health to max to prevent any death issues
+        player.setHealth(player.getMaxHealth());
 
         // Teleport to (0, 125, 0) in the same world
         Location spectatorLocation = new Location(player.getWorld(), 0.5, 125.0, 0.5);
@@ -162,17 +195,29 @@ public class PlayerDeathListener implements Listener {
         Location spawnLocation = plugin.getGameManager().getTeam(teamName).getSpawnLocation();
 
         // Teleport to spawn after 5 seconds and restore equipment
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (player.isOnline()) {
-                    player.setGameMode(GameMode.SURVIVAL);
-                    player.teleport(spawnLocation);
-                    restorePlayerEquipment(player, playerUUID, teamName);
-                    processingDeath.remove(playerUUID);
-                }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline() && plugin.getGameManager().isGameRunning()) {
+                // Set to survival mode FIRST
+                player.setGameMode(GameMode.SURVIVAL);
+
+                // Set health to max
+                player.setHealth(player.getMaxHealth());
+
+                // Teleport to spawn
+                player.teleport(spawnLocation);
+
+                // Restore equipment
+                restorePlayerEquipment(player, playerUUID, teamName);
+
+                // Remove from processing
+                processingDeath.remove(playerUUID);
+
+                plugin.getLogger().info("Player " + player.getName() + " respawned successfully");
+            } else {
+                plugin.getLogger().warning("Failed to respawn player " + player.getName() + " - player offline or game not running");
+                processingDeath.remove(playerUUID);
             }
-        }.runTaskLater(plugin, 100L); // 5 seconds
+        }, 100L); // 5 seconds
     }
 
     private void restorePlayerEquipment(Player player, UUID playerUUID, String teamName) {

@@ -1,0 +1,56 @@
+{
+  "lobby.lobbybgm1": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "lobby/lobbyBGM1",
+        "stream": true
+      }
+    ]
+  },
+  "lobby.lobbybgm2": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "lobby/lobbyBGM2",
+        "stream": true
+      }
+    ]
+  },
+  "lobby.lobbybgm3": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "lobby/lobbyBGM3",
+        "stream": true
+      }
+    ]
+  },
+  "lobby.lobbybgm4": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "lobby/lobbyBGM4",
+        "stream": true
+      }
+    ]
+  },
+  "lobby.lobbybgm5": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "lobby/lobbyBGM5",
+        "stream": true
+      }
+    ]
+  },
+  "gamebgm.gamebgm": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "gamebgm/gameBGM",
+        "stream": true
+      }
+    ]
+  }
+}

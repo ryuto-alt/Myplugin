@@ -79,6 +79,32 @@ public class ItemModifierListener implements Listener {
                     modified = true;
                 }
             }
+        }
+
+        // Set all swords to have 1.8 attack speed (1000)
+        if (type.toString().contains("SWORD")) {
+            try {
+                Attribute attackSpeedAttr = Registry.ATTRIBUTE.get(NamespacedKey.minecraft("generic.attack_speed"));
+
+                // Remove existing attack speed modifiers
+                meta.removeAttributeModifier(attackSpeedAttr);
+
+                // Add super fast attack speed (1.8-style spam clicking)
+                AttributeModifier speedModifier = new AttributeModifier(
+                    NamespacedKey.fromString("myplg:sword_attack_speed"),
+                    1000.0,  // Very high attack speed for spam clicking
+                    AttributeModifier.Operation.ADD_NUMBER,
+                    EquipmentSlotGroup.HAND
+                );
+                meta.addAttributeModifier(attackSpeedAttr, speedModifier);
+
+                modified = true;
+            } catch (IllegalArgumentException e) {
+                // Attribute not available in this version, ignore
+            }
+        }
+
+        if (teamName != null) {
 
             // Apply armor enchantment
             if (type.toString().contains("HELMET") ||

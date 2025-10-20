@@ -6,33 +6,48 @@ commands:
   setbed:
     description: チームのベッドを設定します
     usage: /setbed <チーム名>
+    permission: pvpgame.admin
   start:
     description: ゲームを開始します
     usage: /start
+    permission: pvpgame.admin
   edit:
     description: ゲーム管理の本を入手します
     usage: /edit
+    permission: pvpgame.admin
   save:
     description: ワールドをバックアップします
     usage: /save [ワールド名]
+    permission: pvpgame.admin
   end:
     description: ゲームを終了してワールドを復元します
     usage: /end [ワールド名]
+    permission: pvpgame.admin
   gene:
     description: ジェネレーターを設定します
     usage: /gene <diamond|gold|iron|emerald>
+    permission: pvpgame.admin
   genereload:
     description: generators.ymlからジェネレーター設定を再読み込みします
     usage: /genereload
+    permission: pvpgame.admin
   shop1:
     description: ショップ村人のスポーンエッグを入手します
     usage: /shop1
+    permission: pvpgame.admin
   shop2:
     description: ショップ2スケルトンのスポーンエッグを入手します（陣地強化・武器強化・装備強化・トラップ）
     usage: /shop2
+    permission: pvpgame.admin
   sreset:
     description: 全プレイヤーのショップツールアップグレード状態をリセットします
     usage: /sreset
+    permission: pvpgame.admin
   gameworld:
     description: 全プレイヤーをゲームワールドに移動します（OP専用）
     usage: /gameworld
+    permission: pvpgame.admin
+permissions:
+  pvpgame.admin:
+    description: PvPGameの管理コマンドを使用する権限
+    default: op

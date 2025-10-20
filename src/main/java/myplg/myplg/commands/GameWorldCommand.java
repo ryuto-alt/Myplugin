@@ -20,9 +20,8 @@ public class GameWorldCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        // Check if sender is OP
         if (!sender.isOp()) {
-            sender.sendMessage(Component.text("このコマンドを実行する権限がありません。", NamedTextColor.RED));
+            sender.sendMessage("§cこのコマンドはOP権限が必要です。");
             return true;
         }
 

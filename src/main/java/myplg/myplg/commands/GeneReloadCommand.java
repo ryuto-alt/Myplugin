@@ -14,6 +14,11 @@ public class GeneReloadCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!sender.isOp()) {
+            sender.sendMessage("§cこのコマンドはOP権限が必要です。");
+            return true;
+        }
+
         // Check if game is running
         boolean wasRunning = plugin.getGameManager().isGameRunning();
 

@@ -32,5 +32,8 @@ public class PlayerJoinListener implements Listener {
         player.teleport(lobbySpawn);
 
         plugin.getLogger().info(player.getName() + " をLobbyにテレポートしました: -210, 7, 15");
+
+        // Start lobby music for the player
+        plugin.getMusicManager().onPlayerJoin(player);
     }
 }
