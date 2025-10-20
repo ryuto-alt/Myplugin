@@ -154,7 +154,7 @@ public class MusicManager {
     }
 
     /**
-     * Play the next game song for all players
+     * Play the next game song for all players (except those in lobby)
      */
     private void playNextGameSong() {
         if (gameSongs.isEmpty()) {
@@ -163,10 +163,15 @@ public class MusicManager {
 
         String songName = gameSongs.get(currentGameSongIndex);
 
-        // Play for all online players
+        // Play for all online players who are NOT in lobby
         // Convert to lowercase for Minecraft sound system
         String soundName = "gamebgm." + songName.toLowerCase();
         for (Player player : Bukkit.getOnlinePlayers()) {
+            // Skip players in lobby - they should only hear lobby music
+            if (isInLobby(player)) {
+                continue;
+            }
+
             // Stop vanilla Minecraft music
             stopVanillaMusic(player);
 
