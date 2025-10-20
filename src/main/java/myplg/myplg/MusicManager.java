@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 public class MusicManager {
     private final PvPGame plugin;
@@ -18,11 +19,13 @@ public class MusicManager {
     private List<String> gameSongs;
     private BukkitTask gameMusicTask;
     private int currentGameSongIndex = 0;
+    private final Random random;
 
     public MusicManager(PvPGame plugin) {
         this.plugin = plugin;
         this.lobbyMusicTasks = new HashMap<>();
         this.lobbyMusicIndex = new HashMap<>();
+        this.random = new Random();
         loadSongs();
     }
 
@@ -53,7 +56,7 @@ public class MusicManager {
 
     /**
      * Start playing lobby music for a player
-     * Will loop through all songs in the lobby folder continuously
+     * Will play random songs continuously
      */
     public void startLobbyMusic(Player player) {
         if (lobbySongs.isEmpty()) {
@@ -61,28 +64,37 @@ public class MusicManager {
             return;
         }
 
-        // Stop any existing lobby music for this player
+        // Stop any existing lobby music for this player to prevent duplicates
         stopLobbyMusic(player);
 
-        // Initialize player's music index
-        if (!lobbyMusicIndex.containsKey(player)) {
-            lobbyMusicIndex.put(player, 0);
+        // Check if player is actually in lobby before starting music
+        if (!isInLobby(player)) {
+            plugin.getLogger().info("Player " + player.getName() + " is not in lobby, skipping music start");
+            return;
         }
 
-        // Start playing the first song
+        // Start playing a random song
         playNextLobbySong(player);
     }
 
     /**
-     * Play the next lobby song for a player
+     * Play the next random lobby song for a player
      */
     private void playNextLobbySong(Player player) {
         if (lobbySongs.isEmpty() || !player.isOnline()) {
             return;
         }
 
-        int index = lobbyMusicIndex.getOrDefault(player, 0);
-        String songName = lobbySongs.get(index);
+        // Check if player is still in lobby
+        if (!isInLobby(player)) {
+            plugin.getLogger().info("Player " + player.getName() + " left lobby, stopping music");
+            stopLobbyMusic(player);
+            return;
+        }
+
+        // Select a random song
+        int randomIndex = random.nextInt(lobbySongs.size());
+        String songName = lobbySongs.get(randomIndex);
 
         // Stop all vanilla Minecraft music for this player
         stopVanillaMusic(player);
@@ -98,14 +110,12 @@ public class MusicManager {
         // For now, using a default of 3 minutes (3600 ticks)
         long songDuration = 3600L;
 
-        // Schedule next song after this one finishes
+        // Schedule next random song after this one finishes
         BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            // Move to next song
-            int nextIndex = (index + 1) % lobbySongs.size();
-            lobbyMusicIndex.put(player, nextIndex);
-
-            // Play next song
-            playNextLobbySong(player);
+            // Play next random song (only if still in lobby)
+            if (player.isOnline() && isInLobby(player)) {
+                playNextLobbySong(player);
+            }
         }, songDuration);
 
         lobbyMusicTasks.put(player, task);

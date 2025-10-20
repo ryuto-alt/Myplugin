@@ -2,6 +2,7 @@ package myplg.myplg.listeners;
 
 import myplg.myplg.PvPGame;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -30,7 +31,19 @@ public class WorldChangeListener implements Listener {
                     plugin.getMusicManager().startLobbyMusic(player);
                 }
             }, 20L); // 1 second delay
-        } else {
+        }
+        // If player moved to game world (not lobby), set to adventure mode
+        else if (newWorldName.equalsIgnoreCase("world")) {
+            // Set to adventure mode if game is not running
+            if (!plugin.getGameManager().isGameRunning()) {
+                player.setGameMode(GameMode.ADVENTURE);
+                plugin.getLogger().info("Set " + player.getName() + " to Adventure mode in game world");
+            }
+
+            // Stop lobby music
+            plugin.getMusicManager().stopLobbyMusic(player);
+        }
+        else {
             // If player left lobby, stop lobby music
             plugin.getMusicManager().stopLobbyMusic(player);
         }

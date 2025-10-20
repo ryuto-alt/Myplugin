@@ -20,17 +20,25 @@ public class FallDamageListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW)
     public void onFallDamage(EntityDamageEvent event) {
-        // Only handle fall damage for players during the game
+        // Only handle fall damage for players
         if (event.getCause() != EntityDamageEvent.DamageCause.FALL ||
             !(event.getEntity() instanceof Player)) {
             return;
         }
 
+        Player player = (Player) event.getEntity();
+
+        // Disable fall damage in lobby world
+        if (player.getWorld().getName().equalsIgnoreCase("lobby")) {
+            event.setCancelled(true);
+            return;
+        }
+
+        // Only apply custom fall damage during the game
         if (!plugin.getGameManager().isGameRunning()) {
             return;
         }
 
-        Player player = (Player) event.getEntity();
         double fallDistance = player.getFallDistance();
 
         // Cancel fall damage if less than 5 blocks

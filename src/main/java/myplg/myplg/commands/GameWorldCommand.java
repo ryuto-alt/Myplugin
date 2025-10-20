@@ -4,6 +4,7 @@ import myplg.myplg.PvPGame;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -47,10 +48,16 @@ public class GameWorldCommand implements CommandExecutor {
         // Get spawn location from world spawn
         Location spawnLocation = gameWorld.getSpawnLocation();
 
-        // Teleport all players to game world
+        // Teleport all players to game world and set to adventure mode
         int teleportedCount = 0;
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.teleport(spawnLocation);
+
+            // Set to adventure mode if game is not running
+            if (!plugin.getGameManager().isGameRunning()) {
+                player.setGameMode(GameMode.ADVENTURE);
+            }
+
             teleportedCount++;
         }
 
