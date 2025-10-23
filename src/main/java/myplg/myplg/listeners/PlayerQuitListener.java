@@ -19,5 +19,10 @@ public class PlayerQuitListener implements Listener {
 
         // Stop lobby music for the player
         plugin.getMusicManager().onPlayerQuit(player);
+
+        // Clear invisibility armor storage on quit
+        if (plugin.getInvisibilityArmorListener() != null) {
+            plugin.getInvisibilityArmorListener().clearStoredArmor(player);
+        }
     }
 }

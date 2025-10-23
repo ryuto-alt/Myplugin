@@ -684,8 +684,8 @@ public class ShopGUI {
             inv.setItem(i, grayPane);
         }
 
-        // Row 2: First row of items (evenly spaced)
-        // Golden Apple (non-enchanted)
+        // ========== Row 1: 消耗品 ==========
+        // Golden Apple
         ItemStack goldenApple = new ItemStack(Material.GOLDEN_APPLE);
         ItemMeta goldenAppleMeta = goldenApple.getItemMeta();
         if (goldenAppleMeta != null) {
@@ -697,21 +697,21 @@ public class ShopGUI {
             ));
             goldenApple.setItemMeta(goldenAppleMeta);
         }
-        inv.setItem(11, goldenApple);
+        inv.setItem(10, goldenApple);
 
-        // Shears
-        ItemStack shears = new ItemStack(Material.SHEARS);
-        ItemMeta shearsMeta = shears.getItemMeta();
-        if (shearsMeta != null) {
-            shearsMeta.setDisplayName("§fハサミ");
-            shearsMeta.setLore(Arrays.asList(
-                "§7コスト: §f鉄 20個",
+        // TNT
+        ItemStack tnt = new ItemStack(Material.TNT);
+        ItemMeta tntMeta = tnt.getItemMeta();
+        if (tntMeta != null) {
+            tntMeta.setDisplayName("§cTNT");
+            tntMeta.setLore(Arrays.asList(
+                "§7コスト: §6ゴールド 5個",
                 "",
                 "§eクリックして購入！"
             ));
-            shears.setItemMeta(shearsMeta);
+            tnt.setItemMeta(tntMeta);
         }
-        inv.setItem(12, shears);
+        inv.setItem(12, tnt);
 
         // Water Bucket
         ItemStack waterBucket = new ItemStack(Material.WATER_BUCKET);
@@ -726,21 +726,7 @@ public class ShopGUI {
             ));
             waterBucket.setItemMeta(waterBucketMeta);
         }
-        inv.setItem(13, waterBucket);
-
-        // TNT
-        ItemStack tnt = new ItemStack(Material.TNT);
-        ItemMeta tntMeta = tnt.getItemMeta();
-        if (tntMeta != null) {
-            tntMeta.setDisplayName("§cTNT");
-            tntMeta.setLore(Arrays.asList(
-                "§7コスト: §6ゴールド 5個",
-                "",
-                "§eクリックして購入！"
-            ));
-            tnt.setItemMeta(tntMeta);
-        }
-        inv.setItem(14, tnt);
+        inv.setItem(14, waterBucket);
 
         // Ender Pearl
         ItemStack enderPearl = new ItemStack(Material.ENDER_PEARL);
@@ -756,7 +742,22 @@ public class ShopGUI {
         }
         inv.setItem(16, enderPearl);
 
-        // Row 3: Tools upgrade items (axes) - Show only next level
+        // ========== Row 2: ツール ==========
+        // Shears
+        ItemStack shears = new ItemStack(Material.SHEARS);
+        ItemMeta shearsMeta = shears.getItemMeta();
+        if (shearsMeta != null) {
+            shearsMeta.setDisplayName("§fハサミ");
+            shearsMeta.setLore(Arrays.asList(
+                "§7コスト: §f鉄 20個",
+                "",
+                "§eクリックして購入！"
+            ));
+            shears.setItemMeta(shearsMeta);
+        }
+        inv.setItem(19, shears);
+
+        // Axe upgrade - Show only next level
         int currentAxeLevel = plugin.getToolUpgradeManager().getAxeLevel(player.getUniqueId());
         int nextAxeLevel = currentAxeLevel + 1;
 
@@ -807,10 +808,10 @@ public class ShopGUI {
                 ));
                 axe.setItemMeta(axeMeta);
             }
-            inv.setItem(22, axe);
+            inv.setItem(21, axe);
         }
 
-        // Row 4: Tools upgrade items (pickaxes) - Show only next level
+        // Pickaxe upgrade - Show only next level
         int currentPickaxeLevel = plugin.getToolUpgradeManager().getPickaxeLevel(player.getUniqueId());
         int nextPickaxeLevel = currentPickaxeLevel + 1;
 
@@ -861,11 +862,11 @@ public class ShopGUI {
                 ));
                 pickaxe.setItemMeta(pickaxeMeta);
             }
-            inv.setItem(31, pickaxe);
+            inv.setItem(23, pickaxe);
         }
 
-        // Row 5: Fireball item and Iron Golem (centered)
-        // Fireball (fire charge that shoots fireballs on right-click)
+        // ========== Row 3: 特殊アイテム ==========
+        // Fireball
         ItemStack fireball = new ItemStack(Material.FIRE_CHARGE);
         ItemMeta fireballMeta = fireball.getItemMeta();
         if (fireballMeta != null) {
@@ -878,9 +879,9 @@ public class ShopGUI {
             ));
             fireball.setItemMeta(fireballMeta);
         }
-        inv.setItem(38, fireball);
+        inv.setItem(30, fireball);
 
-        // Iron Golem (spawns golem that attacks enemies)
+        // Iron Golem
         ItemStack ironGolem = new ItemStack(Material.IRON_BLOCK);
         ItemMeta ironGolemMeta = ironGolem.getItemMeta();
         if (ironGolemMeta != null) {
@@ -893,7 +894,7 @@ public class ShopGUI {
             ));
             ironGolem.setItemMeta(ironGolemMeta);
         }
-        inv.setItem(42, ironGolem);
+        inv.setItem(32, ironGolem);
 
         // Back button
         ItemStack backButton = new ItemStack(Material.ARROW);

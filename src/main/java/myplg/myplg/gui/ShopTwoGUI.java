@@ -274,7 +274,53 @@ public class ShopTwoGUI {
             inv.setItem(i, grayPane);
         }
 
-        // TODO: Add trap items here
+        // Get player's team to check alarm level
+        String teamName = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
+        int alarmLevel = teamName != null ? plugin.getAlarmTrapManager().getAlarmLevel(teamName) : 0;
+
+        // Alarm Trap - Level 1 (Detection only)
+        ItemStack alarm1 = new ItemStack(Material.REDSTONE_LAMP);
+        ItemMeta alarm1Meta = alarm1.getItemMeta();
+        if (alarm1Meta != null) {
+            alarm1Meta.setDisplayName("§e§lアラーム - Lv 1");
+            java.util.List<String> alarm1Lore = new java.util.ArrayList<>();
+            alarm1Lore.add("§7陣地(ベッド半径20m)に敵が侵入したら");
+            alarm1Lore.add("§7チーム全員に通知が届きます");
+            alarm1Lore.add("");
+            if (alarmLevel >= 1) {
+                alarm1Lore.add("§a✓ 購入済み");
+            } else {
+                alarm1Lore.add("§6価格: §fダイヤ x1");
+                alarm1Lore.add("§aクリックして購入");
+            }
+            alarm1Meta.setLore(alarm1Lore);
+            alarm1.setItemMeta(alarm1Meta);
+        }
+        inv.setItem(20, alarm1);
+
+        // Alarm Trap - Level 2 (Detection + Debuffs)
+        ItemStack alarm2 = new ItemStack(Material.REDSTONE_LAMP);
+        ItemMeta alarm2Meta = alarm2.getItemMeta();
+        if (alarm2Meta != null) {
+            alarm2Meta.setDisplayName("§c§lアラーム - Lv 2");
+            java.util.List<String> alarm2Lore = new java.util.ArrayList<>();
+            alarm2Lore.add("§7陣地に侵入した敵に3秒間:");
+            alarm2Lore.add("§7  ・視界が悪くなる(盲目)");
+            alarm2Lore.add("§7  ・掘る速度が遅くなる(採掘疲労II)");
+            alarm2Lore.add("§7  ・歩く速度が遅くなる(鈍足)");
+            alarm2Lore.add("");
+            if (alarmLevel >= 2) {
+                alarm2Lore.add("§a✓ 購入済み");
+            } else if (alarmLevel < 1) {
+                alarm2Lore.add("§c✗ Lv 1が必要です");
+            } else {
+                alarm2Lore.add("§6価格: §fダイヤ x2");
+                alarm2Lore.add("§aクリックして購入");
+            }
+            alarm2Meta.setLore(alarm2Lore);
+            alarm2.setItemMeta(alarm2Meta);
+        }
+        inv.setItem(24, alarm2);
 
         // Back button
         ItemStack backButton = new ItemStack(Material.ARROW);

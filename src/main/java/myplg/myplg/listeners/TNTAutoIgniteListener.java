@@ -34,12 +34,20 @@ public class TNTAutoIgniteListener implements Listener {
             TNTPrimed tnt = block.getWorld().spawn(block.getLocation().add(0.5, 0, 0.5), TNTPrimed.class);
             tnt.setFuseTicks(60); // 3 seconds (60 ticks)
 
-            // Remove TNT from player's hand
-            if (event.getItemInHand().getAmount() > 1) {
-                event.getItemInHand().setAmount(event.getItemInHand().getAmount() - 1);
-            } else {
-                event.getItemInHand().setType(Material.AIR);
-            }
+            // Remove TNT from player's inventory using scheduler to avoid item duplication
+            org.bukkit.entity.Player player = event.getPlayer();
+            org.bukkit.inventory.ItemStack itemInHand = player.getInventory().getItemInMainHand();
+
+            // Schedule removal on next tick to ensure proper removal
+            org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> {
+                if (itemInHand != null && itemInHand.getType() == Material.TNT) {
+                    if (itemInHand.getAmount() > 1) {
+                        itemInHand.setAmount(itemInHand.getAmount() - 1);
+                    } else {
+                        player.getInventory().setItemInMainHand(new org.bukkit.inventory.ItemStack(Material.AIR));
+                    }
+                }
+            });
         }
     }
 }

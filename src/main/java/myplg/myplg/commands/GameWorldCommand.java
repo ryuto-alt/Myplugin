@@ -50,6 +50,8 @@ public class GameWorldCommand implements CommandExecutor {
 
         // Teleport all players to game world and set to adventure mode
         int teleportedCount = 0;
+        Player opPlayer = (sender instanceof Player) ? (Player) sender : null;
+
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.teleport(spawnLocation);
 
@@ -69,6 +71,15 @@ public class GameWorldCommand implements CommandExecutor {
         Bukkit.broadcast(Component.text("==================", NamedTextColor.GOLD));
 
         plugin.getLogger().info("Teleported " + teleportedCount + " players to game world by " + sender.getName());
+
+        // Open game mode selector for the OP player who executed the command
+        if (opPlayer != null && !plugin.getGameManager().isGameRunning()) {
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (opPlayer.getWorld().getName().equalsIgnoreCase("world")) {
+                    plugin.getGameModeSelector().openGameModeSelector(opPlayer);
+                }
+            }, 20L); // 1 second delay
+        }
 
         return true;
     }

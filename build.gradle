@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'maven-publish'
     id("xyz.jpenilla.run-paper") version "2.3.1"
 }
 
@@ -63,3 +64,15 @@ task copyJarToServer(type: Copy) {
 
 // buildタスク実行時に自動でコピー
 build.finalizedBy copyJarToServer
+
+// Mavenローカルリポジトリに公開するための設定
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            groupId = 'myplg'
+            artifactId = 'myplg'
+            version = '1.0'
+        }
+    }
+}

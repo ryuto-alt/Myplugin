@@ -47,6 +47,10 @@ commands:
     description: 全プレイヤーをゲームワールドに移動します（OP専用）
     usage: /gameworld
     permission: pvpgame.admin
+  gamereload:
+    description: ゲーム状態を手動でリセットします（自動リセットの保険）
+    usage: /gamereload
+    permission: pvpgame.admin
 permissions:
   pvpgame.admin:
     description: PvPGameの管理コマンドを使用する権限

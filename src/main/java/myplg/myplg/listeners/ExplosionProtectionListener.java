@@ -11,6 +11,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.util.Vector;
 
 public class ExplosionProtectionListener implements Listener {
     private final PvPGame plugin;
@@ -51,7 +52,7 @@ public class ExplosionProtectionListener implements Listener {
 
     /**
      * Reduce TNT damage to players to maximum 3 hearts (6.0 damage)
-     * while keeping the explosion effect for blocks
+     * while increasing knockback effect significantly
      */
     @EventHandler(priority = EventPriority.HIGH)
     public void onTNTDamage(EntityDamageByEntityEvent event) {
@@ -61,6 +62,8 @@ public class ExplosionProtectionListener implements Listener {
 
         // Check if damage is from TNT explosion
         if (event.getDamager().getType() == EntityType.TNT && event.getEntity() instanceof Player) {
+            Player player = (Player) event.getEntity();
+            TNTPrimed tnt = (TNTPrimed) event.getDamager();
             double damage = event.getDamage();
 
             // Cap damage at 6.0 (3 hearts)
@@ -68,6 +71,19 @@ public class ExplosionProtectionListener implements Listener {
                 event.setDamage(6.0);
                 plugin.getLogger().info("TNT damage reduced from " + damage + " to 6.0 for player " + event.getEntity().getName());
             }
+
+            // Apply enhanced knockback
+            Vector knockbackDirection = player.getLocation().toVector().subtract(tnt.getLocation().toVector()).normalize();
+            // Increase knockback multiplier from default (typically ~0.3) to 1.5 for more dramatic effect
+            double knockbackMultiplier = 1.5;
+            Vector knockback = knockbackDirection.multiply(knockbackMultiplier);
+            // Add upward velocity for better air effect
+            knockback.setY(knockback.getY() + 0.5);
+
+            // Schedule the velocity change to apply after damage calculation
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                player.setVelocity(player.getVelocity().add(knockback));
+            });
         }
     }
 }

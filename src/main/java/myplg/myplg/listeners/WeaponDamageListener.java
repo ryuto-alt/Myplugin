@@ -52,18 +52,8 @@ public class WeaponDamageListener implements Listener {
         double newDamage = BASE_DAMAGE * multiplier;
         event.setDamage(newDamage);
 
-        // Reduce knockback for all swords
-        if (event.getEntity() instanceof Player) {
-            Player victim = (Player) event.getEntity();
-
-            // Schedule velocity reduction to run after the default knockback is applied
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                Vector velocity = victim.getVelocity();
-                // Reduce knockback to 30% of original (70% reduction)
-                velocity.multiply(0.3);
-                victim.setVelocity(velocity);
-            }, 1L);
-        }
+        // Sword knockback is same as bare hand (no modification needed)
+        // The default knockback from the damage event is already appropriate
     }
 
     private boolean isSword(Material material) {

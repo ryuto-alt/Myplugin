@@ -38,6 +38,16 @@ public class WorldChangeListener implements Listener {
             if (!plugin.getGameManager().isGameRunning()) {
                 player.setGameMode(GameMode.ADVENTURE);
                 plugin.getLogger().info("Set " + player.getName() + " to Adventure mode in game world");
+
+                // Open game mode selector GUI if player is OP
+                if (player.isOp()) {
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        // Only open if still in game world and game is not running
+                        if (player.getWorld().getName().equalsIgnoreCase("world") && !plugin.getGameManager().isGameRunning()) {
+                            plugin.getGameModeSelector().openGameModeSelector(player);
+                        }
+                    }, 10L); // 0.5 second delay
+                }
             }
 
             // Stop lobby music

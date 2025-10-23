@@ -103,6 +103,27 @@ public class GameSetupManager {
      * カウントダウンを開始
      */
     public void startCountdown() {
+        // Check if all players are assigned to teams
+        List<Player> unassignedPlayers = new ArrayList<>();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!playerTeamSelection.containsKey(player.getUniqueId())) {
+                unassignedPlayers.add(player);
+            }
+        }
+
+        // If there are unassigned players, cancel game start
+        if (!unassignedPlayers.isEmpty()) {
+            Bukkit.broadcastMessage("§c§l[エラー] ゲームを開始できません！");
+            Bukkit.broadcastMessage("§c以下のプレイヤーがチームに所属していません:");
+            for (Player player : unassignedPlayers) {
+                Bukkit.broadcastMessage("§c  - " + player.getName());
+            }
+            Bukkit.broadcastMessage("§e全てのプレイヤーがチームを選択してください。");
+
+            plugin.getLogger().warning("Game start cancelled: " + unassignedPlayers.size() + " players not assigned to teams");
+            return; // Cancel game start
+        }
+
         // すべてのプレイヤーのインベントリを閉じる
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.closeInventory();
@@ -165,6 +186,9 @@ public class GameSetupManager {
         // Initialize scoreboard
         plugin.getScoreboardManager().initializeAllBeds();
 
+        // Start scoreboard update task
+        plugin.getScoreboardManager().startUpdateTask();
+
         // Handle teams with 0 members: remove bed and mark as eliminated
         for (Team team : plugin.getGameManager().getTeams().values()) {
             if (team.getMembers().isEmpty()) {
@@ -193,6 +217,12 @@ public class GameSetupManager {
         // Start nametag visibility task (20m distance limit)
         plugin.getNametagVisibilityListener().startVisibilityTask();
 
+        // Start bed destruction timer (35 minutes)
+        plugin.getBedDestructionTimer().startTimer();
+
+        // Start alarm trap detection task
+        plugin.getAlarmTrapManager().startAlarmTask();
+
         // Preload all team spawn chunks before teleporting
         preloadTeamSpawnChunks();
 
@@ -206,6 +236,9 @@ public class GameSetupManager {
 
         // Teleport players to their team spawns and give initial equipment
         teleportAndEquipPlayers();
+
+        // Apply team colors to player names
+        plugin.getTeamColorManager().applyTeamColors();
 
         // Show start title
         showStartTitle();

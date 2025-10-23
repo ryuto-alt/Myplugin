@@ -66,6 +66,18 @@ public class EndCommand implements CommandExecutor {
         // Stop nametag visibility task
         plugin.getNametagVisibilityListener().stopVisibilityTask();
 
+        // Stop scoreboard update task
+        plugin.getScoreboardManager().stopUpdateTask();
+
+        // Stop bed destruction timer
+        plugin.getBedDestructionTimer().stopTimer();
+
+        // Stop alarm trap task
+        plugin.getAlarmTrapManager().stopAlarmTask();
+
+        // Remove team colors from player names
+        plugin.getTeamColorManager().removeTeamColors();
+
         // Clear player-placed blocks tracking
         BlockPlaceListener.clearPlayerPlacedBlocks();
 
@@ -124,14 +136,24 @@ public class EndCommand implements CommandExecutor {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     plugin.resetGameState();
 
-                    // Wait for initialization to complete, then notify OPs
+                    // Wait for initialization to complete, then reload plugin
                     Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         for (Player player : Bukkit.getOnlinePlayers()) {
                             if (player.isOp()) {
-                                player.sendMessage(Component.text("[ゲームの準備ができました]", NamedTextColor.GOLD));
-                                player.sendMessage(Component.text("§7/start でゲームを開始できます", NamedTextColor.GRAY));
+                                player.sendMessage(Component.text("[プラグインを再読み込みしています...]", NamedTextColor.YELLOW));
                             }
                         }
+
+                        // Game state is already reset, notify OPs
+                        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                            for (Player player : Bukkit.getOnlinePlayers()) {
+                                if (player.isOp()) {
+                                    player.sendMessage(Component.text("[ゲームの準備ができました]", NamedTextColor.GOLD));
+                                    player.sendMessage(Component.text("§7/start でゲームを開始できます", NamedTextColor.GRAY));
+                                }
+                            }
+                            plugin.getLogger().info("§a[初期化完了] ゲームの準備ができました");
+                        }, 20L); // 1 second delay
                     }, 40L); // 2 seconds for initialization
                 }, 20L); // 1 second delay before reset
             } else {

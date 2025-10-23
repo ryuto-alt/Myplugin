@@ -1,6 +1,7 @@
 package myplg.myplg.listeners;
 
 import myplg.myplg.PvPGame;
+import myplg.myplg.Team;
 import myplg.myplg.listeners.BlockPlaceListener;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
@@ -94,6 +95,11 @@ public class PlayerDeathListener implements Listener {
         plugin.getLogger().info("=== Death Handler Started for " + player.getName() + " ===");
         plugin.getLogger().info("Team: " + teamName);
 
+        // Clear invisibility armor storage on death
+        if (plugin.getInvisibilityArmorListener() != null) {
+            plugin.getInvisibilityArmorListener().clearStoredArmor(player);
+        }
+
         // Save all armor BEFORE clearing inventory (leather, iron, diamond, netherite)
         ItemStack[] armor = player.getInventory().getArmorContents();
         ItemStack[] savedArmorArray = new ItemStack[4];
@@ -118,6 +124,16 @@ public class PlayerDeathListener implements Listener {
 
             // Set health to max to prevent issues
             player.setHealth(player.getMaxHealth());
+
+            // Teleport to a random alive teammate for spectating
+            teleportToTeammate(player, teamName);
+
+            // Send instructions for spectating
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (player.isOnline() && player.getGameMode() == GameMode.SPECTATOR) {
+                    player.sendMessage("§e§l[観戦モード] §7左クリックでチームメイトを切り替えられます");
+                }
+            }, 40L); // 2 seconds after death
 
             // Update scoreboard to reflect player elimination
             plugin.getScoreboardManager().updateAllScoreboards();
@@ -571,5 +587,39 @@ public class PlayerDeathListener implements Listener {
      */
     public void clearProcessingDeaths() {
         processingDeath.clear();
+    }
+
+    /**
+     * Check if a player is eliminated (can't respawn)
+     */
+    public boolean isPlayerEliminated(UUID playerUUID) {
+        return eliminatedPlayers.contains(playerUUID);
+    }
+
+    /**
+     * Teleport spectator to a random alive teammate
+     */
+    private void teleportToTeammate(Player spectator, String teamName) {
+        Team team = plugin.getGameManager().getTeam(teamName);
+        if (team == null) return;
+
+        // Find all alive teammates
+        List<Player> aliveTeammates = new ArrayList<>();
+        for (UUID memberUUID : team.getMembers()) {
+            if (memberUUID.equals(spectator.getUniqueId())) continue; // Skip self
+
+            Player teammate = Bukkit.getPlayer(memberUUID);
+            if (teammate != null && teammate.isOnline() && !eliminatedPlayers.contains(memberUUID)) {
+                aliveTeammates.add(teammate);
+            }
+        }
+
+        // Teleport to random alive teammate
+        if (!aliveTeammates.isEmpty()) {
+            Player target = aliveTeammates.get(new java.util.Random().nextInt(aliveTeammates.size()));
+            spectator.teleport(target.getLocation());
+            spectator.sendMessage("§e" + target.getName() + " §7を観戦しています");
+            plugin.getLogger().info("Spectator " + spectator.getName() + " now watching " + target.getName());
+        }
     }
 }

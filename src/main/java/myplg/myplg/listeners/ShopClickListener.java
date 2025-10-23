@@ -107,6 +107,13 @@ public class ShopClickListener implements Listener {
             handleToolsShopClick(player, clickedItem);
             return;
         }
+
+        // Trap shop
+        if (title.equals("§d§lトラップ")) {
+            event.setCancelled(true);
+            handleTrapShopClick(player, clickedItem);
+            return;
+        }
     }
 
     private void handleMainShopClick(Player player, ItemStack clickedItem) {
@@ -132,6 +139,12 @@ public class ShopClickListener implements Listener {
             // Category button: Armor Enhancement (装備強化) - Shop 2
             if (type == Material.IRON_CHESTPLATE && displayName.contains("装備強化")) {
                 handleArmorUpgradeClick(player);
+                return;
+            }
+
+            // Category button: Traps (トラップ) - Shop 2
+            if (type == Material.BELL && displayName.contains("トラップ")) {
+                plugin.getShopTwoGUI().openTrapShop(player);
                 return;
             }
 
@@ -716,9 +729,39 @@ public class ShopClickListener implements Listener {
         // Remove currency
         removeItems(player, currency, cost);
 
+        // Create armor items
+        ItemStack leggingsItem = new ItemStack(leggings);
+        ItemStack bootsItem = new ItemStack(boots);
+
+        // Apply team armor enchantments and make items unbreakable
+        String teamName = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
+        if (teamName != null) {
+            int armorLevel = plugin.getArmorUpgradeManager().getArmorLevel(teamName);
+
+            // Apply Protection enchantment and make unbreakable for leggings
+            org.bukkit.inventory.meta.ItemMeta leggingsMeta = leggingsItem.getItemMeta();
+            if (leggingsMeta != null) {
+                leggingsMeta.setUnbreakable(true);
+                leggingsItem.setItemMeta(leggingsMeta);
+            }
+            if (armorLevel > 0) {
+                leggingsItem.addUnsafeEnchantment(org.bukkit.enchantments.Enchantment.PROTECTION, armorLevel);
+            }
+
+            // Apply Protection enchantment and make unbreakable for boots
+            org.bukkit.inventory.meta.ItemMeta bootsMeta = bootsItem.getItemMeta();
+            if (bootsMeta != null) {
+                bootsMeta.setUnbreakable(true);
+                bootsItem.setItemMeta(bootsMeta);
+            }
+            if (armorLevel > 0) {
+                bootsItem.addUnsafeEnchantment(org.bukkit.enchantments.Enchantment.PROTECTION, armorLevel);
+            }
+        }
+
         // Auto-equip armor
-        player.getInventory().setLeggings(new ItemStack(leggings));
-        player.getInventory().setBoots(new ItemStack(boots));
+        player.getInventory().setLeggings(leggingsItem);
+        player.getInventory().setBoots(bootsItem);
 
         // Update cooldown
         purchaseCooldown.put(player.getUniqueId(), currentTime);
@@ -1257,5 +1300,104 @@ public class ShopClickListener implements Listener {
         translations.put("red stained glass", "赤のガラス");
 
         return translations.getOrDefault(name, name);
+    }
+
+    /**
+     * Handle trap shop clicks
+     */
+    private void handleTrapShopClick(Player player, ItemStack clickedItem) {
+        if (clickedItem == null || clickedItem.getType() == Material.AIR) {
+            return;
+        }
+
+        Material type = clickedItem.getType();
+        String displayName = clickedItem.hasItemMeta() && clickedItem.getItemMeta().hasDisplayName()
+                ? clickedItem.getItemMeta().getDisplayName()
+                : "";
+
+        // Back button
+        if (type == Material.ARROW && displayName.contains("戻る")) {
+            plugin.getShopTwoGUI().openMainShop(player);
+            return;
+        }
+
+        // Glass pane - do nothing
+        if (type == Material.LIGHT_GRAY_STAINED_GLASS_PANE) {
+            return;
+        }
+
+        // Alarm Level 1
+        if (type == Material.REDSTONE_LAMP && displayName.contains("アラーム - Lv 1")) {
+            purchaseAlarmTrap(player, 1, 1); // Level 1, cost 1 diamond
+            return;
+        }
+
+        // Alarm Level 2
+        if (type == Material.REDSTONE_LAMP && displayName.contains("アラーム - Lv 2")) {
+            purchaseAlarmTrap(player, 2, 2); // Level 2, cost 2 diamonds
+            return;
+        }
+    }
+
+    /**
+     * Purchase alarm trap
+     */
+    private void purchaseAlarmTrap(Player player, int level, int cost) {
+        String teamName = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
+
+        if (teamName == null) {
+            player.sendMessage("§cエラー: チームが見つかりません。");
+            return;
+        }
+
+        int currentLevel = plugin.getAlarmTrapManager().getAlarmLevel(teamName);
+
+        // Check if already purchased
+        if (currentLevel >= level) {
+            player.sendMessage("§c既にこのアラームは購入済みです！");
+            player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
+            return;
+        }
+
+        // Check if level 1 is required for level 2
+        if (level == 2 && currentLevel < 1) {
+            player.sendMessage("§cアラーム Lv 1を先に購入してください！");
+            player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
+            return;
+        }
+
+        // Check if player has enough diamonds
+        if (!hasEnoughItems(player, Material.DIAMOND, cost)) {
+            player.sendMessage("§cダイヤモンドが足りません！ (必要: " + cost + "個)");
+            player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
+            return;
+        }
+
+        // Remove diamonds
+        removeItems(player, Material.DIAMOND, cost);
+
+        // Upgrade alarm
+        boolean success = plugin.getAlarmTrapManager().upgradeAlarm(teamName, level);
+
+        if (success) {
+            // Notify team
+            myplg.myplg.Team team = plugin.getGameManager().getTeam(teamName);
+            if (team != null) {
+                for (java.util.UUID memberUUID : team.getMembers()) {
+                    org.bukkit.entity.Player member = org.bukkit.Bukkit.getPlayer(memberUUID);
+                    if (member != null && member.isOnline()) {
+                        member.sendMessage("§a§l[アップグレード] §eアラーム Lv " + level + " §aを購入しました！");
+                        member.playSound(member.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+                    }
+                }
+            }
+
+            // Reopen trap shop to show updated status
+            plugin.getShopTwoGUI().openTrapShop(player);
+        } else {
+            player.sendMessage("§cアラームの購入に失敗しました。");
+            // Refund
+            player.getInventory().addItem(new org.bukkit.inventory.ItemStack(Material.DIAMOND, cost));
+        }
     }
 }

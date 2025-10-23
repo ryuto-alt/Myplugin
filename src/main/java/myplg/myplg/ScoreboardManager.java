@@ -14,17 +14,37 @@ public class ScoreboardManager {
     private final Map<String, Boolean> teamEliminated; // Team name -> Eliminated status
     private int rainbowIndex = 0; // For rainbow animation
     private final String[] RAINBOW_COLORS = {"§c", "§6", "§e", "§a", "§b", "§9", "§d"}; // Red, Gold, Yellow, Green, Aqua, Blue, Pink
+    private Integer updateTaskId = null; // Track the update task ID
+    private int countdownSeconds = -1; // Countdown timer (-1 = disabled)
 
     public ScoreboardManager(PvPGame plugin) {
         this.plugin = plugin;
         this.bedStatus = new HashMap<>();
         this.teamEliminated = new HashMap<>();
+    }
+
+    /**
+     * Start the scoreboard update task (called when game starts)
+     */
+    public void startUpdateTask() {
+        // Cancel existing task if any
+        stopUpdateTask();
 
         // Start rainbow animation task (updates every 10 ticks = 0.5 seconds)
-        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+        updateTaskId = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             rainbowIndex = (rainbowIndex + 1) % RAINBOW_COLORS.length;
             updateAllScoreboards();
-        }, 0L, 10L);
+        }, 0L, 10L).getTaskId();
+    }
+
+    /**
+     * Stop the scoreboard update task (called when game ends or plugin disables)
+     */
+    public void stopUpdateTask() {
+        if (updateTaskId != null) {
+            Bukkit.getScheduler().cancelTask(updateTaskId);
+            updateTaskId = null;
+        }
     }
 
     /**
@@ -78,12 +98,16 @@ public class ScoreboardManager {
 
             String prefix = getTeamPrefix(teamName);
 
-            // Count alive players in team
+            // Count alive players in team (exclude eliminated players)
             int aliveCount = 0;
             for (UUID memberUUID : team.getMembers()) {
                 Player member = Bukkit.getPlayer(memberUUID);
                 if (member != null && member.isOnline()) {
-                    aliveCount++;
+                    // Check if player is eliminated
+                    if (plugin.getPlayerDeathListener() != null &&
+                        !plugin.getPlayerDeathListener().isPlayerEliminated(memberUUID)) {
+                        aliveCount++;
+                    }
                 }
             }
 
@@ -110,6 +134,16 @@ public class ScoreboardManager {
 
             String line = prefix + " " + teamDisplay + " " + status;
             objective.getScore(line).setScore(score--);
+        }
+
+        // Countdown timer (if active)
+        if (countdownSeconds >= 0) {
+            objective.getScore("    ").setScore(score--);
+            int minutes = countdownSeconds / 60;
+            int seconds = countdownSeconds % 60;
+            String countdownColor = countdownSeconds <= 60 ? "§4§l" : (countdownSeconds <= 180 ? "§c§l" : "§e§l");
+            objective.getScore(countdownColor + "ベッド破壊まで:").setScore(score--);
+            objective.getScore(countdownColor + String.format("%d:%02d", minutes, seconds)).setScore(score--);
         }
 
         // Bottom spacing
@@ -177,6 +211,14 @@ public class ScoreboardManager {
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
         }
+    }
+
+    /**
+     * Set countdown timer (seconds remaining until bed destruction)
+     * Set to -1 to disable countdown
+     */
+    public void setCountdown(int seconds) {
+        this.countdownSeconds = seconds;
     }
 
     /**

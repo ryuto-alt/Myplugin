@@ -57,12 +57,17 @@ public final class PvPGame extends JavaPlugin {
     private GameModeSelector gameModeSelector;
     private TeamSelectorGUI teamSelectorGUI;
     private CustomTeamSetupGUI customTeamSetupGUI;
+    private myplg.myplg.gui.ShopTwoGUI shopTwoGUI;
     private SetBedCommand setBedCommand;
     private BedClickListener bedClickListener;
     private GUIClickListener guiClickListener;
     private PlayerDeathListener playerDeathListener;
     private myplg.myplg.listeners.HealthRegenListener healthRegenListener;
     private myplg.myplg.listeners.NametagVisibilityListener nametagVisibilityListener;
+    private myplg.myplg.listeners.InvisibilityArmorListener invisibilityArmorListener;
+    private BedDestructionTimer bedDestructionTimer;
+    private TeamColorManager teamColorManager;
+    private AlarmTrapManager alarmTrapManager;
     private boolean teamsLoaded = false;
 
     @Override
@@ -90,6 +95,10 @@ public final class PvPGame extends JavaPlugin {
         gameModeSelector = new GameModeSelector(this);
         teamSelectorGUI = new TeamSelectorGUI(this);
         customTeamSetupGUI = new CustomTeamSetupGUI(this);
+        shopTwoGUI = new myplg.myplg.gui.ShopTwoGUI(this);
+        bedDestructionTimer = new BedDestructionTimer(this);
+        teamColorManager = new TeamColorManager(this);
+        alarmTrapManager = new AlarmTrapManager(this);
 
         // Load teams and generators from file after a delay to ensure worlds are loaded
         Bukkit.getScheduler().runTaskLater(this, () -> {
@@ -124,6 +133,7 @@ public final class PvPGame extends JavaPlugin {
         getCommand("shop2").setExecutor(new Shop2Command(this));
         getCommand("sreset").setExecutor(new ShopResetCommand(this));
         getCommand("gameworld").setExecutor(new GameWorldCommand(this));
+        getCommand("gamereload").setExecutor(new myplg.myplg.commands.GameReloadCommand(this));
 
         // Register listeners
         getServer().getPluginManager().registerEvents(bedClickListener, this);
@@ -184,8 +194,15 @@ public final class PvPGame extends JavaPlugin {
         nametagVisibilityListener = new myplg.myplg.listeners.NametagVisibilityListener(this);
         getServer().getPluginManager().registerEvents(nametagVisibilityListener, this);
 
+        // Initialize and register InvisibilityArmorListener
+        invisibilityArmorListener = new myplg.myplg.listeners.InvisibilityArmorListener(this);
+        getServer().getPluginManager().registerEvents(invisibilityArmorListener, this);
+
         // Register BridgeBuilderListener
         getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.BridgeBuilderListener(this), this);
+
+        // Register TeamPvPListener (prevent friendly fire)
+        getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.TeamPvPListener(this), this);
 
         // Start time control
         TimeControlListener timeControl = new TimeControlListener(this);
@@ -211,6 +228,21 @@ public final class PvPGame extends JavaPlugin {
         // Stop all generators
         if (generatorManager != null) {
             generatorManager.stopAllGenerators();
+        }
+
+        // Stop scoreboard update task
+        if (scoreboardManager != null) {
+            scoreboardManager.stopUpdateTask();
+        }
+
+        // Stop bed destruction timer
+        if (bedDestructionTimer != null) {
+            bedDestructionTimer.stopTimer();
+        }
+
+        // Clear invisibility armor storage
+        if (invisibilityArmorListener != null) {
+            invisibilityArmorListener.clearAllStoredArmor();
         }
 
         // Cleanup music
@@ -248,6 +280,17 @@ public final class PvPGame extends JavaPlugin {
             playerDeathListener.reset();
         }
 
+        // Stop scoreboard update task before reinitializing
+        if (scoreboardManager != null) {
+            scoreboardManager.stopUpdateTask();
+        }
+
+        // Stop alarm trap task
+        if (alarmTrapManager != null) {
+            alarmTrapManager.stopAlarmTask();
+            alarmTrapManager.reset();
+        }
+
         // Reinitialize all managers (fresh state)
         getLogger().info("マネージャーを再初期化中...");
         gameManager = new GameManager(this);
@@ -258,6 +301,7 @@ public final class PvPGame extends JavaPlugin {
         armorUpgradeManager = new ArmorUpgradeManager(this);
         scoreboardManager = new ScoreboardManager(this);
         gameSetupManager = new GameSetupManager(this);
+        alarmTrapManager = new AlarmTrapManager(this);
 
         // Reload game world
         getLogger().info("ゲームワールドを再読み込み中...");
@@ -345,6 +389,10 @@ public final class PvPGame extends JavaPlugin {
         return nametagVisibilityListener;
     }
 
+    public myplg.myplg.listeners.InvisibilityArmorListener getInvisibilityArmorListener() {
+        return invisibilityArmorListener;
+    }
+
     public MusicManager getMusicManager() {
         return musicManager;
     }
@@ -363,6 +411,22 @@ public final class PvPGame extends JavaPlugin {
 
     public CustomTeamSetupGUI getCustomTeamSetupGUI() {
         return customTeamSetupGUI;
+    }
+
+    public BedDestructionTimer getBedDestructionTimer() {
+        return bedDestructionTimer;
+    }
+
+    public TeamColorManager getTeamColorManager() {
+        return teamColorManager;
+    }
+
+    public AlarmTrapManager getAlarmTrapManager() {
+        return alarmTrapManager;
+    }
+
+    public myplg.myplg.gui.ShopTwoGUI getShopTwoGUI() {
+        return shopTwoGUI;
     }
 
     private void loadLobbyWorld() {
