@@ -69,7 +69,7 @@ public class FireballListener implements Listener {
             // Set fireball properties
             fireball.setShooter(player);
             fireball.setVelocity(direction.multiply(0.24)); // 0.16 * 1.5 = 0.24 (1.5x faster deflection)
-            fireball.setYield(1.5f); // Reduced explosion power
+            fireball.setYield(1.62f); // 1.5 * 1.08 = 1.62 (8% larger explosion radius)
             fireball.setIsIncendiary(false); // Don't set blocks on fire
 
             // Update cooldown
@@ -84,26 +84,42 @@ public class FireballListener implements Listener {
     public void onFireballDamage(EntityDamageByEntityEvent event) {
         // Check if damage is from a fireball
         if (event.getDamager() instanceof Fireball && event.getEntity() instanceof Player) {
-            // Set damage to 3.0 (1.5 hearts)
-            event.setDamage(3.0);
-
-            // Apply strong knockback to the player
             Player player = (Player) event.getEntity();
             Fireball fireball = (Fireball) event.getDamager();
+
+            // Check if player hit themselves
+            boolean isSelfDamage = false;
+            if (fireball.getShooter() instanceof Player) {
+                Player shooter = (Player) fireball.getShooter();
+                if (shooter.getUniqueId().equals(player.getUniqueId())) {
+                    isSelfDamage = true;
+                }
+            }
+
+            // Set damage based on whether it's self-damage
+            if (isSelfDamage) {
+                // Self-damage: 8.0 damage (4 hearts)
+                event.setDamage(8.0);
+            } else {
+                // Enemy damage: 3.0 damage (1.5 hearts)
+                event.setDamage(3.0);
+            }
 
             // Calculate knockback direction (away from fireball)
             Vector knockbackDirection = player.getLocation().toVector()
                 .subtract(fireball.getLocation().toVector())
                 .normalize();
 
-            // Apply strong upward and horizontal knockback
-            knockbackDirection.setY(0.6); // Strong upward component
-            knockbackDirection.multiply(2.5); // Strong horizontal push
+            // Apply knockback (reduced by 30% total: 2.5 -> 2.25 -> 2.025 -> 1.8225)
+            knockbackDirection.setY(0.4374); // 0.6 * 0.9 * 0.9 * 0.9 = 0.4374 (30% weaker upward)
+            knockbackDirection.multiply(1.8225); // 2.5 * 0.9 * 0.9 * 0.9 = 1.8225 (30% weaker horizontal)
 
             player.setVelocity(knockbackDirection);
 
-            // Mark player as recently hit by fireball for fall damage reduction
-            fireballKnockbackTime.put(player.getUniqueId(), System.currentTimeMillis());
+            // Only grant fall damage immunity for self-damage
+            if (isSelfDamage) {
+                fireballKnockbackTime.put(player.getUniqueId(), System.currentTimeMillis());
+            }
         }
     }
 

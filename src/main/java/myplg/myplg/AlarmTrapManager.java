@@ -17,15 +17,14 @@ import java.util.*;
 public class AlarmTrapManager {
     private final PvPGame plugin;
     private final Map<String, Integer> teamAlarmLevel; // Team name -> Alarm level (0, 1, 2)
-    private final Map<String, Set<UUID>> recentlyTriggered; // Team name -> Recently triggered players (cooldown)
+    private final Map<String, Boolean> teamAlarmTriggered; // Team name -> Already triggered (single use)
     private final int ALARM_RADIUS = 20; // 20 blocks
-    private final int COOLDOWN_SECONDS = 5; // 5 second cooldown per player
     private Integer taskId = null;
 
     public AlarmTrapManager(PvPGame plugin) {
         this.plugin = plugin;
         this.teamAlarmLevel = new HashMap<>();
-        this.recentlyTriggered = new HashMap<>();
+        this.teamAlarmTriggered = new HashMap<>();
     }
 
     /**
@@ -71,6 +70,7 @@ public class AlarmTrapManager {
         }
 
         teamAlarmLevel.put(teamName, newLevel);
+        teamAlarmTriggered.put(teamName, false); // Reset triggered status when purchasing
         plugin.getLogger().info("Team " + teamName + " upgraded alarm to level " + newLevel);
         return true;
     }
@@ -87,7 +87,7 @@ public class AlarmTrapManager {
      */
     public void reset() {
         teamAlarmLevel.clear();
-        recentlyTriggered.clear();
+        teamAlarmTriggered.clear();
     }
 
     /**
@@ -100,6 +100,11 @@ public class AlarmTrapManager {
 
             if (alarmLevel == 0) {
                 continue; // No alarm trap
+            }
+
+            // Check if already triggered (single use)
+            if (teamAlarmTriggered.getOrDefault(teamName, false)) {
+                continue; // Already triggered, can't trigger again
             }
 
             // Check if bed still exists
@@ -128,6 +133,7 @@ public class AlarmTrapManager {
                 if (distance <= ALARM_RADIUS) {
                     // Enemy detected! Trigger alarm
                     triggerAlarm(teamName, player, alarmLevel);
+                    break; // Only trigger once
                 }
             }
         }
@@ -137,17 +143,8 @@ public class AlarmTrapManager {
      * Trigger alarm for a team
      */
     private void triggerAlarm(String teamName, Player enemy, int alarmLevel) {
-        // Check cooldown
-        Set<UUID> triggered = recentlyTriggered.computeIfAbsent(teamName, k -> new HashSet<>());
-        if (triggered.contains(enemy.getUniqueId())) {
-            return; // Still in cooldown
-        }
-
-        // Add to cooldown
-        triggered.add(enemy.getUniqueId());
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            triggered.remove(enemy.getUniqueId());
-        }, COOLDOWN_SECONDS * 20L);
+        // Mark as triggered (single use)
+        teamAlarmTriggered.put(teamName, true);
 
         // Get team
         Team team = plugin.getGameManager().getTeam(teamName);
@@ -173,15 +170,15 @@ public class AlarmTrapManager {
 
         // Apply effects to enemy based on alarm level
         if (alarmLevel >= 2) {
-            // Level 2: Apply debuffs for 3 seconds
-            enemy.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 60, 0)); // 3 seconds
-            enemy.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 60, 1)); // 3 seconds, level 2
-            enemy.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 0)); // 3 seconds
+            // Level 2: Apply debuffs for 5 seconds
+            enemy.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 100, 0)); // 5 seconds
+            enemy.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 100, 1)); // 5 seconds, level 2
+            enemy.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 100, 0)); // 5 seconds
 
             enemy.sendMessage("§c§lアラームが発動しました！");
             enemy.playSound(enemy.getLocation(), Sound.ENTITY_ELDER_GUARDIAN_CURSE, 1.0f, 1.0f);
         }
 
-        plugin.getLogger().info("Alarm triggered for team " + teamName + " by player " + enemy.getName() + " (Level " + alarmLevel + ")");
+        plugin.getLogger().info("Alarm triggered for team " + teamName + " by player " + enemy.getName() + " (Level " + alarmLevel + ") - Trap consumed");
     }
 }

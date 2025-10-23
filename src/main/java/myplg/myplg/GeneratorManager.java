@@ -99,22 +99,9 @@ public class GeneratorManager {
         // Check if team members with territory upgrade are nearby
         boolean hasNearbyUpgradedTeamMember = checkNearbyUpgradedTeamMembers(generator);
 
-        // Add bonus credits if team members are nearby (30% faster = 0.3 extra spawns per tick)
-        String genId = generator.getId();
-        if (hasNearbyUpgradedTeamMember) {
-            double currentCredits = generatorBonusCredits.getOrDefault(genId, 0.0);
-            generatorBonusCredits.put(genId, currentCredits + 0.3);
-        }
+        // If upgrade is active, spawn 2 items instead of 1 (100% faster)
+        int totalSpawns = hasNearbyUpgradedTeamMember ? 2 : 1;
 
-        // Check if we have enough credits for a bonus spawn
-        double credits = generatorBonusCredits.getOrDefault(genId, 0.0);
-        int bonusSpawns = (int) credits; // Number of bonus items to spawn
-        if (bonusSpawns > 0) {
-            generatorBonusCredits.put(genId, credits - bonusSpawns); // Deduct used credits
-        }
-
-        // Spawn regular item + any bonus items
-        int totalSpawns = 1 + bonusSpawns;
         for (int i = 0; i < totalSpawns; i++) {
             spawnSingleItem(generator);
         }
@@ -223,7 +210,7 @@ public class GeneratorManager {
     }
 
     /**
-     * Updates all generators for a specific team to run 1.3x faster
+     * Updates all generators for a specific team to run 2x faster (100% boost)
      * ONLY when team members are nearby (within 10 blocks)
      * @param teamName The team name to upgrade generators for
      */
@@ -232,7 +219,7 @@ public class GeneratorManager {
         // The actual speed upgrade is now applied dynamically in spawnItem()
         // based on nearby players, so we don't permanently change generator speeds here
         plugin.getLogger().info("Territory upgrade purchased for team: " + teamName);
-        plugin.getLogger().info("Generators will now run 1.3x faster when " + teamName + " members are nearby");
+        plugin.getLogger().info("Generators will now run 2x faster (spawn 2 items) when " + teamName + " members are nearby");
     }
 
     public void reset() {
