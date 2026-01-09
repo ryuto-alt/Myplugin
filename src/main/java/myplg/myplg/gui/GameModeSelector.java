@@ -1,5 +1,6 @@
 package myplg.myplg.gui;
 
+import myplg.myplg.PermissionUtil;
 import myplg.myplg.PvPGame;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -22,8 +23,15 @@ public class GameModeSelector {
 
     /**
      * ゲームモード選択GUIを開く
+     * OP レベル4のプレイヤーのみ開ける
      */
     public void openGameModeSelector(Player player) {
+        // OP レベル4チェック
+        if (!PermissionUtil.isOpLevel4(player)) {
+            player.sendMessage("§cゲームモード選択はOP レベル4の権限が必要です。");
+            return;
+        }
+
         Inventory inv = Bukkit.createInventory(null, 27, "§6§lゲームモード選択");
 
         // ソロモード (1v1v1v1...)

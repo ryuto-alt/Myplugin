@@ -52,5 +52,14 @@
         "stream": true
       }
     ]
+  },
+  "gamesound.warn": {
+    "category": "master",
+    "sounds": [
+      {
+        "name": "gamesound/warn",
+        "stream": false
+      }
+    ]
   }
 }

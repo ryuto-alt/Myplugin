@@ -33,10 +33,8 @@ public class BedDestructionTimer {
         taskId = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             remainingSeconds--;
 
-            // Update scoreboard every second during countdown
-            if (remainingSeconds <= COUNTDOWN_START) {
-                plugin.getScoreboardManager().setCountdown(remainingSeconds);
-            }
+            // Update scoreboard every second (always show timer)
+            plugin.getScoreboardManager().setCountdown(remainingSeconds);
 
             // Announce at specific intervals
             if (remainingSeconds == 30 * 60) { // 30 minutes

@@ -13,6 +13,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
@@ -29,6 +30,7 @@ public class PlayerDeathListener implements Listener {
     private final Map<UUID, ItemStack> savedAxe; // Saved axe for respawn
     private final Map<UUID, ItemStack> savedPickaxe; // Saved pickaxe for respawn
     private final Set<UUID> processingDeath; // Prevent duplicate death processing
+    private final Map<UUID, UUID> lastAttacker; // Track last player who damaged each player
 
     public PlayerDeathListener(PvPGame plugin) {
         this.plugin = plugin;
@@ -37,6 +39,7 @@ public class PlayerDeathListener implements Listener {
         this.savedAxe = new HashMap<>();
         this.savedPickaxe = new HashMap<>();
         this.processingDeath = new HashSet<>();
+        this.lastAttacker = new HashMap<>();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -88,6 +91,53 @@ public class PlayerDeathListener implements Listener {
         }
     }
 
+
+    /**
+     * Track the last player who attacked each player (for resource stealing)
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof Player)) {
+            return;
+        }
+
+        if (!plugin.getGameManager().isGameRunning()) {
+            return;
+        }
+
+        Player victim = (Player) event.getEntity();
+        Player attacker = null;
+
+        // Direct player attack
+        if (event.getDamager() instanceof Player) {
+            attacker = (Player) event.getDamager();
+        }
+        // Projectile attack (arrow, fireball, etc.)
+        else if (event.getDamager() instanceof org.bukkit.entity.Projectile) {
+            org.bukkit.entity.Projectile projectile = (org.bukkit.entity.Projectile) event.getDamager();
+            if (projectile.getShooter() instanceof Player) {
+                attacker = (Player) projectile.getShooter();
+            }
+        }
+        // TNT explosion - check for source player
+        else if (event.getDamager() instanceof org.bukkit.entity.TNTPrimed) {
+            org.bukkit.entity.TNTPrimed tnt = (org.bukkit.entity.TNTPrimed) event.getDamager();
+            if (tnt.getSource() instanceof Player) {
+                attacker = (Player) tnt.getSource();
+            }
+        }
+
+        if (attacker != null && !attacker.equals(victim)) {
+            // Don't track same team attacks
+            String victimTeam = plugin.getGameManager().getPlayerTeam(victim.getUniqueId());
+            String attackerTeam = plugin.getGameManager().getPlayerTeam(attacker.getUniqueId());
+            
+            if (victimTeam != null && attackerTeam != null && !victimTeam.equals(attackerTeam)) {
+                lastAttacker.put(victim.getUniqueId(), attacker.getUniqueId());
+            }
+        }
+    }
+
     private void handleInstantDeath(Player player) {
         UUID playerUUID = player.getUniqueId();
         String teamName = plugin.getGameManager().getPlayerTeam(playerUUID);
@@ -109,6 +159,9 @@ public class PlayerDeathListener implements Listener {
             }
         }
         savedArmor.put(playerUUID, savedArmorArray);
+
+        // Transfer resources to killer (Iron, Gold, Diamond, Emerald)
+        transferResourcesToKiller(player);
 
         // Check if bed is alive
         boolean bedAlive = plugin.getScoreboardManager().isBedAlive(teamName);
@@ -234,6 +287,43 @@ public class PlayerDeathListener implements Listener {
                 processingDeath.remove(playerUUID);
             }
         }, 100L); // 5 seconds
+    }
+
+
+    /**
+     * Transfer resources (Iron, Gold, Diamond, Emerald) from victim to killer
+     */
+    private void transferResourcesToKiller(Player victim) {
+        UUID victimUUID = victim.getUniqueId();
+        UUID killerUUID = lastAttacker.get(victimUUID);
+        
+        // Clear last attacker record
+        lastAttacker.remove(victimUUID);
+        
+        if (killerUUID == null) {
+            return;
+        }
+        
+        Player killer = Bukkit.getPlayer(killerUUID);
+        if (killer == null || !killer.isOnline()) {
+            return;
+        }
+        
+        // Show kill message
+        killer.sendMessage("§a" + victim.getName() + " §fを倒した！");
+        
+        // Transfer resources silently
+        for (ItemStack item : victim.getInventory().getContents()) {
+            if (item == null) continue;
+            
+            Material type = item.getType();
+            int amount = item.getAmount();
+            
+            if (type == Material.IRON_INGOT || type == Material.GOLD_INGOT || 
+                type == Material.DIAMOND || type == Material.EMERALD) {
+                killer.getInventory().addItem(new ItemStack(type, amount));
+            }
+        }
     }
 
     private void restorePlayerEquipment(Player player, UUID playerUUID, String teamName) {
@@ -580,6 +670,7 @@ public class PlayerDeathListener implements Listener {
         savedArmor.clear();
         savedAxe.clear();
         savedPickaxe.clear();
+        lastAttacker.clear();
     }
 
     /**

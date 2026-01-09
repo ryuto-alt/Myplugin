@@ -57,6 +57,9 @@ public class TeamColorManager {
             scoreboardTeam.addEntry(player.getName());
         }
 
+        // Set player list name (TAB list) with team color
+        player.setPlayerListName(color + player.getName());
+
         // Apply to all other players' scoreboards so they see the color
         for (Player otherPlayer : Bukkit.getOnlinePlayers()) {
             if (otherPlayer.equals(player)) continue;
@@ -93,6 +96,9 @@ public class TeamColorManager {
             for (org.bukkit.scoreboard.Team team : scoreboard.getTeams()) {
                 team.unregister();
             }
+
+            // Reset player list name (TAB list) to default
+            player.setPlayerListName(player.getName());
         }
     }
 

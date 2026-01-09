@@ -5,6 +5,7 @@ import myplg.myplg.commands.EndCommand;
 import myplg.myplg.commands.GameWorldCommand;
 import myplg.myplg.commands.GeneCommand;
 import myplg.myplg.commands.GeneReloadCommand;
+import myplg.myplg.commands.LobbyCommand;
 import myplg.myplg.commands.SaveCommand;
 import myplg.myplg.commands.SetBedCommand;
 import myplg.myplg.commands.Shop1Command;
@@ -134,6 +135,8 @@ public final class PvPGame extends JavaPlugin {
         getCommand("sreset").setExecutor(new ShopResetCommand(this));
         getCommand("gameworld").setExecutor(new GameWorldCommand(this));
         getCommand("gamereload").setExecutor(new myplg.myplg.commands.GameReloadCommand(this));
+        getCommand("lobby").setExecutor(new LobbyCommand(this));
+        getCommand("hub").setExecutor(new LobbyCommand(this));
 
         // Register listeners
         getServer().getPluginManager().registerEvents(bedClickListener, this);
@@ -180,6 +183,7 @@ public final class PvPGame extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.CraftingListener(this), this);
         getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.ItemModifierListener(this), this);
         getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.TNTAutoIgniteListener(this), this);
+        getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.PotionConsumeListener(this), this);
 
         // Initialize and register HealthRegenListener
         healthRegenListener = new myplg.myplg.listeners.HealthRegenListener(this);
@@ -200,6 +204,9 @@ public final class PvPGame extends JavaPlugin {
 
         // Register BridgeBuilderListener
         getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.BridgeBuilderListener(this), this);
+
+        // Register OmegaLastListener
+        getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.OmegaLastListener(this), this);
 
         // Register TeamPvPListener (prevent friendly fire)
         getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.TeamPvPListener(this), this);

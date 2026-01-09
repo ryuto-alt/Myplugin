@@ -1,5 +1,6 @@
 package myplg.myplg.commands;
 
+import myplg.myplg.PermissionUtil;
 import myplg.myplg.PvPGame;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -19,17 +20,18 @@ public class StartCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.isOp()) {
-            sender.sendMessage("§cこのコマンドはOP権限が必要です。");
-            return true;
-        }
-
         if (!(sender instanceof Player)) {
             sender.sendMessage("このコマンドはプレイヤーのみ実行できます。");
             return true;
         }
 
         Player player = (Player) sender;
+
+        // OP レベル4チェック
+        if (!PermissionUtil.isOpLevel4(player)) {
+            player.sendMessage("§cこのコマンドはOP レベル4の権限が必要です。");
+            return true;
+        }
 
         if (plugin.getGameManager().isGameRunning()) {
             sender.sendMessage("ゲームは既に進行中です。");

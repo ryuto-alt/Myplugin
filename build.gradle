@@ -62,8 +62,18 @@ task copyJarToServer(type: Copy) {
     }
 }
 
+// ビルド後にjarを追加のサーバーのpluginsフォルダにコピー
+task copyJarToServerPlugin(type: Copy) {
+    dependsOn build
+    from jar.archiveFile
+    into 'C:\\Users\\Unoryuto\\Documents\\server\\plugin'
+    doLast {
+        println "Copied ${jar.archiveFileName.get()} to server plugin folder"
+    }
+}
+
 // buildタスク実行時に自動でコピー
-build.finalizedBy copyJarToServer
+build.finalizedBy copyJarToServer, copyJarToServerPlugin
 
 // Mavenローカルリポジトリに公開するための設定
 publishing {

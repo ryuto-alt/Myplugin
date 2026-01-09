@@ -38,7 +38,7 @@ public class TNTAutoIgniteListener implements Listener {
             // Spawn primed TNT at the block location
             TNTPrimed tnt = block.getWorld().spawn(block.getLocation().add(0.5, 0, 0.5), TNTPrimed.class);
             tnt.setFuseTicks(60); // 3 seconds (60 ticks)
-            tnt.setYield(3.6f); // Default 4.0 * 0.9 = 3.6 (10% weaker explosion)
+            tnt.setYield(4.0f); // Default explosion power
 
             // Remove TNT from player's inventory using scheduler to avoid item duplication
             org.bukkit.entity.Player player = event.getPlayer();

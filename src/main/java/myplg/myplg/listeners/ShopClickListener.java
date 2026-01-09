@@ -87,14 +87,14 @@ public class ShopClickListener implements Listener {
             return;
         }
 
-        // Equipment shop
-        if (title.equals("§c§l装備ショップ")) {
+        // Equipment shop (weapons + armor)
+        if (title.equals("§c§l装備")) {
             event.setCancelled(true);
             handleEquipmentShopClick(player, clickedItem);
             return;
         }
 
-        // Enhancement shop
+        // Enhancement shop (potions + special items)
         if (title.equals("§d§l強化")) {
             event.setCancelled(true);
             handleEnhancementShopClick(player, clickedItem);
@@ -154,14 +154,14 @@ public class ShopClickListener implements Listener {
                 return;
             }
 
-            // Category button: Equipment (装備 but not 装備強化 which uses IRON_CHESTPLATE)
+            // Category button: Equipment (装備 - weapons + armor)
             if (type == Material.IRON_SWORD && displayName.contains("装備") && !displayName.contains("強化")) {
                 shopGUI.openEquipmentShop(player);
                 return;
             }
 
-            // Category button: Enhancement (強化 but not 陣地強化)
-            if (displayName.contains("強化") && amount == 1 && !displayName.contains("陣地")) {
+            // Category button: Enhancement (強化 - potions + special items)
+            if (type == Material.POTION && displayName.contains("強化") && amount == 1) {
                 shopGUI.openEnhancementShop(player);
                 return;
             }
@@ -276,16 +276,6 @@ public class ShopClickListener implements Listener {
         } else if (type == Material.NETHERITE_SWORD) {
             processSwordPurchase(player, Material.EMERALD, 7, type);
         }
-        // Armor (auto-equip leggings and boots)
-        else if (type == Material.CHAINMAIL_BOOTS) {
-            processArmorPurchase(player, Material.IRON_INGOT, 40, Material.CHAINMAIL_LEGGINGS, Material.CHAINMAIL_BOOTS);
-        } else if (type == Material.IRON_BOOTS) {
-            processArmorPurchase(player, Material.GOLD_INGOT, 12, Material.IRON_LEGGINGS, Material.IRON_BOOTS);
-        } else if (type == Material.DIAMOND_BOOTS) {
-            processArmorPurchase(player, Material.EMERALD, 6, Material.DIAMOND_LEGGINGS, Material.DIAMOND_BOOTS);
-        } else if (type == Material.NETHERITE_BOOTS) {
-            processArmorPurchase(player, Material.EMERALD, 24, Material.NETHERITE_LEGGINGS, Material.NETHERITE_BOOTS);
-        }
         // Bows and Arrows
         else if (type == Material.BOW && !hasEnchant) {
             processPurchase(player, Material.GOLD_INGOT, 10, type, 1);
@@ -305,6 +295,16 @@ public class ShopClickListener implements Listener {
         else if (type == Material.STICK && hasEnchant) {
             processEnchantedPurchase(player, Material.GOLD_INGOT, 8, Material.STICK,
                 org.bukkit.enchantments.Enchantment.KNOCKBACK, 2);
+        }
+        // Armor (auto-equip leggings and boots)
+        else if (type == Material.CHAINMAIL_BOOTS) {
+            processArmorPurchase(player, Material.IRON_INGOT, 40, Material.CHAINMAIL_LEGGINGS, Material.CHAINMAIL_BOOTS);
+        } else if (type == Material.IRON_BOOTS) {
+            processArmorPurchase(player, Material.GOLD_INGOT, 12, Material.IRON_LEGGINGS, Material.IRON_BOOTS);
+        } else if (type == Material.DIAMOND_BOOTS) {
+            processArmorPurchase(player, Material.EMERALD, 6, Material.DIAMOND_LEGGINGS, Material.DIAMOND_BOOTS);
+        } else if (type == Material.NETHERITE_BOOTS) {
+            processArmorPurchase(player, Material.EMERALD, 24, Material.NETHERITE_LEGGINGS, Material.NETHERITE_BOOTS);
         }
     }
 
@@ -383,6 +383,10 @@ public class ShopClickListener implements Listener {
                    clickedItem.getItemMeta().hasDisplayName() &&
                    clickedItem.getItemMeta().getDisplayName().contains("アイアンゴーレム")) {
             processGolemPurchase(player);
+        } else if (type == Material.NETHER_STAR && clickedItem.hasItemMeta() &&
+                   clickedItem.getItemMeta().hasDisplayName() &&
+                   clickedItem.getItemMeta().getDisplayName().contains("Ω-LAST")) {
+            processOmegaLastPurchase(player);
         }
         // Tool upgrades - Axes
         else if (type == Material.WOODEN_AXE) {
@@ -499,6 +503,45 @@ public class ShopClickListener implements Listener {
         // Play sound
         player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_IRON_GOLEM_HURT, 1.0f, 1.0f);
         player.sendMessage("§aアイアンゴーレムのスポーンエッグを購入しました！");
+    }
+
+    private void processOmegaLastPurchase(Player player) {
+        // Check cooldown
+        long currentTime = System.currentTimeMillis();
+        Long lastPurchaseTime = purchaseCooldown.get(player.getUniqueId());
+
+        if (lastPurchaseTime != null && (currentTime - lastPurchaseTime) < COOLDOWN_MS) {
+            return;
+        }
+
+        // Check if player has enough currency (gold 28)
+        if (!hasEnoughItems(player, Material.GOLD_INGOT, 28)) {
+            player.sendMessage("§c購入に必要な通貨が不足しています！ 必要: ゴールド x28");
+            return;
+        }
+
+        // Remove currency
+        removeItems(player, Material.GOLD_INGOT, 28);
+
+        // Give Ω-LAST item
+        ItemStack omegaLast = myplg.myplg.listeners.OmegaLastListener.createOmegaLastItem();
+
+        // Add to inventory
+        java.util.HashMap<Integer, ItemStack> leftover = player.getInventory().addItem(omegaLast);
+
+        if (!leftover.isEmpty()) {
+            // Return currency if inventory is full
+            player.getInventory().addItem(new ItemStack(Material.GOLD_INGOT, 28));
+            player.sendMessage("§cインベントリに空きがありません！");
+            return;
+        }
+
+        // Update cooldown
+        purchaseCooldown.put(player.getUniqueId(), currentTime);
+
+        // Play sound
+        player.playSound(player.getLocation(), org.bukkit.Sound.ITEM_TRIDENT_THUNDER, 1.0f, 1.0f);
+        player.sendMessage("§c§lΩ-LASTを購入しました！ 慎重に使用してください！");
     }
 
     private void processBridgeEggPurchase(Player player) {
@@ -701,8 +744,40 @@ public class ShopClickListener implements Listener {
         // Remove currency
         removeItems(player, currency, cost);
 
-        // Apply potion effect directly to player
-        player.addPotionEffect(new org.bukkit.potion.PotionEffect(effectType, duration, amplifier));
+        // Create potion item with effect
+        ItemStack potion = new ItemStack(Material.POTION, 1);
+        org.bukkit.inventory.meta.PotionMeta potionMeta = (org.bukkit.inventory.meta.PotionMeta) potion.getItemMeta();
+
+        if (potionMeta != null) {
+            // Add the potion effect to the item
+            potionMeta.addCustomEffect(new org.bukkit.potion.PotionEffect(effectType, duration, amplifier), true);
+
+            // Set display name based on effect type
+            String potionName = "";
+            if (effectType == org.bukkit.potion.PotionEffectType.INVISIBILITY) {
+                potionName = "§7透明化のポーション";
+                potionMeta.setColor(org.bukkit.Color.fromRGB(127, 127, 127));
+            } else if (effectType == org.bukkit.potion.PotionEffectType.JUMP_BOOST) {
+                potionName = "§a跳躍力上昇のポーション";
+                potionMeta.setColor(org.bukkit.Color.fromRGB(34, 255, 76));
+            } else if (effectType == org.bukkit.potion.PotionEffectType.SPEED) {
+                potionName = "§b移動速度上昇のポーション";
+                potionMeta.setColor(org.bukkit.Color.fromRGB(124, 175, 176));
+            }
+
+            potionMeta.setDisplayName(potionName);
+            potion.setItemMeta(potionMeta);
+        }
+
+        // Give potion item to player
+        HashMap<Integer, ItemStack> leftover = player.getInventory().addItem(potion);
+
+        if (!leftover.isEmpty()) {
+            // Return currency if inventory is full
+            player.getInventory().addItem(new ItemStack(currency, cost));
+            player.sendMessage("§cインベントリに空きがありません！");
+            return;
+        }
 
         // Update cooldown
         purchaseCooldown.put(player.getUniqueId(), currentTime);
@@ -1337,6 +1412,12 @@ public class ShopClickListener implements Listener {
             purchaseAlarmTrap(player, 2, 2); // Level 2, cost 2 diamonds
             return;
         }
+
+        // Alarm Reactivation
+        if (type == Material.REDSTONE_TORCH && displayName.contains("アラーム再設置")) {
+            reactivateAlarmTrap(player);
+            return;
+        }
     }
 
     /**
@@ -1396,6 +1477,65 @@ public class ShopClickListener implements Listener {
             plugin.getShopTwoGUI().openTrapShop(player);
         } else {
             player.sendMessage("§cアラームの購入に失敗しました。");
+            // Refund
+            player.getInventory().addItem(new org.bukkit.inventory.ItemStack(Material.DIAMOND, cost));
+        }
+    }
+
+
+    /**
+     * Reactivate a triggered alarm trap
+     */
+    private void reactivateAlarmTrap(Player player) {
+        String teamName = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
+
+        if (teamName == null) {
+            player.sendMessage("§cエラー: チームが見つかりません。");
+            return;
+        }
+
+        int currentLevel = plugin.getAlarmTrapManager().getAlarmLevel(teamName);
+        
+        // Check if alarm was triggered
+        if (!plugin.getAlarmTrapManager().isAlarmTriggered(teamName)) {
+            player.sendMessage("§cアラームはまだ発動していません！");
+            player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
+            return;
+        }
+
+        // Cost is equal to current level (Lv1 = 1 diamond, Lv2 = 2 diamonds)
+        int cost = currentLevel;
+
+        // Check if player has enough diamonds
+        if (!hasEnoughItems(player, Material.DIAMOND, cost)) {
+            player.sendMessage("§cダイヤモンドが足りません！ (必要: " + cost + "個)");
+            player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
+            return;
+        }
+
+        // Remove diamonds
+        removeItems(player, Material.DIAMOND, cost);
+
+        // Reactivate alarm
+        boolean success = plugin.getAlarmTrapManager().reactivateAlarm(teamName);
+
+        if (success) {
+            // Notify team
+            myplg.myplg.Team team = plugin.getGameManager().getTeam(teamName);
+            if (team != null) {
+                for (java.util.UUID memberUUID : team.getMembers()) {
+                    org.bukkit.entity.Player member = org.bukkit.Bukkit.getPlayer(memberUUID);
+                    if (member != null && member.isOnline()) {
+                        member.sendMessage("§a§l[再設置] §eアラーム Lv " + currentLevel + " §aを再設置しました！");
+                        member.playSound(member.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+                    }
+                }
+            }
+
+            // Reopen trap shop to show updated status
+            plugin.getShopTwoGUI().openTrapShop(player);
+        } else {
+            player.sendMessage("§cアラームの再設置に失敗しました。");
             // Refund
             player.getInventory().addItem(new org.bukkit.inventory.ItemStack(Material.DIAMOND, cost));
         }

@@ -1,5 +1,6 @@
 package myplg.myplg.commands;
 
+import myplg.myplg.PermissionUtil;
 import myplg.myplg.PvPGame;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -72,13 +73,16 @@ public class GameWorldCommand implements CommandExecutor {
 
         plugin.getLogger().info("Teleported " + teleportedCount + " players to game world by " + sender.getName());
 
-        // Open game mode selector for the OP player who executed the command
+        // Open game mode selector for the OP level 4 player who executed the command
         if (opPlayer != null && !plugin.getGameManager().isGameRunning()) {
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                if (opPlayer.getWorld().getName().equalsIgnoreCase("world")) {
-                    plugin.getGameModeSelector().openGameModeSelector(opPlayer);
-                }
-            }, 20L); // 1 second delay
+            // Check OP level 4
+            if (PermissionUtil.isOpLevel4(opPlayer)) {
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    if (opPlayer.getWorld().getName().equalsIgnoreCase("world")) {
+                        plugin.getGameModeSelector().openGameModeSelector(opPlayer);
+                    }
+                }, 20L); // 1 second delay
+            }
         }
 
         return true;

@@ -274,9 +274,10 @@ public class ShopTwoGUI {
             inv.setItem(i, grayPane);
         }
 
-        // Get player's team to check alarm level
+        // Get player's team to check alarm level and triggered status
         String teamName = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
         int alarmLevel = teamName != null ? plugin.getAlarmTrapManager().getAlarmLevel(teamName) : 0;
+        boolean alarmTriggered = teamName != null ? plugin.getAlarmTrapManager().isAlarmTriggered(teamName) : false;
 
         // Alarm Trap - Level 1 (Detection only)
         ItemStack alarm1 = new ItemStack(Material.REDSTONE_LAMP);
@@ -321,6 +322,25 @@ public class ShopTwoGUI {
             alarm2.setItemMeta(alarm2Meta);
         }
         inv.setItem(24, alarm2);
+
+        // Alarm Reactivation (only show if alarm was triggered)
+        if (alarmLevel > 0 && alarmTriggered) {
+            ItemStack reactivate = new ItemStack(Material.REDSTONE_TORCH);
+            ItemMeta reactivateMeta = reactivate.getItemMeta();
+            if (reactivateMeta != null) {
+                reactivateMeta.setDisplayName("§6§lアラーム再設置");
+                java.util.List<String> reactivateLore = new java.util.ArrayList<>();
+                reactivateLore.add("§7発動済みのアラームを再設置します");
+                reactivateLore.add("§7現在のレベル: §e" + alarmLevel);
+                reactivateLore.add("");
+                int reactivateCost = alarmLevel; // Lv1 = 1 diamond, Lv2 = 2 diamonds
+                reactivateLore.add("§6価格: §fダイヤ x" + reactivateCost);
+                reactivateLore.add("§aクリックして再設置");
+                reactivateMeta.setLore(reactivateLore);
+                reactivate.setItemMeta(reactivateMeta);
+            }
+            inv.setItem(22, reactivate);
+        }
 
         // Back button
         ItemStack backButton = new ItemStack(Material.ARROW);

@@ -236,7 +236,7 @@ public class ScoreboardManager {
     /**
      * Get team color prefix
      */
-    private String getTeamPrefix(String teamName) {
+    public String getTeamPrefix(String teamName) {
         switch (teamName) {
             case "レッド": return "§cR";
             case "ブルー": return "§9B";
@@ -247,6 +247,62 @@ public class ScoreboardManager {
             case "ピンク": return "§dP";
             case "グレー": return "§7G";
             default: return "§f?";
+        }
+    }
+
+
+    /**
+     * Get team color code
+     */
+    public String getTeamColorCode(String teamName) {
+        switch (teamName) {
+            case "レッド": return "§c";
+            case "ブルー": return "§9";
+            case "グリーン": return "§a";
+            case "イエロー": return "§e";
+            case "アクア": return "§b";
+            case "ホワイト": return "§f";
+            case "ピンク": return "§d";
+            case "グレー": return "§7";
+            default: return "§f";
+        }
+    }
+
+    /**
+     * Update player's tab list name with team color
+     */
+    public void updatePlayerTabListName(Player player) {
+        String teamName = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
+        if (teamName != null) {
+            String colorCode = getTeamColorCode(teamName);
+            player.setPlayerListName(colorCode + player.getName());
+        } else {
+            player.setPlayerListName(player.getName());
+        }
+    }
+
+    /**
+     * Update all players' tab list names with team colors
+     */
+    public void updateAllPlayerTabListNames() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            updatePlayerTabListName(player);
+        }
+    }
+
+    /**
+     * Reset player's tab list name to default
+     */
+    public void resetPlayerTabListName(Player player) {
+        player.setPlayerListName(player.getName());
+    }
+
+    /**
+     * Reset all players' tab list names to default
+     */
+    public void resetAllPlayerTabListNames() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            resetPlayerTabListName(player);
         }
     }
 }

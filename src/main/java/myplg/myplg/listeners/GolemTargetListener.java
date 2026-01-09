@@ -11,26 +11,26 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.metadata.MetadataValue;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.List;
 
 /**
  * Controls Iron Golem targeting to only attack enemies
- * Aggressively defends team bed (20 block radius)
+ * Limits detection to within 10 blocks of spawn location
  */
 public class GolemTargetListener implements Listener {
     private final PvPGame plugin;
-    private static final double BED_DEFENSE_RADIUS = 20.0; // Bed defense radius
-    private static final double SEARCH_RANGE = 16.0; // Normal search range
+    private static final double MAX_DETECTION_RANGE = 10.0; // Maximum detection range from spawn point
 
     public GolemTargetListener(PvPGame plugin) {
         this.plugin = plugin;
-        // Start task to actively search for enemies near bed
+        // Start task to actively search for enemies
         startAggressiveDefenseTask();
     }
 
     /**
-     * Task that runs every second to check for enemies near team beds
+     * Task that runs every second to check for enemies near golem's spawn location
      */
     private void startAggressiveDefenseTask() {
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
@@ -52,9 +52,9 @@ public class GolemTargetListener implements Listener {
                         continue;
                     }
 
-                    // If golem doesn't have a target, search for enemies near bed
+                    // If golem doesn't have a target, search for enemies
                     if (golem.getTarget() == null) {
-                        findEnemyNearBed(golem, ownerTeam);
+                        findEnemyNearSpawn(golem, ownerTeam);
                     }
                 }
             }
@@ -84,36 +84,74 @@ public class GolemTargetListener implements Listener {
         // Check if target is a player
         if (event.getTarget() instanceof Player) {
             Player targetPlayer = (Player) event.getTarget();
+
+            // Cancel targeting if player has invisibility effect
+            if (targetPlayer.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
+                event.setCancelled(true);
+                findEnemyNearSpawn(golem, ownerTeam);
+                return;
+            }
+
             String targetTeam = plugin.getGameManager().getPlayerTeam(targetPlayer.getUniqueId());
 
             // Cancel targeting if player is on same team or no team
             if (targetTeam != null && targetTeam.equals(ownerTeam)) {
                 event.setCancelled(true);
                 // Try to find an enemy target instead
-                findEnemyNearBed(golem, ownerTeam);
+                findEnemyNearSpawn(golem, ownerTeam);
+                return;
+            }
+
+            // Check if target is within 10 blocks of spawn point
+            Location spawnLoc = getSpawnLocation(golem);
+            if (spawnLoc != null && targetPlayer.getLocation().distance(spawnLoc) > MAX_DETECTION_RANGE) {
+                event.setCancelled(true);
+                // Try to find a closer enemy
+                findEnemyNearSpawn(golem, ownerTeam);
             }
         }
     }
+    
+    /**
+     * Get the golem's spawn location from metadata
+     */
+    private Location getSpawnLocation(IronGolem golem) {
+        List<MetadataValue> xMeta = golem.getMetadata("spawnX");
+        List<MetadataValue> yMeta = golem.getMetadata("spawnY");
+        List<MetadataValue> zMeta = golem.getMetadata("spawnZ");
+        
+        if (xMeta.isEmpty() || yMeta.isEmpty() || zMeta.isEmpty()) {
+            return null;
+        }
+        
+        return new Location(
+            golem.getWorld(),
+            xMeta.get(0).asDouble(),
+            yMeta.get(0).asDouble(),
+            zMeta.get(0).asDouble()
+        );
+    }
 
     /**
-     * Search for enemies near the team's bed
+     * Search for enemies within 10 blocks of golem's spawn location
      */
-    private void findEnemyNearBed(IronGolem golem, String ownerTeam) {
-        // Get team's bed location
-        Team team = plugin.getGameManager().getTeam(ownerTeam);
-        if (team == null || team.getBedBlock() == null) {
-            // Bed destroyed, use normal search
-            findEnemyTarget(golem, ownerTeam);
-            return;
+    private void findEnemyNearSpawn(IronGolem golem, String ownerTeam) {
+        Location spawnLoc = getSpawnLocation(golem);
+        if (spawnLoc == null) {
+            // Fallback: use golem's current location if no spawn recorded
+            spawnLoc = golem.getLocation();
         }
 
-        Location bedLocation = team.getBedBlock().getLocation();
-
-        // Find enemy players within 20 blocks of the bed
+        // Find enemy players within 10 blocks of spawn location
         Player closestEnemy = null;
         double closestDistance = Double.MAX_VALUE;
 
         for (Player player : Bukkit.getOnlinePlayers()) {
+            // Skip if player has invisibility effect
+            if (player.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
+                continue;
+            }
+
             String playerTeam = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
 
             // Skip if same team or no team
@@ -122,44 +160,21 @@ public class GolemTargetListener implements Listener {
             }
 
             // Check if player is in same world
-            if (!player.getWorld().equals(bedLocation.getWorld())) {
+            if (!player.getWorld().equals(spawnLoc.getWorld())) {
                 continue;
             }
 
-            // Check distance to bed
-            double distance = player.getLocation().distance(bedLocation);
-            if (distance <= BED_DEFENSE_RADIUS && distance < closestDistance) {
+            // Check distance to spawn location
+            double distance = player.getLocation().distance(spawnLoc);
+            if (distance <= MAX_DETECTION_RANGE && distance < closestDistance) {
                 closestEnemy = player;
                 closestDistance = distance;
             }
         }
 
-        // Target the closest enemy near bed
+        // Target the closest enemy near spawn
         if (closestEnemy != null) {
             golem.setTarget(closestEnemy);
-            return;
-        }
-
-        // No enemies near bed, use normal search around golem
-        findEnemyTarget(golem, ownerTeam);
-    }
-
-    /**
-     * Search for enemies near the golem
-     */
-    private void findEnemyTarget(IronGolem golem, String ownerTeam) {
-        // Find nearby enemy players within 16 blocks
-        for (org.bukkit.entity.Entity entity : golem.getNearbyEntities(SEARCH_RANGE, SEARCH_RANGE, SEARCH_RANGE)) {
-            if (entity instanceof Player) {
-                Player player = (Player) entity;
-                String playerTeam = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
-
-                // Target enemy players only
-                if (playerTeam != null && !playerTeam.equals(ownerTeam)) {
-                    golem.setTarget(player);
-                    return;
-                }
-            }
         }
     }
 }

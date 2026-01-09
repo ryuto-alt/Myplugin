@@ -106,4 +106,9 @@ public class BlockPlaceListener implements Listener {
     public static void removePlayerPlacedBlock(Block block) {
         playerPlacedBlocks.remove(block);
     }
+
+
+    public static void addPlayerPlacedBlock(Block block) {
+        playerPlacedBlocks.add(block);
+    }
 }

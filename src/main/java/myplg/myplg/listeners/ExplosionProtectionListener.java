@@ -1,6 +1,7 @@
 package myplg.myplg.listeners;
 
 import myplg.myplg.PvPGame;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -27,7 +28,8 @@ public class ExplosionProtectionListener implements Listener {
         }
 
         // Only allow player-placed blocks to be destroyed by explosions
-        event.blockList().removeIf(block -> !BlockPlaceListener.isPlayerPlaced(block));
+        // Also protect glass blocks from explosions
+        event.blockList().removeIf(block -> !BlockPlaceListener.isPlayerPlaced(block) || isGlassBlock(block));
 
         // Remove destroyed blocks from tracking
         for (Block block : event.blockList()) {
@@ -42,12 +44,24 @@ public class ExplosionProtectionListener implements Listener {
         }
 
         // Only allow player-placed blocks to be destroyed by explosions
-        event.blockList().removeIf(block -> !BlockPlaceListener.isPlayerPlaced(block));
+        // Also protect glass blocks from explosions
+        event.blockList().removeIf(block -> !BlockPlaceListener.isPlayerPlaced(block) || isGlassBlock(block));
 
         // Remove destroyed blocks from tracking
         for (Block block : event.blockList()) {
             BlockPlaceListener.removePlayerPlacedBlock(block);
         }
+    }
+
+    /**
+     * Check if the block is a glass type (glass, glass pane, stained glass, etc.)
+     */
+    private boolean isGlassBlock(Block block) {
+        Material type = block.getType();
+        return type == Material.GLASS ||
+               type == Material.GLASS_PANE ||
+               type.name().contains("STAINED_GLASS") ||
+               type.name().contains("TINTED_GLASS");
     }
 
     /**
@@ -72,10 +86,10 @@ public class ExplosionProtectionListener implements Listener {
                 plugin.getLogger().info("TNT damage reduced from " + damage + " to 6.0 for player " + event.getEntity().getName());
             }
 
-            // Apply enhanced knockback
+            // Apply knockback (reduced by 20% from previous 1.5 multiplier)
             Vector knockbackDirection = player.getLocation().toVector().subtract(tnt.getLocation().toVector()).normalize();
-            // Increase knockback multiplier from default (typically ~0.3) to 1.5 for more dramatic effect
-            double knockbackMultiplier = 1.5;
+            // Knockback multiplier: 1.5 * 0.8 = 1.2
+            double knockbackMultiplier = 1.2;
             Vector knockback = knockbackDirection.multiply(knockbackMultiplier);
             // Add upward velocity for better air effect
             knockback.setY(knockback.getY() + 0.5);

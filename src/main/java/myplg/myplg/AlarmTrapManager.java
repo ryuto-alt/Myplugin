@@ -82,6 +82,31 @@ public class AlarmTrapManager {
         return teamAlarmLevel.getOrDefault(teamName, 0);
     }
 
+
+    /**
+     * Check if alarm has been triggered for a team
+     */
+    public boolean isAlarmTriggered(String teamName) {
+        return teamAlarmTriggered.getOrDefault(teamName, false);
+    }
+
+    /**
+     * Reactivate a triggered alarm (same level, for repurchase)
+     */
+    public boolean reactivateAlarm(String teamName) {
+        int currentLevel = teamAlarmLevel.getOrDefault(teamName, 0);
+        
+        // Can only reactivate if there was an alarm and it was triggered
+        if (currentLevel == 0 || !teamAlarmTriggered.getOrDefault(teamName, false)) {
+            return false;
+        }
+        
+        // Reset triggered status to reactivate
+        teamAlarmTriggered.put(teamName, false);
+        plugin.getLogger().info("Team " + teamName + " reactivated alarm at level " + currentLevel);
+        return true;
+    }
+
     /**
      * Reset all alarms
      */

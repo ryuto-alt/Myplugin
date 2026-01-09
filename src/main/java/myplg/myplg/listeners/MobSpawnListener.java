@@ -10,6 +10,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.Material;
 import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.Location;
 
 public class MobSpawnListener implements Listener {
     private final PvPGame plugin;
@@ -61,11 +62,32 @@ public class MobSpawnListener implements Listener {
 
                     // Apply pending team metadata
                     if (pendingGolemTeam != null) {
-                        golem.setCustomName("§7" + pendingGolemTeam + "のゴーレム");
+                        // Get team color code
+                        String colorCode = getTeamColorCode(pendingGolemTeam);
+                        golem.setCustomName(colorCode + pendingGolemTeam + "のゴーレム");
                         golem.setCustomNameVisible(true);
                         golem.setPlayerCreated(false);
                         golem.setPersistent(true);
                         golem.setMetadata("ownerTeam", new FixedMetadataValue(plugin, pendingGolemTeam));
+                        
+                        // Save spawn location for range limiting
+                        Location spawnLoc = golem.getLocation();
+                        golem.setMetadata("spawnX", new FixedMetadataValue(plugin, spawnLoc.getX()));
+                        golem.setMetadata("spawnY", new FixedMetadataValue(plugin, spawnLoc.getY()));
+                        golem.setMetadata("spawnZ", new FixedMetadataValue(plugin, spawnLoc.getZ()));
+                        
+                        // Set golem attack damage to 8 (4 hearts)
+                        org.bukkit.attribute.AttributeInstance attackAttribute = golem.getAttribute(org.bukkit.attribute.Attribute.ATTACK_DAMAGE);
+                        if (attackAttribute != null) {
+                            attackAttribute.setBaseValue(8.0);
+                        }
+                        
+                        // Set golem max health to 83 (default 100, reduced by ~17%)
+                        org.bukkit.attribute.AttributeInstance healthAttribute = golem.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+                        if (healthAttribute != null) {
+                            healthAttribute.setBaseValue(83.0);
+                            golem.setHealth(83.0);
+                        }
 
                         plugin.getLogger().info("Iron Golem spawned for team: " + pendingGolemTeam);
 
@@ -79,6 +101,23 @@ public class MobSpawnListener implements Listener {
             default:
                 event.setCancelled(true);
                 break;
+        }
+    }
+    
+    /**
+     * Get team color code for golem name display
+     */
+    private String getTeamColorCode(String teamName) {
+        switch (teamName) {
+            case "レッド": return "§c";
+            case "ブルー": return "§9";
+            case "グリーン": return "§a";
+            case "イエロー": return "§e";
+            case "アクア": return "§b";
+            case "ホワイト": return "§f";
+            case "ピンク": return "§d";
+            case "グレー": return "§7";
+            default: return "§f";
         }
     }
 }
