@@ -2,6 +2,7 @@ package myplg.myplg;
 
 import myplg.myplg.commands.EditCommand;
 import myplg.myplg.commands.EndCommand;
+import myplg.myplg.commands.GameStartCommand;
 import myplg.myplg.commands.GameWorldCommand;
 import myplg.myplg.commands.GeneCommand;
 import myplg.myplg.commands.GeneReloadCommand;
@@ -11,7 +12,6 @@ import myplg.myplg.commands.SetBedCommand;
 import myplg.myplg.commands.Shop1Command;
 import myplg.myplg.commands.Shop2Command;
 import myplg.myplg.commands.ShopResetCommand;
-import myplg.myplg.commands.StartCommand;
 import myplg.myplg.data.GeneratorDataManager;
 import myplg.myplg.data.ShopDataManager;
 import myplg.myplg.data.TeamDataManager;
@@ -23,8 +23,10 @@ import myplg.myplg.listeners.ArmorRemoveListener;
 import myplg.myplg.listeners.BedBreakListener;
 import myplg.myplg.listeners.BedClickListener;
 import myplg.myplg.listeners.BlockPlaceListener;
+import myplg.myplg.listeners.EndModeBlockListener;
 import myplg.myplg.listeners.ExplosionProtectionListener;
 import myplg.myplg.listeners.GeneratorSelectionListener;
+import myplg.myplg.listeners.DebugGUIListener;
 import myplg.myplg.listeners.GUIClickListener;
 import myplg.myplg.listeners.HungerControlListener;
 import myplg.myplg.listeners.MobSpawnListener;
@@ -69,6 +71,13 @@ public final class PvPGame extends JavaPlugin {
     private BedDestructionTimer bedDestructionTimer;
     private TeamColorManager teamColorManager;
     private AlarmTrapManager alarmTrapManager;
+    private EndModeManager endModeManager;
+    private SniperUpgradeManager sniperUpgradeManager;
+    private MobSpawnListener mobSpawnListener;
+    private GameManagerBook gameManagerBook;
+    private DebugBook debugBook;
+    private DebugGUIListener debugGUIListener;
+    private DebugInfoDisplay debugInfoDisplay;
     private boolean teamsLoaded = false;
 
     @Override
@@ -100,6 +109,12 @@ public final class PvPGame extends JavaPlugin {
         bedDestructionTimer = new BedDestructionTimer(this);
         teamColorManager = new TeamColorManager(this);
         alarmTrapManager = new AlarmTrapManager(this);
+        endModeManager = new EndModeManager(this);
+        sniperUpgradeManager = new SniperUpgradeManager(this);
+        gameManagerBook = new GameManagerBook(this);
+        debugBook = new DebugBook(this);
+        debugGUIListener = new DebugGUIListener(this);
+        debugInfoDisplay = new DebugInfoDisplay(this);
 
         // Load teams and generators from file after a delay to ensure worlds are loaded
         Bukkit.getScheduler().runTaskLater(this, () -> {
@@ -124,7 +139,7 @@ public final class PvPGame extends JavaPlugin {
 
         // Register commands
         getCommand("setbed").setExecutor(setBedCommand);
-        getCommand("start").setExecutor(new StartCommand(this));
+        getCommand("gamestart").setExecutor(new GameStartCommand(this));
         getCommand("edit").setExecutor(new EditCommand(this));
         getCommand("save").setExecutor(new SaveCommand(this));
         getCommand("end").setExecutor(new EndCommand(this));
@@ -137,6 +152,9 @@ public final class PvPGame extends JavaPlugin {
         getCommand("gamereload").setExecutor(new myplg.myplg.commands.GameReloadCommand(this));
         getCommand("lobby").setExecutor(new LobbyCommand(this));
         getCommand("hub").setExecutor(new LobbyCommand(this));
+        getCommand("endmode").setExecutor(new myplg.myplg.commands.EndModeCommand(this));
+        getCommand("endmodekill").setExecutor(new myplg.myplg.commands.EndModeKillCommand(this));
+        getCommand("test").setExecutor(new myplg.myplg.commands.TestCommand());
 
         // Register listeners
         getServer().getPluginManager().registerEvents(bedClickListener, this);
@@ -149,7 +167,9 @@ public final class PvPGame extends JavaPlugin {
         getServer().getPluginManager().registerEvents(playerDeathListener, this);
 
         getServer().getPluginManager().registerEvents(guiClickListener, this);
-        getServer().getPluginManager().registerEvents(new MobSpawnListener(this), this);
+        getServer().getPluginManager().registerEvents(debugGUIListener, this);
+        mobSpawnListener = new MobSpawnListener(this);
+        getServer().getPluginManager().registerEvents(mobSpawnListener, this);
         getServer().getPluginManager().registerEvents(new GeneratorSelectionListener(this), this);
 
         // Shop system listeners - need to link them together
@@ -205,11 +225,20 @@ public final class PvPGame extends JavaPlugin {
         // Register BridgeBuilderListener
         getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.BridgeBuilderListener(this), this);
 
+        // Register GunListener (sniper rifle)
+        getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.GunListener(this), this);
+
         // Register OmegaLastListener
         getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.OmegaLastListener(this), this);
 
+        // Register EndModeBlockListener (obsidian protection during END mode)
+        getServer().getPluginManager().registerEvents(new EndModeBlockListener(this), this);
+
         // Register TeamPvPListener (prevent friendly fire)
         getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.TeamPvPListener(this), this);
+
+        // Register CombatItemDropListener (prevent item dropping during combat)
+        getServer().getPluginManager().registerEvents(new myplg.myplg.listeners.CombatItemDropListener(this), this);
 
         // Start time control
         TimeControlListener timeControl = new TimeControlListener(this);
@@ -245,6 +274,16 @@ public final class PvPGame extends JavaPlugin {
         // Stop bed destruction timer
         if (bedDestructionTimer != null) {
             bedDestructionTimer.stopTimer();
+        }
+
+        // Stop END mode manager
+        if (endModeManager != null) {
+            endModeManager.stop();
+        }
+
+        // Reset mob spawn listener
+        if (mobSpawnListener != null) {
+            mobSpawnListener.reset();
         }
 
         // Clear invisibility armor storage
@@ -298,6 +337,21 @@ public final class PvPGame extends JavaPlugin {
             alarmTrapManager.reset();
         }
 
+        // Reset END mode manager
+        if (endModeManager != null) {
+            endModeManager.reset();
+        }
+
+        // Stop debug info display
+        if (debugInfoDisplay != null) {
+            debugInfoDisplay.stop();
+        }
+
+        // Reset mob spawn listener
+        if (mobSpawnListener != null) {
+            mobSpawnListener.reset();
+        }
+
         // Reinitialize all managers (fresh state)
         getLogger().info("マネージャーを再初期化中...");
         gameManager = new GameManager(this);
@@ -306,6 +360,7 @@ public final class PvPGame extends JavaPlugin {
         territoryUpgradeManager = new TerritoryUpgradeManager(this);
         weaponUpgradeManager = new WeaponUpgradeManager(this);
         armorUpgradeManager = new ArmorUpgradeManager(this);
+        sniperUpgradeManager = new SniperUpgradeManager(this);
         scoreboardManager = new ScoreboardManager(this);
         gameSetupManager = new GameSetupManager(this);
         alarmTrapManager = new AlarmTrapManager(this);
@@ -434,6 +489,34 @@ public final class PvPGame extends JavaPlugin {
 
     public myplg.myplg.gui.ShopTwoGUI getShopTwoGUI() {
         return shopTwoGUI;
+    }
+
+    public EndModeManager getEndModeManager() {
+        return endModeManager;
+    }
+
+    public MobSpawnListener getMobSpawnListener() {
+        return mobSpawnListener;
+    }
+
+    public GameManagerBook getGameManagerBook() {
+        return gameManagerBook;
+    }
+
+    public SniperUpgradeManager getSniperUpgradeManager() {
+        return sniperUpgradeManager;
+    }
+
+    public DebugBook getDebugBook() {
+        return debugBook;
+    }
+
+    public DebugGUIListener getDebugGUIListener() {
+        return debugGUIListener;
+    }
+
+    public DebugInfoDisplay getDebugInfoDisplay() {
+        return debugInfoDisplay;
     }
 
     private void loadLobbyWorld() {

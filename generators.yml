@@ -110,7 +110,7 @@ generators:
       x: 58.0
       y: 75.0
       z: -59.0
-    spawnInterval: 1200
+    spawnInterval: 700
   レッド_gold_1760654467132:
     teamName: レッド
     material: GOLD_INGOT
@@ -180,7 +180,7 @@ generators:
       x: 59.0
       y: 75.0
       z: 58.0
-    spawnInterval: 1200
+    spawnInterval: 700
   共通_emerald_1760654622134:
     teamName: 共通
     material: EMERALD
@@ -208,7 +208,7 @@ generators:
       x: -59.0
       y: 75.0
       z: -58.0
-    spawnInterval: 1200
+    spawnInterval: 700
   グレー_gold_1760654498884:
     teamName: グレー
     material: GOLD_INGOT
@@ -306,7 +306,7 @@ generators:
       x: -58.0
       y: 75.0
       z: 59.0
-    spawnInterval: 1200
+    spawnInterval: 700
   アクア_gold_1760654348138:
     teamName: アクア
     material: GOLD_INGOT

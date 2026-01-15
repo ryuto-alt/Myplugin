@@ -364,6 +364,11 @@ public class GameSetupManager {
         player.getInventory().setChestplate(chestplate);
         player.getInventory().setLeggings(leggings);
         player.getInventory().setBoots(boots);
+
+        // デバッグモード時はデバッグコンパスを渡す
+        if (plugin.getGameManager().isDebugMode()) {
+            plugin.getDebugBook().giveCompass(player);
+        }
     }
 
     private ItemStack createColoredArmor(Material material, Color color) {
