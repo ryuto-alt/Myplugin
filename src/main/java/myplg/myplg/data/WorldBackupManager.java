@@ -3,316 +3,379 @@ package myplg.myplg.data;
 import myplg.myplg.PvPGame;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.WorldCreator;
 import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.concurrent.CompletableFuture;
 
+/**
+ * ワールドスワップ方式によるワールド管理
+ *
+ * 仕組み:
+ * - world: ゲームで使用するメインワールド
+ * - world_backup: 常時ロードされたバックアップワールド（プレイヤーは入れない）
+ * - world_master: 初期バックアップの永続コピー（plugins/myplg/world_master）
+ *
+ * ゲーム終了時:
+ * 1. プレイヤーをlobbyへ移動
+ * 2. worldをアンロード → フォルダ削除
+ * 3. world_backupをアンロード → worldにリネーム
+ * 4. worldをロード（瞬時に復元完了）
+ * 5. 非同期でworld_masterからworld_backupを再作成
+ */
 public class WorldBackupManager {
     private final PvPGame plugin;
-    private final File backupFolder;
+    private final File masterFolder;  // 永続マスターバックアップ
+
+    private static final String GAME_WORLD = "world";
+    private static final String BACKUP_WORLD = "world_backup";
+
+    private boolean backupReady = false;
+    private boolean preparingBackup = false;
 
     public WorldBackupManager(PvPGame plugin) {
         this.plugin = plugin;
-        this.backupFolder = new File(plugin.getDataFolder(), "world_backups");
-        if (!backupFolder.exists()) {
-            backupFolder.mkdirs();
-        }
+        this.masterFolder = new File(plugin.getDataFolder(), "world_master");
     }
 
-    public boolean saveWorld(World world) {
-        plugin.getLogger().info("ワールドのバックアップを開始: " + world.getName());
+    /**
+     * プラグイン起動時の初期化
+     * マスターバックアップとworld_backupを準備
+     */
+    public void initialize() {
+        plugin.getLogger().info("===== ワールドスワップシステム初期化 =====");
 
-        // Save world data first (must be on main thread)
-        world.save();
-
-        // Get world folder
-        File worldFolder = world.getWorldFolder();
-        File backupDestination = new File(backupFolder, world.getName());
-
-        plugin.getLogger().info("ワールドファイルをコピー中...");
-
-        // Delete old backup if exists
-        if (backupDestination.exists()) {
-            deleteDirectory(backupDestination);
+        // マスターバックアップが存在しない場合は作成
+        if (!masterFolder.exists()) {
+            plugin.getLogger().info("マスターバックアップが存在しません。初回セットアップを行います。");
+            plugin.getLogger().info("※ /save コマンドでマスターバックアップを作成してください。");
+            return;
         }
 
+        // world_backupを準備
+        prepareBackupWorldSync();
+
+        plugin.getLogger().info("===== ワールドスワップシステム初期化完了 =====");
+    }
+
+    /**
+     * 現在のワールドをマスターバックアップとして保存
+     */
+    public boolean saveMasterBackup(World world) {
+        plugin.getLogger().info("マスターバックアップを作成中: " + world.getName());
+
+        // ワールドを保存
+        world.save();
+
+        File worldFolder = world.getWorldFolder();
+
+        // 古いマスターバックアップを削除
+        if (masterFolder.exists()) {
+            deleteDirectorySync(masterFolder);
+        }
+        masterFolder.mkdirs();
+
         try {
-            // Copy world folder to backup
-            copyDirectory(worldFolder.toPath(), backupDestination.toPath());
-            plugin.getLogger().info("ワールドのバックアップ完了: " + world.getName());
+            copyDirectorySync(worldFolder.toPath(), masterFolder.toPath());
+            plugin.getLogger().info("マスターバックアップ作成完了");
+
+            // バックアップワールドも準備
+            prepareBackupWorldSync();
+
             return true;
         } catch (IOException e) {
-            plugin.getLogger().severe("ワールドのバックアップに失敗: " + e.getMessage());
+            plugin.getLogger().severe("マスターバックアップ作成失敗: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
     }
 
-    public boolean restoreWorld(String worldName) {
-        plugin.getLogger().info("===== ワールド復元処理開始 =====");
-        plugin.getLogger().info("復元対象ワールド: " + worldName);
+    /**
+     * マスターバックアップが存在するか
+     */
+    public boolean hasBackup(String worldName) {
+        return masterFolder.exists() && masterFolder.isDirectory();
+    }
 
-        World world = Bukkit.getWorld(worldName);
-        if (world == null) {
-            plugin.getLogger().warning("ワールドが見つかりません: " + worldName);
-            return false;
+    /**
+     * バックアップワールドが準備完了しているか
+     */
+    public boolean isBackupReady() {
+        return backupReady;
+    }
+
+    /**
+     * ワールドスワップを実行（ゲーム終了時）
+     * これがメインの復元メソッド
+     */
+    public CompletableFuture<Boolean> swapWorlds() {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+
+        plugin.getLogger().info("===== ワールドスワップ開始 =====");
+
+        // バックアップの準備確認
+        if (!backupReady) {
+            plugin.getLogger().severe("バックアップワールドが準備されていません！");
+            future.complete(false);
+            return future;
         }
 
-        File backupSource = new File(backupFolder, worldName);
-        plugin.getLogger().info("バックアップ元: " + backupSource.getAbsolutePath());
-        if (!backupSource.exists()) {
-            plugin.getLogger().warning("バックアップが見つかりません: " + worldName);
-            return false;
+        World gameWorld = Bukkit.getWorld(GAME_WORLD);
+        World backupWorld = Bukkit.getWorld(BACKUP_WORLD);
+
+        if (backupWorld == null) {
+            plugin.getLogger().severe("バックアップワールドがロードされていません！");
+            future.complete(false);
+            return future;
         }
 
-        plugin.getLogger().info("ワールドの復元を開始: " + worldName);
-
-        // Teleport all players out of the world to lobby
+        // Step 1: プレイヤーをlobbyへ移動
         World lobbyWorld = Bukkit.getWorld("lobby");
         if (lobbyWorld == null) {
             plugin.getLogger().severe("Lobbyワールドが見つかりません");
-            return false;
+            future.complete(false);
+            return future;
         }
 
         org.bukkit.Location lobbySpawn = new org.bukkit.Location(lobbyWorld, -210, 7, 15);
-        plugin.getLogger().info("プレイヤーを退避中... (" + world.getPlayers().size() + "人)");
-        for (Player player : world.getPlayers()) {
-            player.teleport(lobbySpawn);
-            plugin.getLogger().info("  - " + player.getName() + " を退避");
+
+        if (gameWorld != null) {
+            for (Player player : gameWorld.getPlayers()) {
+                player.teleport(lobbySpawn);
+            }
         }
 
-        // Unload world
-        plugin.getLogger().info("ワールドをアンロード中...");
-        boolean unloaded = Bukkit.unloadWorld(world, false);
-        plugin.getLogger().info("アンロード結果: " + (unloaded ? "成功" : "失敗"));
+        // backupWorldからもプレイヤーを退避（念のため）
+        for (Player player : backupWorld.getPlayers()) {
+            player.teleport(lobbySpawn);
+        }
 
-        // Delete current world folder
-        File worldFolder = new File(Bukkit.getWorldContainer(), worldName);
-        plugin.getLogger().info("既存ワールドフォルダを削除: " + worldFolder.getAbsolutePath());
-        deleteDirectory(worldFolder);
-        plugin.getLogger().info("削除完了");
+        plugin.getLogger().info("プレイヤー退避完了");
+
+        // Step 2: 少し待ってからスワップ実行
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            try {
+                performSwap(future);
+            } catch (Exception e) {
+                plugin.getLogger().severe("ワールドスワップ中にエラー: " + e.getMessage());
+                e.printStackTrace();
+                future.complete(false);
+            }
+        }, 10L); // 0.5秒待機
+
+        return future;
+    }
+
+    private void performSwap(CompletableFuture<Boolean> future) {
+        World gameWorld = Bukkit.getWorld(GAME_WORLD);
+        World backupWorld = Bukkit.getWorld(BACKUP_WORLD);
+
+        // Step 3: ゲームワールドをアンロード
+        if (gameWorld != null) {
+            plugin.getLogger().info("ゲームワールドをアンロード中...");
+            boolean unloaded = Bukkit.unloadWorld(gameWorld, false);
+            if (!unloaded) {
+                plugin.getLogger().severe("ゲームワールドのアンロードに失敗");
+                future.complete(false);
+                return;
+            }
+        }
+
+        // Step 4: バックアップワールドをアンロード
+        plugin.getLogger().info("バックアップワールドをアンロード中...");
+        boolean backupUnloaded = Bukkit.unloadWorld(backupWorld, false);
+        if (!backupUnloaded) {
+            plugin.getLogger().severe("バックアップワールドのアンロードに失敗");
+            // ゲームワールドを再ロードして復旧
+            Bukkit.createWorld(new WorldCreator(GAME_WORLD));
+            future.complete(false);
+            return;
+        }
+
+        backupReady = false;
+
+        // Step 5: フォルダ操作（同期で高速実行）
+        File worldFolder = new File(Bukkit.getWorldContainer(), GAME_WORLD);
+        File backupFolder = new File(Bukkit.getWorldContainer(), BACKUP_WORLD);
+
+        // 古いゲームワールドフォルダを削除
+        plugin.getLogger().info("古いワールドフォルダを削除中...");
+        deleteDirectorySync(worldFolder);
+
+        // バックアップフォルダをゲームワールドにリネーム
+        plugin.getLogger().info("バックアップをゲームワールドにリネーム中...");
+        boolean renamed = backupFolder.renameTo(worldFolder);
+
+        if (!renamed) {
+            plugin.getLogger().severe("フォルダリネームに失敗！コピーを試行...");
+            try {
+                copyDirectorySync(backupFolder.toPath(), worldFolder.toPath());
+                deleteDirectorySync(backupFolder);
+            } catch (IOException e) {
+                plugin.getLogger().severe("コピーにも失敗: " + e.getMessage());
+                future.complete(false);
+                return;
+            }
+        }
+
+        // Step 6: 新しいゲームワールドをロード
+        plugin.getLogger().info("新しいゲームワールドをロード中...");
+        World newGameWorld = Bukkit.createWorld(new WorldCreator(GAME_WORLD));
+
+        if (newGameWorld == null) {
+            plugin.getLogger().severe("ワールドのロードに失敗");
+            future.complete(false);
+            return;
+        }
+
+        plugin.getLogger().info("===== ワールドスワップ完了！ =====");
+
+        // Step 7: 非同期で次のバックアップを準備
+        prepareBackupWorldAsync();
+
+        future.complete(true);
+    }
+
+    /**
+     * バックアップワールドを同期で準備（起動時用）
+     */
+    private void prepareBackupWorldSync() {
+        if (!masterFolder.exists()) {
+            plugin.getLogger().warning("マスターバックアップが存在しません");
+            return;
+        }
+
+        plugin.getLogger().info("バックアップワールドを準備中...");
+
+        File backupFolder = new File(Bukkit.getWorldContainer(), BACKUP_WORLD);
+
+        // 既存のバックアップワールドをアンロード
+        World existingBackup = Bukkit.getWorld(BACKUP_WORLD);
+        if (existingBackup != null) {
+            // プレイヤーを退避
+            World lobbyWorld = Bukkit.getWorld("lobby");
+            if (lobbyWorld != null) {
+                org.bukkit.Location lobbySpawn = new org.bukkit.Location(lobbyWorld, -210, 7, 15);
+                for (Player player : existingBackup.getPlayers()) {
+                    player.teleport(lobbySpawn);
+                }
+            }
+            Bukkit.unloadWorld(existingBackup, false);
+        }
+
+        // フォルダを削除して再作成
+        if (backupFolder.exists()) {
+            deleteDirectorySync(backupFolder);
+        }
 
         try {
-            // Copy backup to world folder
-            plugin.getLogger().info("バックアップファイルをコピー中...");
-            copyDirectory(backupSource.toPath(), worldFolder.toPath());
-            plugin.getLogger().info("コピー完了");
+            copyDirectorySync(masterFolder.toPath(), backupFolder.toPath());
 
-            // Reload world
-            plugin.getLogger().info("ワールドを再ロード中...");
-            World restoredWorld = Bukkit.createWorld(new org.bukkit.WorldCreator(worldName));
-            plugin.getLogger().info("再ロード完了: " + (restoredWorld != null ? "成功" : "失敗"));
-
-            plugin.getLogger().info("===== ワールドの復元完了 =====");
-            return true;
+            // バックアップワールドをロード
+            World backup = Bukkit.createWorld(new WorldCreator(BACKUP_WORLD));
+            if (backup != null) {
+                // バックアップワールドに入れないようにする
+                backup.setAutoSave(false);
+                backupReady = true;
+                plugin.getLogger().info("バックアップワールド準備完了");
+            }
         } catch (IOException e) {
-            plugin.getLogger().severe("ワールドの復元に失敗: " + e.getMessage());
+            plugin.getLogger().severe("バックアップワールドの準備に失敗: " + e.getMessage());
             e.printStackTrace();
-            return false;
         }
     }
 
-    public boolean hasBackup(String worldName) {
-        File backupSource = new File(backupFolder, worldName);
-        return backupSource.exists();
+    /**
+     * バックアップワールドを非同期で準備（ゲーム終了後用）
+     */
+    public void prepareBackupWorldAsync() {
+        if (preparingBackup) {
+            plugin.getLogger().info("バックアップ準備が既に進行中です");
+            return;
+        }
+
+        if (!masterFolder.exists()) {
+            plugin.getLogger().warning("マスターバックアップが存在しません");
+            return;
+        }
+
+        preparingBackup = true;
+        plugin.getLogger().info("次のバックアップを非同期で準備開始...");
+
+        File backupFolder = new File(Bukkit.getWorldContainer(), BACKUP_WORLD);
+
+        // 非同期でファイルコピー
+        CompletableFuture.runAsync(() -> {
+            try {
+                // フォルダを削除して再作成
+                if (backupFolder.exists()) {
+                    deleteDirectorySync(backupFolder);
+                }
+
+                copyDirectorySync(masterFolder.toPath(), backupFolder.toPath());
+
+                plugin.getLogger().info("バックアップファイルコピー完了");
+
+                // メインスレッドでワールドをロード
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    World backup = Bukkit.createWorld(new WorldCreator(BACKUP_WORLD));
+                    if (backup != null) {
+                        backup.setAutoSave(false);
+                        backupReady = true;
+                        preparingBackup = false;
+                        plugin.getLogger().info("バックアップワールド準備完了（非同期）");
+                    } else {
+                        preparingBackup = false;
+                        plugin.getLogger().severe("バックアップワールドのロードに失敗");
+                    }
+                });
+            } catch (IOException e) {
+                preparingBackup = false;
+                plugin.getLogger().severe("バックアップ準備中にエラー: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
     }
 
+    /**
+     * 旧APIとの互換性のため（restoreWorldRealtimeの代替）
+     */
     public boolean restoreWorldRealtime(String worldName) {
         try {
-            plugin.getLogger().info("===== リアルタイムワールド復元処理開始 =====");
-            plugin.getLogger().info("復元対象ワールド: " + worldName);
-
-            World world = Bukkit.getWorld(worldName);
-            if (world == null) {
-                plugin.getLogger().warning("ワールドが見つかりません: " + worldName);
-                return false;
-            }
-
-            File backupSource = new File(backupFolder, worldName);
-            plugin.getLogger().info("バックアップ元: " + backupSource.getAbsolutePath());
-            if (!backupSource.exists()) {
-                plugin.getLogger().warning("バックアップが見つかりません: " + worldName);
-                return false;
-            }
-
-            plugin.getLogger().info("リアルタイムワールドの復元を開始: " + worldName);
-
-            // Teleport all players out of the world to lobby
-            plugin.getLogger().info("Step 1: Lobby取得");
-            World lobbyWorld = Bukkit.getWorld("lobby");
-            if (lobbyWorld == null) {
-                plugin.getLogger().severe("Lobbyワールドが見つかりません");
-                return false;
-            }
-            plugin.getLogger().info("Lobby取得成功");
-
-            org.bukkit.Location lobbySpawn = new org.bukkit.Location(lobbyWorld, -210, 7, 15);
-            plugin.getLogger().info("Step 2: プレイヤーを退避中... (" + world.getPlayers().size() + "人)");
-
-            // Copy player list to avoid concurrent modification
-            java.util.List<Player> playersToMove = new java.util.ArrayList<>(world.getPlayers());
-            for (Player player : playersToMove) {
-                plugin.getLogger().info("  - テレポート開始: " + player.getName());
-                player.teleport(lobbySpawn);
-                plugin.getLogger().info("  - テレポート完了: " + player.getName());
-            }
-            plugin.getLogger().info("プレイヤー退避完了");
-
-            // Save world before unloading
-            plugin.getLogger().info("Step 3: ワールドを保存中...");
-            world.save();
-            plugin.getLogger().info("ワールド保存完了");
-
-            // Force unload all chunks
-            plugin.getLogger().info("Step 4: チャンクをアンロード中...");
-            int chunkCount = world.getLoadedChunks().length;
-            plugin.getLogger().info("ロード済みチャンク数: " + chunkCount);
-
-            for (org.bukkit.Chunk chunk : world.getLoadedChunks()) {
-                chunk.unload(false);
-            }
-            plugin.getLogger().info("チャンクアンロード完了");
-
-            // Wait a bit for chunks to unload
-            plugin.getLogger().info("Step 5: 待機中...");
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                plugin.getLogger().severe("待機中に例外が発生: " + e.getMessage());
-                e.printStackTrace();
-            }
-            plugin.getLogger().info("待機完了");
-
-            // Unload world
-            plugin.getLogger().info("Step 6: ワールドをアンロード中...");
-            try {
-                plugin.getLogger().info("アンロード前の状態:");
-                int playerCount = world.getPlayers().size();
-                plugin.getLogger().info("  - プレイヤー数: " + playerCount);
-                int remainingChunks = world.getLoadedChunks().length;
-                plugin.getLogger().info("  - チャンク数: " + remainingChunks);
-            } catch (Exception e) {
-                plugin.getLogger().severe("状態取得中にエラー: " + e.getMessage());
-                e.printStackTrace();
-            }
-
-            plugin.getLogger().info("Bukkit.unloadWorld() 呼び出し中...");
-            boolean unloaded = Bukkit.unloadWorld(world, false);
-            plugin.getLogger().info("アンロード結果: " + (unloaded ? "成功" : "失敗"));
-
-            if (!unloaded) {
-                plugin.getLogger().severe("ワールドのアンロードに失敗しました");
-                try {
-                    plugin.getLogger().severe("残りのプレイヤー数: " + world.getPlayers().size());
-                    plugin.getLogger().severe("ロード済みチャンク数: " + world.getLoadedChunks().length);
-                } catch (Exception e) {
-                    plugin.getLogger().severe("エラー情報取得失敗: " + e.getMessage());
-                }
-                return false;
-            }
-            plugin.getLogger().info("ワールドアンロード成功");
-
-            // Delete only specific folders that contain world data
-            plugin.getLogger().info("Step 7: ワールドデータフォルダを削除");
-            File worldFolder = new File(Bukkit.getWorldContainer(), worldName);
-            plugin.getLogger().info("対象: " + worldFolder.getAbsolutePath());
-
-            // Delete only these specific folders to preserve server-managed files
-            String[] foldersToDelete = {"region", "entities", "poi", "data", "playerdata", "stats", "advancements", "DIM1", "DIM-1"};
-            for (String folderName : foldersToDelete) {
-                File folder = new File(worldFolder, folderName);
-                if (folder.exists()) {
-                    plugin.getLogger().info("  削除中: " + folderName);
-                    deleteDirectory(folder);
-                }
-            }
-
-            // Delete level.dat files
-            File levelDat = new File(worldFolder, "level.dat");
-            if (levelDat.exists()) {
-                levelDat.delete();
-                plugin.getLogger().info("  削除: level.dat");
-            }
-            File levelDatOld = new File(worldFolder, "level.dat_old");
-            if (levelDatOld.exists()) {
-                levelDatOld.delete();
-                plugin.getLogger().info("  削除: level.dat_old");
-            }
-
-            plugin.getLogger().info("削除完了");
-
-            // Copy backup to world folder
-            plugin.getLogger().info("Step 8: バックアップファイルをコピー中...");
-            copyDirectory(backupSource.toPath(), worldFolder.toPath());
-            plugin.getLogger().info("コピー完了");
-
-            // Wait for file system to fully sync
-            plugin.getLogger().info("Step 8.5: ファイルシステム同期待機中...");
-            try {
-                Thread.sleep(2000); // 2 seconds wait for file sync
-            } catch (InterruptedException e) {
-                plugin.getLogger().severe("待機中に例外が発生: " + e.getMessage());
-                e.printStackTrace();
-            }
-            plugin.getLogger().info("同期待機完了");
-
-            // Verify backup files were copied
-            File regionFolder = new File(worldFolder, "region");
-            if (regionFolder.exists()) {
-                int mcaCount = regionFolder.listFiles((dir, name) -> name.endsWith(".mca") && !name.contains(".backup")).length;
-                plugin.getLogger().info("検証: " + mcaCount + " 個のチャンクファイル (.mca) が確認されました");
-            } else {
-                plugin.getLogger().severe("エラー: regionフォルダが見つかりません！");
-            }
-
-            // Reload world
-            plugin.getLogger().info("Step 9: ワールドを再ロード中...");
-            org.bukkit.WorldCreator creator = new org.bukkit.WorldCreator(worldName);
-            creator.generateStructures(true);
-            World restoredWorld = Bukkit.createWorld(creator);
-            plugin.getLogger().info("再ロード完了: " + (restoredWorld != null ? "成功" : "失敗"));
-
-            // Preload spawn area to ensure chunks are ready
-            if (restoredWorld != null) {
-                plugin.getLogger().info("Step 10: スポーン周辺チャンクをプリロード中...");
-                org.bukkit.Location spawnLoc = restoredWorld.getSpawnLocation();
-                int centerChunkX = spawnLoc.getBlockX() >> 4;
-                int centerChunkZ = spawnLoc.getBlockZ() >> 4;
-
-                // Load a 5x5 chunk area around spawn (can adjust size if needed)
-                int loadedChunks = 0;
-                for (int x = -2; x <= 2; x++) {
-                    for (int z = -2; z <= 2; z++) {
-                        restoredWorld.getChunkAt(centerChunkX + x, centerChunkZ + z).load(true);
-                        loadedChunks++;
-                    }
-                }
-                plugin.getLogger().info("プリロード完了: " + loadedChunks + " チャンク");
-            }
-
-            plugin.getLogger().info("===== リアルタイムワールドの復元完了 =====");
-            return restoredWorld != null;
-
-        } catch (IOException e) {
-            plugin.getLogger().severe("IOExceptionが発生: " + e.getMessage());
-            e.printStackTrace();
-            return false;
+            return swapWorlds().get();
         } catch (Exception e) {
-            plugin.getLogger().severe("予期しない例外が発生: " + e.getMessage());
-            e.printStackTrace();
+            plugin.getLogger().severe("ワールド復元エラー: " + e.getMessage());
             return false;
         }
     }
 
-    private void copyDirectory(Path source, Path destination) throws IOException {
+    /**
+     * 旧APIとの互換性のため（saveWorldの代替）
+     */
+    public boolean saveWorld(World world) {
+        return saveMasterBackup(world);
+    }
+
+    /**
+     * 旧APIとの互換性のため（restoreWorldの代替）
+     */
+    public boolean restoreWorld(String worldName) {
+        return restoreWorldRealtime(worldName);
+    }
+
+    // ===== ユーティリティメソッド =====
+
+    private void copyDirectorySync(Path source, Path destination) throws IOException {
         Files.walkFileTree(source, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                // Skip session.lock files
-                if (dir.getFileName().toString().equals("session.lock")) {
+                String fileName = dir.getFileName().toString();
+                // session.lockとuid.datはスキップ
+                if (fileName.equals("session.lock") || fileName.equals("uid.dat")) {
                     return FileVisitResult.SKIP_SUBTREE;
                 }
 
@@ -323,8 +386,8 @@ public class WorldBackupManager {
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                // Skip session.lock and uid.dat files
                 String fileName = file.getFileName().toString();
+                // session.lockとuid.datはスキップ
                 if (fileName.equals("session.lock") || fileName.equals("uid.dat")) {
                     return FileVisitResult.CONTINUE;
                 }
@@ -336,7 +399,7 @@ public class WorldBackupManager {
         });
     }
 
-    private void deleteDirectory(File directory) {
+    private void deleteDirectorySync(File directory) {
         if (!directory.exists()) {
             return;
         }
@@ -344,8 +407,12 @@ public class WorldBackupManager {
         File[] files = directory.listFiles();
         if (files != null) {
             for (File file : files) {
+                // session.lockはスキップ（削除できない場合があるため）
+                if (file.getName().equals("session.lock")) {
+                    continue;
+                }
                 if (file.isDirectory()) {
-                    deleteDirectory(file);
+                    deleteDirectorySync(file);
                 } else {
                     file.delete();
                 }

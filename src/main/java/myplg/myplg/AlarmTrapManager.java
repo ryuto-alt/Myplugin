@@ -19,6 +19,7 @@ public class AlarmTrapManager {
     private final Map<String, Integer> teamAlarmLevel; // Team name -> Alarm level (0, 1, 2)
     private final Map<String, Boolean> teamAlarmTriggered; // Team name -> Already triggered (single use)
     private final int ALARM_RADIUS = 20; // 20 blocks
+    private final int ALARM_RADIUS_SQUARED = ALARM_RADIUS * ALARM_RADIUS;
     private Integer taskId = null;
 
     public AlarmTrapManager(PvPGame plugin) {
@@ -35,14 +36,14 @@ public class AlarmTrapManager {
             stopAlarmTask();
         }
 
-        // Check every 10 ticks (0.5 seconds) for enemies near beds
+        // Check every 20 ticks (1 second) for enemies near beds - 負荷軽減
         taskId = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             if (!plugin.getGameManager().isGameRunning()) {
                 return;
             }
 
             checkAllTraps();
-        }, 0L, 10L).getTaskId();
+        }, 0L, 20L).getTaskId();
     }
 
     /**
@@ -153,9 +154,9 @@ public class AlarmTrapManager {
                     continue;
                 }
 
-                // Check distance
-                double distance = player.getLocation().distance(bedLocation);
-                if (distance <= ALARM_RADIUS) {
+                // Check distance (squared for performance)
+                double distanceSquared = player.getLocation().distanceSquared(bedLocation);
+                if (distanceSquared <= ALARM_RADIUS_SQUARED) {
                     // Enemy detected! Trigger alarm
                     triggerAlarm(teamName, player, alarmLevel);
                     break; // Only trigger once

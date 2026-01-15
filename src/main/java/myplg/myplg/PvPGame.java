@@ -130,6 +130,9 @@ public final class PvPGame extends JavaPlugin {
 
             generatorDataManager.loadGenerators();
             getLogger().info("Generator data loading completed. Loaded " + generatorManager.getGenerators().size() + " generators.");
+
+            // Initialize world swap system
+            worldBackupManager.initialize();
         }, 40L); // 2 second delay to ensure world is fully loaded
 
         // Initialize commands
@@ -345,6 +348,11 @@ public final class PvPGame extends JavaPlugin {
         // Stop debug info display
         if (debugInfoDisplay != null) {
             debugInfoDisplay.stop();
+        }
+
+        // Reset debug GUI listener state (generator speeds, invincibility, etc.)
+        if (debugGUIListener != null) {
+            debugGUIListener.reset();
         }
 
         // Reset mob spawn listener

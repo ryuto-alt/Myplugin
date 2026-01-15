@@ -156,6 +156,42 @@ public class ShopTwoGUI {
         }
         inv.setItem(29, trap);
 
+        // スナイパー強化 (Sniper Enhancement) - Crossbow icon
+        int sniperLevel = plugin.getSniperUpgradeManager().getUpgradeLevel(player.getUniqueId());
+        ItemStack sniper = new ItemStack(Material.CROSSBOW);
+        ItemMeta sniperMeta = sniper.getItemMeta();
+        if (sniperMeta != null) {
+            sniperMeta.setDisplayName("§6§lスナイパー強化");
+
+            java.util.List<String> sniperLore = new java.util.ArrayList<>();
+            sniperLore.add("§7銃弾のダメージを強化");
+            sniperLore.add("");
+
+            // Lv I - 1.2x damage
+            if (sniperLevel >= 1) {
+                sniperLore.add("§9Lv I ダメージ1.2倍 §7(ダイヤ x5)");
+            } else {
+                sniperLore.add("§7Lv I ダメージ1.2倍 §7(ダイヤ x5)");
+            }
+
+            sniperLore.add("");
+
+            // Lv II - 1.5x damage
+            if (sniperLevel >= 2) {
+                sniperLore.add("§9Lv II ダメージ1.35倍 §7(ダイヤ x7)");
+            } else {
+                sniperLore.add("§7Lv II ダメージ1.35倍 §7(ダイヤ x7)");
+            }
+
+            sniperLore.add("");
+            sniperLore.add("§7※個人アップグレード（永久）");
+            sniperLore.add("§aクリックして購入");
+
+            sniperMeta.setLore(sniperLore);
+            sniper.setItemMeta(sniperMeta);
+        }
+        inv.setItem(31, sniper);
+
         player.openInventory(inv);
     }
 

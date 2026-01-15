@@ -89,7 +89,7 @@ public class ShopGUI {
             equipmentMeta.setDisplayName("§c§l装備");
             equipmentMeta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES);
             equipmentMeta.setLore(Arrays.asList(
-                "§7剣、弓、防具",
+                "§7剣、銃、防具",
                 "§aクリックして詳細を表示"
             ));
             equipment.setItemMeta(equipmentMeta);
@@ -206,10 +206,11 @@ public class ShopGUI {
         ItemStack jumpPotion = new ItemStack(Material.POTION);
         org.bukkit.inventory.meta.PotionMeta jumpMeta = (org.bukkit.inventory.meta.PotionMeta) jumpPotion.getItemMeta();
         if (jumpMeta != null) {
-            jumpMeta.setDisplayName("§f跳躍力上昇のポーション");
+            jumpMeta.setDisplayName("§f跳躍力上昇のポーション §7(Lv5)");
             jumpMeta.setLore(Arrays.asList(
                 "§7コスト: §aエメラルド 1個",
                 "§7効果時間: 1分間",
+                "§9跳躍力上昇 V",
                 "",
                 "§eクリックして購入！"
             ));
@@ -322,13 +323,13 @@ public class ShopGUI {
         inv.setItem(15, endStone);
 
         // Row 4: Second row of items (evenly spaced)
-        // Team colored Glass x4 for gold 10
+        // Team colored Glass x4 for gold 6
         ItemStack glass = new ItemStack(glassType, 4);
         ItemMeta glassMeta = glass.getItemMeta();
         if (glassMeta != null) {
             glassMeta.setDisplayName("§f" + woolColorName + "のガラス");
             glassMeta.setLore(Arrays.asList(
-                "§7コスト: §6ゴールド 10個",
+                "§7コスト: §6ゴールド 6個",
                 "",
                 "§eクリックして購入！"
             ));
@@ -442,66 +443,44 @@ public class ShopGUI {
         }
         inv.setItem(16, netheriteSword);
 
-        // Row 3: Bows and Arrows
-        // Bow
-        ItemStack bow = new ItemStack(Material.BOW);
-        ItemMeta bowMeta = bow.getItemMeta();
-        if (bowMeta != null) {
-            bowMeta.setDisplayName("§f弓");
-            bowMeta.setLore(Arrays.asList(
-                "§7コスト: §6ゴールド 10個",
+        // Row 3: Gun and Ammo
+        // Sniper Rifle
+        ItemStack gun = new ItemStack(Material.CROSSBOW);
+        ItemMeta gunMeta = gun.getItemMeta();
+        if (gunMeta != null) {
+            gunMeta.setDisplayName("§6§lスナイパーライフル");
+            gunMeta.setLore(Arrays.asList(
+                "§7コスト: §6ゴールド 20個",
+                "",
+                "§6ダメージ:",
+                "§c・ヘッドショット: §f11",
+                "§e・胴体: §f7",
+                "",
+                "§7左クリック: 射撃",
+                "§7クールダウン: 3秒",
+                "§8※持っている間鈍足",
                 "",
                 "§eクリックして購入！"
             ));
-            bow.setItemMeta(bowMeta);
+            gun.setItemMeta(gunMeta);
         }
-        inv.setItem(19, bow);
+        inv.setItem(21, gun);
 
-        // Bow with Knockback
-        ItemStack bowKnockback = new ItemStack(Material.BOW);
-        ItemMeta bowKnockbackMeta = bowKnockback.getItemMeta();
-        if (bowKnockbackMeta != null) {
-            bowKnockbackMeta.setDisplayName("§f弓 §7(ノックバック)");
-            bowKnockbackMeta.setLore(Arrays.asList(
-                "§7コスト: §6ゴールド 24個",
-                "§9ノックバック I",
+        // Ammo
+        ItemStack ammo = new ItemStack(Material.IRON_NUGGET, 3);
+        ItemMeta ammoMeta = ammo.getItemMeta();
+        if (ammoMeta != null) {
+            ammoMeta.setDisplayName("§e弾薬 x3");
+            ammoMeta.setLore(Arrays.asList(
+                "§7コスト: §6ゴールド 6個",
+                "§7スナイパーライフル用の弾薬",
+                "§71発につき1個消費",
                 "",
                 "§eクリックして購入！"
             ));
-            bowKnockbackMeta.addEnchant(org.bukkit.enchantments.Enchantment.PUNCH, 1, true);
-            bowKnockback.setItemMeta(bowKnockbackMeta);
+            ammo.setItemMeta(ammoMeta);
         }
-        inv.setItem(21, bowKnockback);
-
-        // Infinity Bow
-        ItemStack infinityBow = new ItemStack(Material.BOW);
-        ItemMeta infinityBowMeta = infinityBow.getItemMeta();
-        if (infinityBowMeta != null) {
-            infinityBowMeta.setDisplayName("§f弓 §7(無限)");
-            infinityBowMeta.setLore(Arrays.asList(
-                "§7コスト: §aエメラルド 1個",
-                "§9無限 - 矢が1本あれば無限に使用可能",
-                "",
-                "§eクリックして購入！"
-            ));
-            infinityBowMeta.addEnchant(org.bukkit.enchantments.Enchantment.INFINITY, 1, true);
-            infinityBow.setItemMeta(infinityBowMeta);
-        }
-        inv.setItem(23, infinityBow);
-
-        // Arrows
-        ItemStack arrows = new ItemStack(Material.ARROW, 8);
-        ItemMeta arrowsMeta = arrows.getItemMeta();
-        if (arrowsMeta != null) {
-            arrowsMeta.setDisplayName("§f矢 x8");
-            arrowsMeta.setLore(Arrays.asList(
-                "§7コスト: §6ゴールド 2個",
-                "",
-                "§eクリックして購入！"
-            ));
-            arrows.setItemMeta(arrowsMeta);
-        }
-        inv.setItem(25, arrows);
+        inv.setItem(23, ammo);
 
         // Row 4: Special items + Armor
         // Knockback Stick
@@ -637,10 +616,11 @@ public class ShopGUI {
         ItemStack jumpPotion = new ItemStack(Material.POTION);
         org.bukkit.inventory.meta.PotionMeta jumpMeta = (org.bukkit.inventory.meta.PotionMeta) jumpPotion.getItemMeta();
         if (jumpMeta != null) {
-            jumpMeta.setDisplayName("§f跳躍力上昇のポーション");
+            jumpMeta.setDisplayName("§f跳躍力上昇のポーション §7(Lv5)");
             jumpMeta.setLore(Arrays.asList(
                 "§7コスト: §aエメラルド 1個",
                 "§7効果時間: 1分間",
+                "§9跳躍力上昇 V",
                 "",
                 "§eクリックして購入！"
             ));
@@ -677,6 +657,7 @@ public class ShopGUI {
                 "",
                 "§eクリックして購入！"
             ));
+            bridgeEggMeta.setItemModel(org.bukkit.NamespacedKey.minecraft("bridgeegg"));
             bridgeEgg.setItemMeta(bridgeEggMeta);
         }
         inv.setItem(22, bridgeEgg);
@@ -1038,6 +1019,7 @@ public class ShopGUI {
                 "",
                 "§eクリックして購入！"
             ));
+            omegaLastMeta.setItemModel(org.bukkit.NamespacedKey.minecraft("last"));
             omegaLast.setItemMeta(omegaLastMeta);
         }
         inv.setItem(34, omegaLast);

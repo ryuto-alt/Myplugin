@@ -7,9 +7,9 @@ commands:
     description: チームのベッドを設定します
     usage: /setbed <チーム名>
     permission: pvpgame.admin
-  start:
-    description: ゲームを開始します
-    usage: /start
+  gamestart:
+    description: ゲームを開始します（本から呼び出し）
+    usage: /gamestart <solo|duo|triple|custom>
     permission: pvpgame.admin
   edit:
     description: ゲーム管理の本を入手します
@@ -59,6 +59,17 @@ commands:
     description: ロビーワールドに戻ります（ゲームワールドから）
     usage: /hub
     aliases: [lobby]
+  endmode:
+    description: ENDモードのボーダーを可視化します
+    usage: /endmode
+    permission: pvpgame.admin
+  endmodekill:
+    description: ENDモードのボーダーを強制消去します
+    usage: /endmodekill
+    permission: pvpgame.admin
+  test:
+    description: ホットリロードテスト用コマンド
+    usage: /test
 permissions:
   pvpgame.admin:
     description: PvPGameの管理コマンドを使用する権限

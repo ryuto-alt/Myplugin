@@ -1,11 +1,15 @@
 package myplg.myplg;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scoreboard.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
 public class ScoreboardManager {
@@ -15,7 +19,15 @@ public class ScoreboardManager {
     private int rainbowIndex = 0; // For rainbow animation
     private final String[] RAINBOW_COLORS = {"§c", "§6", "§e", "§a", "§b", "§9", "§d"}; // Red, Gold, Yellow, Green, Aqua, Blue, Pink
     private Integer updateTaskId = null; // Track the update task ID
+    private Integer bonusEmeraldCountdownTaskId = null; // Bonus emerald countdown task ID
     private int countdownSeconds = -1; // Countdown timer (-1 = disabled)
+    private int bonusEmeraldCountdownSeconds = -1; // Bonus emerald countdown (-1 = disabled)
+    private int bonusEmeraldLevel = 1; // 1 = I, 2 = II, 3 = III
+    private int gameElapsedSeconds = 0; // Track game elapsed time
+    private final Random random = new Random();
+
+    // Time threshold for bonus emerald II/III (10-15 minutes = 600-900 seconds, using 12 min = 720)
+    private static final int BONUS_EMERALD_UPGRADE_TIME = 720;
 
     public ScoreboardManager(PvPGame plugin) {
         this.plugin = plugin;
@@ -30,11 +42,79 @@ public class ScoreboardManager {
         // Cancel existing task if any
         stopUpdateTask();
 
-        // Start rainbow animation task (updates every 10 ticks = 0.5 seconds)
+        // Start rainbow animation task (updates every 20 ticks = 1 second) - 負荷軽減
         updateTaskId = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             rainbowIndex = (rainbowIndex + 1) % RAINBOW_COLORS.length;
             updateAllScoreboards();
-        }, 0L, 10L).getTaskId();
+        }, 0L, 20L).getTaskId();
+
+        // Reset game elapsed time
+        gameElapsedSeconds = 0;
+
+        // Initialize bonus emerald with random level and time
+        selectNextBonusEmerald();
+
+        // Start bonus emerald countdown task (updates every 20 ticks = 1 second)
+        bonusEmeraldCountdownTaskId = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            // Track game elapsed time
+            gameElapsedSeconds++;
+
+            if (bonusEmeraldCountdownSeconds > 0) {
+                bonusEmeraldCountdownSeconds--;
+            } else {
+                // Spawn bonus emeralds
+                spawnBonusEmeralds();
+                // Select next bonus emerald (random level and time)
+                selectNextBonusEmerald();
+            }
+        }, 20L, 20L).getTaskId();
+    }
+
+    /**
+     * Select next bonus emerald level and countdown time randomly
+     */
+    private void selectNextBonusEmerald() {
+        // Check if game is still in early phase (first 12 minutes)
+        if (gameElapsedSeconds < BONUS_EMERALD_UPGRADE_TIME) {
+            // Early game: only level I (1 emerald)
+            bonusEmeraldLevel = 1;
+            // I: 2-3 minutes (120-180 seconds)
+            bonusEmeraldCountdownSeconds = 120 + random.nextInt(61); // 120 to 180
+        } else {
+            // After 12 minutes: randomly select II or III
+            bonusEmeraldLevel = random.nextBoolean() ? 2 : 3;
+
+            // Set countdown based on level
+            if (bonusEmeraldLevel == 2) {
+                // II: 2-3 minutes (120-180 seconds)
+                bonusEmeraldCountdownSeconds = 120 + random.nextInt(61); // 120 to 180
+            } else {
+                // III: 4-5 minutes (240-300 seconds)
+                bonusEmeraldCountdownSeconds = 240 + random.nextInt(61); // 240 to 300
+            }
+        }
+    }
+
+    /**
+     * Spawn bonus emeralds at all emerald generator locations
+     */
+    private void spawnBonusEmeralds() {
+        int amount = bonusEmeraldLevel; // II = 2, III = 3
+
+        // Find all emerald generators and spawn bonus emeralds
+        for (Generator generator : plugin.getGeneratorManager().getGenerators().values()) {
+            if (generator.getMaterial() == Material.EMERALD) {
+                Location loc = generator.getCorner1().clone().add(0.5, 1.0, 0.5);
+                for (int i = 0; i < amount; i++) {
+                    org.bukkit.entity.Item item = loc.getWorld().dropItem(loc, new ItemStack(Material.EMERALD, 1));
+                    item.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+                }
+            }
+        }
+
+        // Broadcast message
+        String levelText = bonusEmeraldLevel == 1 ? "I" : (bonusEmeraldLevel == 2 ? "II" : "III");
+        Bukkit.broadcastMessage("§2§lエメラルド" + levelText + "§aが出現しました！");
     }
 
     /**
@@ -45,6 +125,11 @@ public class ScoreboardManager {
             Bukkit.getScheduler().cancelTask(updateTaskId);
             updateTaskId = null;
         }
+        if (bonusEmeraldCountdownTaskId != null) {
+            Bukkit.getScheduler().cancelTask(bonusEmeraldCountdownTaskId);
+            bonusEmeraldCountdownTaskId = null;
+        }
+        bonusEmeraldCountdownSeconds = -1;
     }
 
     /**
@@ -76,15 +161,13 @@ public class ScoreboardManager {
         // Title spacing
         objective.getScore(" ").setScore(score--);
 
-        // Display player's own team info
-        if (playerTeamName != null) {
-            Team playerTeam = plugin.getGameManager().getTeam(playerTeamName);
-            if (playerTeam != null) {
-                String prefix = getTeamPrefix(playerTeamName);
-                objective.getScore("§l§n自分のチーム:").setScore(score--);
-                objective.getScore(prefix + " §l" + playerTeamName).setScore(score--);
-                objective.getScore("   ").setScore(score--);
-            }
+        // Bonus emerald countdown display (at the top)
+        if (bonusEmeraldCountdownSeconds >= 0) {
+            int minutes = bonusEmeraldCountdownSeconds / 60;
+            int seconds = bonusEmeraldCountdownSeconds % 60;
+            String levelText = bonusEmeraldLevel == 1 ? "I" : (bonusEmeraldLevel == 2 ? "II" : "III");
+            objective.getScore("§2§lエメラルド" + levelText + " §7- §a" + String.format("%d:%02d", minutes, seconds)).setScore(score--);
+            objective.getScore("   ").setScore(score--);
         }
 
         // Teams section
@@ -126,13 +209,11 @@ public class ScoreboardManager {
                 status = "§c" + aliveCount;
             }
 
-            // Highlight player's own team
-            String teamDisplay = teamName;
-            if (teamName.equals(playerTeamName)) {
-                teamDisplay = "§l" + teamName + " §7(YOU)";
-            }
+            // Build the line with YOU indicator on the right side
+            String youIndicator = teamName.equals(playerTeamName) ? " §7YOU" : "";
+            String teamDisplay = teamName.equals(playerTeamName) ? "§l" + teamName : teamName;
 
-            String line = prefix + " " + teamDisplay + " " + status;
+            String line = prefix + " " + teamDisplay + " " + status + youIndicator;
             objective.getScore(line).setScore(score--);
         }
 

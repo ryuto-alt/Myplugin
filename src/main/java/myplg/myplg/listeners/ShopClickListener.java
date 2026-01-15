@@ -148,6 +148,12 @@ public class ShopClickListener implements Listener {
                 return;
             }
 
+            // Category button: Sniper Enhancement (スナイパー強化) - Shop 2
+            if (type == Material.CROSSBOW && displayName.contains("スナイパー強化")) {
+                handleSniperUpgradeClick(player);
+                return;
+            }
+
             // Category button: Blocks
             if (displayName.contains("ブロック") && amount == 1) {
                 shopGUI.openBlocksShop(player);
@@ -195,7 +201,7 @@ public class ShopClickListener implements Listener {
                     processPotionPurchase(player, Material.EMERALD, 2, org.bukkit.potion.PotionEffectType.INVISIBILITY, 30 * 20, 0);
                 } else if (potionName.contains("跳躍力")) {
                     // Jump boost potion
-                    processPotionPurchase(player, Material.EMERALD, 1, org.bukkit.potion.PotionEffectType.JUMP_BOOST, 60 * 20, 0);
+                    processPotionPurchase(player, Material.EMERALD, 1, org.bukkit.potion.PotionEffectType.JUMP_BOOST, 60 * 20, 4);
                 }
             }
         } else if (type == Material.GOLDEN_APPLE && amount == 1) {
@@ -236,9 +242,9 @@ public class ShopClickListener implements Listener {
         else if (type == Material.END_STONE && amount == 12) {
             processPurchase(player, Material.IRON_INGOT, 24, type, 12);
         }
-        // Team colored Glass x4 for gold 10
+        // Team colored Glass x4 for gold 6
         else if (type.toString().contains("STAINED_GLASS") && !type.toString().contains("PANE") && amount == 4) {
-            processPurchase(player, Material.GOLD_INGOT, 10, type, 4);
+            processPurchase(player, Material.GOLD_INGOT, 6, type, 4);
         }
         // Obsidian x4 for emerald 6
         else if (type == Material.OBSIDIAN && amount == 4) {
@@ -276,20 +282,15 @@ public class ShopClickListener implements Listener {
         } else if (type == Material.NETHERITE_SWORD) {
             processSwordPurchase(player, Material.EMERALD, 7, type);
         }
-        // Bows and Arrows
-        else if (type == Material.BOW && !hasEnchant) {
-            processPurchase(player, Material.GOLD_INGOT, 10, type, 1);
-        } else if (type == Material.BOW && hasEnchant) {
-            // Check enchantment type
-            if (clickedItem.getItemMeta().hasEnchant(org.bukkit.enchantments.Enchantment.PUNCH)) {
-                processEnchantedPurchase(player, Material.GOLD_INGOT, 24, Material.BOW,
-                    org.bukkit.enchantments.Enchantment.PUNCH, 1);
-            } else if (clickedItem.getItemMeta().hasEnchant(org.bukkit.enchantments.Enchantment.INFINITY)) {
-                processEnchantedPurchase(player, Material.EMERALD, 1, Material.BOW,
-                    org.bukkit.enchantments.Enchantment.INFINITY, 1);
-            }
-        } else if (type == Material.ARROW && amount == 8) {
-            processPurchase(player, Material.GOLD_INGOT, 2, type, 8);
+        // Gun and Ammo
+        else if (type == Material.CROSSBOW && clickedItem.hasItemMeta() &&
+                 clickedItem.getItemMeta().hasDisplayName() &&
+                 clickedItem.getItemMeta().getDisplayName().contains("スナイパーライフル")) {
+            processGunPurchase(player, Material.GOLD_INGOT, 20);
+        } else if (type == Material.IRON_NUGGET && clickedItem.hasItemMeta() &&
+                   clickedItem.getItemMeta().hasDisplayName() &&
+                   clickedItem.getItemMeta().getDisplayName().contains("弾薬")) {
+            processAmmoPurchase(player, Material.GOLD_INGOT, 6, 3);
         }
         // Knockback Stick
         else if (type == Material.STICK && hasEnchant) {
@@ -333,7 +334,7 @@ public class ShopClickListener implements Listener {
                 processPotionPurchase(player, Material.EMERALD, 2, org.bukkit.potion.PotionEffectType.INVISIBILITY, 30 * 20, 0);
             } else if (potionName.contains("跳躍力")) {
                 // Jump boost potion (1 minute, emerald 1)
-                processPotionPurchase(player, Material.EMERALD, 1, org.bukkit.potion.PotionEffectType.JUMP_BOOST, 60 * 20, 0);
+                processPotionPurchase(player, Material.EMERALD, 1, org.bukkit.potion.PotionEffectType.JUMP_BOOST, 60 * 20, 4);
             } else if (potionName.contains("移動速度")) {
                 // Speed potion (1 minute, emerald 1)
                 processPotionPurchase(player, Material.EMERALD, 1, org.bukkit.potion.PotionEffectType.SPEED, 60 * 20, 0);
@@ -571,6 +572,7 @@ public class ShopClickListener implements Listener {
                 "§7右クリックで投げると軌道上に羊毛を生成",
                 "§7最大距離: 25ブロック"
             ));
+            meta.setItemModel(org.bukkit.NamespacedKey.minecraft("bridgeegg"));
             bridgeEgg.setItemMeta(meta);
         }
 
@@ -817,6 +819,28 @@ public class ShopClickListener implements Listener {
             org.bukkit.inventory.meta.ItemMeta leggingsMeta = leggingsItem.getItemMeta();
             if (leggingsMeta != null) {
                 leggingsMeta.setUnbreakable(true);
+
+                // Nerf Netherite armor to be only ~6% better than Diamond
+                if (leggings == Material.NETHERITE_LEGGINGS) {
+                    // Reduce toughness from 3 to 2.15 (only ~7.5% better than Diamond's 2)
+                    org.bukkit.attribute.AttributeModifier toughnessModifier = new org.bukkit.attribute.AttributeModifier(
+                        org.bukkit.NamespacedKey.minecraft("armor_toughness"),
+                        -0.85,
+                        org.bukkit.attribute.AttributeModifier.Operation.ADD_NUMBER,
+                        org.bukkit.inventory.EquipmentSlotGroup.LEGS
+                    );
+                    leggingsMeta.addAttributeModifier(org.bukkit.attribute.Attribute.ARMOR_TOUGHNESS, toughnessModifier);
+
+                    // Reduce knockback resistance from 10% to 2.5% per piece (5% total for legs+boots)
+                    org.bukkit.attribute.AttributeModifier knockbackModifier = new org.bukkit.attribute.AttributeModifier(
+                        org.bukkit.NamespacedKey.minecraft("knockback_resistance"),
+                        -0.075, // Reduce from 0.1 to 0.025
+                        org.bukkit.attribute.AttributeModifier.Operation.ADD_NUMBER,
+                        org.bukkit.inventory.EquipmentSlotGroup.LEGS
+                    );
+                    leggingsMeta.addAttributeModifier(org.bukkit.attribute.Attribute.KNOCKBACK_RESISTANCE, knockbackModifier);
+                }
+
                 leggingsItem.setItemMeta(leggingsMeta);
             }
             if (armorLevel > 0) {
@@ -827,6 +851,28 @@ public class ShopClickListener implements Listener {
             org.bukkit.inventory.meta.ItemMeta bootsMeta = bootsItem.getItemMeta();
             if (bootsMeta != null) {
                 bootsMeta.setUnbreakable(true);
+
+                // Nerf Netherite armor for boots too
+                if (boots == Material.NETHERITE_BOOTS) {
+                    // Reduce toughness from 3 to 2.15
+                    org.bukkit.attribute.AttributeModifier toughnessModifier = new org.bukkit.attribute.AttributeModifier(
+                        org.bukkit.NamespacedKey.minecraft("armor_toughness"),
+                        -0.85,
+                        org.bukkit.attribute.AttributeModifier.Operation.ADD_NUMBER,
+                        org.bukkit.inventory.EquipmentSlotGroup.FEET
+                    );
+                    bootsMeta.addAttributeModifier(org.bukkit.attribute.Attribute.ARMOR_TOUGHNESS, toughnessModifier);
+
+                    // Reduce knockback resistance from 10% to 2.5% per piece
+                    org.bukkit.attribute.AttributeModifier knockbackModifier = new org.bukkit.attribute.AttributeModifier(
+                        org.bukkit.NamespacedKey.minecraft("knockback_resistance"),
+                        -0.075,
+                        org.bukkit.attribute.AttributeModifier.Operation.ADD_NUMBER,
+                        org.bukkit.inventory.EquipmentSlotGroup.FEET
+                    );
+                    bootsMeta.addAttributeModifier(org.bukkit.attribute.Attribute.KNOCKBACK_RESISTANCE, knockbackModifier);
+                }
+
                 bootsItem.setItemMeta(bootsMeta);
             }
             if (armorLevel > 0) {
@@ -934,6 +980,83 @@ public class ShopClickListener implements Listener {
         player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
     }
 
+    private void processGunPurchase(Player player, Material currency, int cost) {
+        // Check cooldown
+        long currentTime = System.currentTimeMillis();
+        Long lastPurchaseTime = purchaseCooldown.get(player.getUniqueId());
+
+        if (lastPurchaseTime != null && (currentTime - lastPurchaseTime) < COOLDOWN_MS) {
+            return;
+        }
+
+        // Check if player has enough currency
+        if (!hasEnoughItems(player, currency, cost)) {
+            player.sendMessage("§c購入に必要な通貨が不足しています！ 必要: " + getItemDisplayName(currency) + " x" + cost);
+            return;
+        }
+
+        // Remove currency from player's inventory
+        removeItems(player, currency, cost);
+
+        // Create gun item
+        ItemStack gun = myplg.myplg.listeners.GunListener.createGun();
+
+        // Check if player has space
+        java.util.HashMap<Integer, ItemStack> leftover = player.getInventory().addItem(gun);
+
+        if (!leftover.isEmpty()) {
+            // Return currency if inventory is full
+            player.getInventory().addItem(new ItemStack(currency, cost));
+            player.sendMessage("§cインベントリに空きがありません！");
+            return;
+        }
+
+        // Update cooldown
+        purchaseCooldown.put(player.getUniqueId(), currentTime);
+
+        // Play sound
+        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
+        player.sendMessage("§a§lスナイパーライフル §7を購入しました！");
+    }
+
+    private void processAmmoPurchase(Player player, Material currency, int cost, int ammoAmount) {
+        // Check cooldown
+        long currentTime = System.currentTimeMillis();
+        Long lastPurchaseTime = purchaseCooldown.get(player.getUniqueId());
+
+        if (lastPurchaseTime != null && (currentTime - lastPurchaseTime) < COOLDOWN_MS) {
+            return;
+        }
+
+        // Check if player has enough currency
+        if (!hasEnoughItems(player, currency, cost)) {
+            player.sendMessage("§c購入に必要な通貨が不足しています！ 必要: " + getItemDisplayName(currency) + " x" + cost);
+            return;
+        }
+
+        // Remove currency from player's inventory
+        removeItems(player, currency, cost);
+
+        // Create ammo item
+        ItemStack ammo = myplg.myplg.listeners.GunListener.createAmmo(ammoAmount);
+
+        // Check if player has space
+        java.util.HashMap<Integer, ItemStack> leftover = player.getInventory().addItem(ammo);
+
+        if (!leftover.isEmpty()) {
+            // Return currency if inventory is full
+            player.getInventory().addItem(new ItemStack(currency, cost));
+            player.sendMessage("§cインベントリに空きがありません！");
+            return;
+        }
+
+        // Update cooldown
+        purchaseCooldown.put(player.getUniqueId(), currentTime);
+
+        // Play sound
+        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
+    }
+
     private int countItems(Player player, Material material) {
         int count = 0;
         for (ItemStack item : player.getInventory().getContents()) {
@@ -945,6 +1068,11 @@ public class ShopClickListener implements Listener {
     }
 
     private boolean hasEnoughItems(Player player, Material material, int amount) {
+        // Debug mode: all items are free
+        if (plugin.getGameManager().isDebugMode()) {
+            return true;
+        }
+
         int count = 0;
         for (ItemStack item : player.getInventory().getContents()) {
             if (item != null && item.getType() == material) {
@@ -955,6 +1083,11 @@ public class ShopClickListener implements Listener {
     }
 
     private void removeItems(Player player, Material material, int amount) {
+        // Debug mode: don't remove any currency
+        if (plugin.getGameManager().isDebugMode()) {
+            return;
+        }
+
         int remaining = amount;
         Inventory inv = player.getInventory();
 
@@ -1158,6 +1291,9 @@ public class ShopClickListener implements Listener {
             if (nextLevel == 2) {
                 // Level 2: Upgrade generator speed (1.3x faster)
                 plugin.getGeneratorManager().upgradeTeamGenerators(teamName);
+            } else if (nextLevel == 3) {
+                // Level 3: Start emerald evolution (1 emerald every 6 minutes)
+                plugin.getGeneratorManager().startEmeraldEvolution(teamName);
             }
 
             // Broadcast to team
@@ -1341,6 +1477,61 @@ public class ShopClickListener implements Listener {
         }
     }
 
+    private void handleSniperUpgradeClick(Player player) {
+        // Get player's current upgrade level
+        int currentLevel = plugin.getSniperUpgradeManager().getUpgradeLevel(player.getUniqueId());
+        int nextLevel = currentLevel + 1;
+
+        // Check if max level reached
+        if (nextLevel > 2) {
+            player.sendMessage("§cスナイパー強化は既に最大レベルです！");
+            return;
+        }
+
+        // Determine cost based on level
+        int cost;
+        String upgradeName;
+        switch (nextLevel) {
+            case 1:
+                cost = 5;
+                upgradeName = "Lv I (1.2倍ダメージ)";
+                break;
+            case 2:
+                cost = 7;
+                upgradeName = "Lv II (1.35倍ダメージ)";
+                break;
+            default:
+                return;
+        }
+
+        // Check if player has enough diamonds
+        if (!hasEnoughItems(player, Material.DIAMOND, cost)) {
+            player.sendMessage("§c購入に必要な通貨が不足しています！ 必要: ダイヤ x" + cost);
+            return;
+        }
+
+        // Remove diamonds
+        removeItems(player, Material.DIAMOND, cost);
+
+        // Upgrade sniper damage
+        boolean success = plugin.getSniperUpgradeManager().upgradeSniper(player.getUniqueId(), nextLevel);
+
+        if (success) {
+            // Success message
+            player.sendMessage("§a§lスナイパー強化: " + upgradeName + " §aを購入しました！");
+            player.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_ANVIL_USE, 1.0f, 1.0f);
+
+            // Update GUI in real-time
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                plugin.getShopTwoGUI().openMainShop(player);
+            }, 1L);
+        } else {
+            // Refund if upgrade failed
+            player.getInventory().addItem(new ItemStack(Material.DIAMOND, cost));
+            player.sendMessage("§cアップグレードに失敗しました。");
+        }
+    }
+
     private String getItemDisplayName(Material material) {
         String name = material.toString().toLowerCase().replace("_", " ");
 
@@ -1432,10 +1623,46 @@ public class ShopClickListener implements Listener {
         }
 
         int currentLevel = plugin.getAlarmTrapManager().getAlarmLevel(teamName);
+        boolean isTriggered = plugin.getAlarmTrapManager().isAlarmTriggered(teamName);
 
-        // Check if already purchased
+        // Check if already purchased at same or higher level
         if (currentLevel >= level) {
-            player.sendMessage("§c既にこのアラームは購入済みです！");
+            // If same level and triggered, treat as reactivation
+            if (currentLevel == level && isTriggered) {
+                // Check if player has enough diamonds for reactivation
+                if (!hasEnoughItems(player, Material.DIAMOND, cost)) {
+                    player.sendMessage("§cダイヤモンドが足りません！ (必要: " + cost + "個)");
+                    player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
+                    return;
+                }
+
+                // Remove diamonds
+                removeItems(player, Material.DIAMOND, cost);
+
+                // Reactivate alarm
+                boolean success = plugin.getAlarmTrapManager().reactivateAlarm(teamName);
+                if (success) {
+                    // Notify team
+                    myplg.myplg.Team team = plugin.getGameManager().getTeam(teamName);
+                    if (team != null) {
+                        for (java.util.UUID memberUUID : team.getMembers()) {
+                            org.bukkit.entity.Player member = org.bukkit.Bukkit.getPlayer(memberUUID);
+                            if (member != null && member.isOnline()) {
+                                member.sendMessage("§a§l[再設置] §eアラーム Lv " + level + " §aを再設置しました！");
+                                member.playSound(member.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+                            }
+                        }
+                    }
+                    plugin.getShopTwoGUI().openTrapShop(player);
+                } else {
+                    player.sendMessage("§cアラームの再設置に失敗しました。");
+                    player.getInventory().addItem(new org.bukkit.inventory.ItemStack(Material.DIAMOND, cost));
+                }
+                return;
+            }
+
+            // Not triggered, already active
+            player.sendMessage("§c既にこのアラームは有効です！");
             player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
             return;
         }

@@ -135,7 +135,6 @@ public class GameSetupManager {
             final long delay = (5 - i) * 20L; // 0, 20, 40, 60, 80 ticks
 
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                // Title display
                 Component title = Component.text("§e§l" + count);
                 Component subtitle = Component.text("§7ゲーム開始まで...");
 
@@ -143,14 +142,11 @@ public class GameSetupManager {
                     title,
                     subtitle,
                     Title.Times.times(
-                        Duration.ofMillis(0),    // fade in
-                        Duration.ofMillis(1000), // stay
-                        Duration.ofMillis(250)   // fade out
+                        Duration.ofMillis(0),
+                        Duration.ofMillis(800),
+                        Duration.ofMillis(200)
                     )
                 );
-
-                // Broadcast and show title to all players
-                Bukkit.broadcastMessage("§e§l" + count + "...");
 
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     player.showTitle(countTitle);
@@ -159,8 +155,8 @@ public class GameSetupManager {
             }, delay);
         }
 
-        // Start game after countdown (at 6 seconds = 120 ticks)
-        Bukkit.getScheduler().runTaskLater(plugin, this::startGame, 120L);
+        // 1の直後にゲーム開始 (80 + 20 = 100 ticks = 5秒後)
+        Bukkit.getScheduler().runTaskLater(plugin, this::startGame, 100L);
     }
 
     /**
@@ -226,14 +222,6 @@ public class GameSetupManager {
         // Preload all team spawn chunks before teleporting
         preloadTeamSpawnChunks();
 
-        // Wait a bit to ensure chunks are fully loaded
-        try {
-            Thread.sleep(1000); // 1 second wait
-            plugin.getLogger().info("チャンク安定化待機完了");
-        } catch (InterruptedException e) {
-            plugin.getLogger().severe("待機中にエラー: " + e.getMessage());
-        }
-
         // Teleport players to their team spawns and give initial equipment
         teleportAndEquipPlayers();
 
@@ -273,52 +261,36 @@ public class GameSetupManager {
      * チームスポーンのチャンクをプリロード
      */
     private void preloadTeamSpawnChunks() {
-        plugin.getLogger().info("===== チームスポーンのチャンクをプリロード開始 =====");
+        int loadedTeams = 0;
         for (Team team : plugin.getGameManager().getTeams().values()) {
             org.bukkit.Location spawnLoc = team.getSpawnLocation();
-            if (spawnLoc != null) {
-                plugin.getLogger().info("チーム「" + team.getName() + "」のスポーン座標:");
-                plugin.getLogger().info("  World: " + (spawnLoc.getWorld() != null ? spawnLoc.getWorld().getName() : "null"));
-                plugin.getLogger().info("  X: " + spawnLoc.getX() + ", Y: " + spawnLoc.getY() + ", Z: " + spawnLoc.getZ());
-                plugin.getLogger().info("  Chunk: (" + (spawnLoc.getBlockX() >> 4) + ", " + (spawnLoc.getBlockZ() >> 4) + ")");
+            if (spawnLoc != null && spawnLoc.getWorld() != null) {
+                // Load 3x3 chunk area around spawn location
+                int centerChunkX = spawnLoc.getBlockX() >> 4;
+                int centerChunkZ = spawnLoc.getBlockZ() >> 4;
 
-                if (spawnLoc.getWorld() != null) {
-                    // Load 3x3 chunk area around spawn location for safety
-                    int centerChunkX = spawnLoc.getBlockX() >> 4;
-                    int centerChunkZ = spawnLoc.getBlockZ() >> 4;
-
-                    plugin.getLogger().info("  ロード開始: 3x3チャンク範囲");
-                    for (int dx = -1; dx <= 1; dx++) {
-                        for (int dz = -1; dz <= 1; dz++) {
-                            org.bukkit.Chunk chunk = spawnLoc.getWorld().getChunkAt(centerChunkX + dx, centerChunkZ + dz);
-                            chunk.load(true);
-                            chunk.setForceLoaded(true); // Keep chunk loaded
-                            plugin.getLogger().info("    チャンク (" + (centerChunkX + dx) + ", " + (centerChunkZ + dz) + ") ロード完了");
-                        }
+                for (int dx = -1; dx <= 1; dx++) {
+                    for (int dz = -1; dz <= 1; dz++) {
+                        org.bukkit.Chunk chunk = spawnLoc.getWorld().getChunkAt(centerChunkX + dx, centerChunkZ + dz);
+                        chunk.load(true);
+                        chunk.setForceLoaded(true);
                     }
-                    plugin.getLogger().info("  チーム「" + team.getName() + "」のチャンクロード完了");
-                } else {
-                    plugin.getLogger().severe("  エラー: ワールドがnullです！");
                 }
-            } else {
-                plugin.getLogger().warning("チーム「" + team.getName() + "」のスポーン座標がnullです");
+                loadedTeams++;
             }
         }
-        plugin.getLogger().info("===== チャンクプリロード完了 =====");
+        plugin.getLogger().info("チャンクプリロード完了: " + loadedTeams + " チーム");
     }
 
     /**
      * プレイヤーをテレポートして装備を付与
      */
     private void teleportAndEquipPlayers() {
-        plugin.getLogger().info("===== プレイヤーテレポート開始 =====");
+        int playerCount = 0;
         for (Player player : Bukkit.getOnlinePlayers()) {
             String teamName = plugin.getGameManager().getPlayerTeam(player.getUniqueId());
-            plugin.getLogger().info("プレイヤー「" + player.getName() + "」をチーム「" + teamName + "」にテレポート中...");
 
             plugin.getGameManager().teleportPlayerToTeamSpawn(player);
-
-            plugin.getLogger().info("  テレポート完了");
 
             // Give initial equipment
             giveInitialEquipment(player, teamName);
@@ -330,10 +302,9 @@ public class GameSetupManager {
 
             // Play start sound
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
-
-            plugin.getLogger().info("プレイヤー「" + player.getName() + "」の初期化完了");
+            playerCount++;
         }
-        plugin.getLogger().info("===== プレイヤーテレポート完了 =====");
+        plugin.getLogger().info("プレイヤー初期化完了: " + playerCount + " 人");
     }
 
     /**
@@ -397,22 +368,20 @@ public class GameSetupManager {
     }
 
     /**
-     * すべてのチェストとエンダーチェストをクリア
+     * ゲームワールドのチェストとプレイヤーのエンダーチェストをクリア
      */
     private void clearAllChests() {
         int chestCount = 0;
-        int enderChestCount = 0;
 
-        // Clear all chests in all worlds
-        for (org.bukkit.World world : Bukkit.getWorlds()) {
-            for (org.bukkit.Chunk chunk : world.getLoadedChunks()) {
+        // Clear chests in game world only
+        org.bukkit.World gameWorld = Bukkit.getWorld("world");
+        if (gameWorld != null) {
+            for (org.bukkit.Chunk chunk : gameWorld.getLoadedChunks()) {
                 for (org.bukkit.block.BlockState blockState : chunk.getTileEntities()) {
                     if (blockState instanceof org.bukkit.block.Chest) {
                         org.bukkit.block.Chest chest = (org.bukkit.block.Chest) blockState;
                         chest.getInventory().clear();
                         chestCount++;
-                    } else if (blockState instanceof org.bukkit.block.EnderChest) {
-                        enderChestCount++;
                     }
                 }
             }

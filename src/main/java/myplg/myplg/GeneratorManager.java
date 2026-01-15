@@ -14,12 +14,19 @@ public class GeneratorManager {
     private final Map<String, BukkitTask> generatorTasks;
     // Track bonus spawn credits for each generator (when team members are nearby)
     private final Map<String, Double> generatorBonusCredits;
+    // Track emerald evolution tasks for each team (level 3 upgrade)
+    private final Map<String, BukkitTask> emeraldEvolutionTasks;
+    private final Random random = new Random();
+
+    // Emerald evolution spawn interval: 6 minutes = 360 seconds = 7200 ticks
+    private static final int EMERALD_EVOLUTION_INTERVAL = 7200;
 
     public GeneratorManager(PvPGame plugin) {
         this.plugin = plugin;
         this.generators = new HashMap<>();
         this.generatorTasks = new HashMap<>();
         this.generatorBonusCredits = new HashMap<>();
+        this.emeraldEvolutionTasks = new HashMap<>();
     }
 
     public void addGenerator(String id, String teamName, Material material, Location corner1, Location corner2, int spawnInterval) {
@@ -101,6 +108,17 @@ public class GeneratorManager {
 
         // If upgrade is active, spawn 2 items instead of 1 (100% faster)
         int totalSpawns = hasNearbyUpgradedTeamMember ? 2 : 1;
+
+        // DUO mode bonus: 1.2x for iron and gold (20% chance to spawn extra)
+        Material mat = generator.getMaterial();
+        if (plugin.getGameManager().getGameMode() == GameMode.DUO) {
+            if (mat == Material.IRON_INGOT || mat == Material.GOLD_INGOT) {
+                // 20% chance to spawn an extra item
+                if (random.nextDouble() < 0.2) {
+                    totalSpawns++;
+                }
+            }
+        }
 
         for (int i = 0; i < totalSpawns; i++) {
             spawnSingleItem(generator);
@@ -192,6 +210,16 @@ public class GeneratorManager {
     }
 
     public void updateGeneratorInterval(String id, int newInterval) {
+        updateGeneratorInterval(id, newInterval, true);
+    }
+
+    /**
+     * ジェネレーターの間隔を更新
+     * @param id ジェネレーターID
+     * @param newInterval 新しい間隔（ticks）
+     * @param saveToFile trueならファイルに保存、falseなら一時的な変更（デバッグ用）
+     */
+    public void updateGeneratorInterval(String id, int newInterval, boolean saveToFile) {
         Generator generator = generators.get(id);
         if (generator != null) {
             generator.setSpawnInterval(newInterval);
@@ -201,9 +229,9 @@ public class GeneratorManager {
                 startGenerator(generator);
             }
 
-            plugin.getLogger().info("Updated generator interval: " + id + " -> " + newInterval + " ticks");
+            plugin.getLogger().info("Updated generator interval: " + id + " -> " + newInterval + " ticks" + (saveToFile ? "" : " (temporary)"));
 
-            if (plugin.getGeneratorDataManager() != null) {
+            if (saveToFile && plugin.getGeneratorDataManager() != null) {
                 plugin.getGeneratorDataManager().saveGenerators();
             }
         }
@@ -222,8 +250,83 @@ public class GeneratorManager {
         plugin.getLogger().info("Generators will now run 2x faster (spawn 2 items) when " + teamName + " members are nearby");
     }
 
+    /**
+     * Start emerald evolution spawning for a team (Level 3 upgrade)
+     * Spawns 1 emerald every 6 minutes at the team's iron generator
+     * @param teamName The team name
+     */
+    public void startEmeraldEvolution(String teamName) {
+        // Cancel existing task if any
+        stopEmeraldEvolution(teamName);
+
+        // Find the team's iron generator
+        Generator ironGenerator = null;
+        for (Generator generator : generators.values()) {
+            if (generator.getTeamName().equals(teamName) && generator.getMaterial() == Material.IRON_INGOT) {
+                ironGenerator = generator;
+                break;
+            }
+        }
+
+        if (ironGenerator == null) {
+            plugin.getLogger().warning("No iron generator found for team: " + teamName);
+            return;
+        }
+
+        final Generator targetGenerator = ironGenerator;
+
+        // Start emerald evolution task (spawn every 6 minutes)
+        BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            spawnEvolutionEmerald(targetGenerator);
+        }, EMERALD_EVOLUTION_INTERVAL, EMERALD_EVOLUTION_INTERVAL);
+
+        emeraldEvolutionTasks.put(teamName, task);
+        plugin.getLogger().info("Started emerald evolution for team: " + teamName + " (every 6 minutes)");
+    }
+
+    /**
+     * Stop emerald evolution for a team
+     * @param teamName The team name
+     */
+    public void stopEmeraldEvolution(String teamName) {
+        BukkitTask task = emeraldEvolutionTasks.remove(teamName);
+        if (task != null) {
+            task.cancel();
+            plugin.getLogger().info("Stopped emerald evolution for team: " + teamName);
+        }
+    }
+
+    /**
+     * Stop all emerald evolution tasks
+     */
+    public void stopAllEmeraldEvolution() {
+        for (String teamName : new ArrayList<>(emeraldEvolutionTasks.keySet())) {
+            stopEmeraldEvolution(teamName);
+        }
+    }
+
+    /**
+     * Spawn evolution emerald at a generator location
+     */
+    private void spawnEvolutionEmerald(Generator generator) {
+        double minY = Math.min(generator.getCorner1().getY(), generator.getCorner2().getY());
+        Location dropLocation = new Location(
+            generator.getCorner1().getWorld(),
+            generator.getCorner1().getBlockX() + 0.5,
+            minY + 1.0,
+            generator.getCorner1().getBlockZ() + 0.5
+        );
+
+        org.bukkit.entity.Item item = dropLocation.getWorld().dropItem(dropLocation, new ItemStack(Material.EMERALD, 1));
+        item.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+
+        plugin.getLogger().info("Spawned evolution emerald for team " + generator.getTeamName() + " at " +
+            String.format("(%.1f, %.1f, %.1f)", dropLocation.getX(), dropLocation.getY(), dropLocation.getZ()));
+    }
+
     public void reset() {
         stopAllGenerators();
+        stopAllEmeraldEvolution();
         generators.clear();
     }
 }

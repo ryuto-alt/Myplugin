@@ -62,6 +62,19 @@ public class ToolUpgradeManager {
     }
 
     /**
+     * Set the player's axe level directly (used for downgrade on death)
+     * @param playerUUID Player's UUID
+     * @param level Target level (0-4, 0 means no axe)
+     */
+    public void setAxeLevel(UUID playerUUID, int level) {
+        if (level <= 0) {
+            axeLevels.remove(playerUUID);
+        } else if (level <= 4) {
+            axeLevels.put(playerUUID, level);
+        }
+    }
+
+    /**
      * Upgrade the player's pickaxe to the next level
      * @param playerUUID Player's UUID
      * @param targetLevel Target level (1-4)
@@ -80,6 +93,19 @@ public class ToolUpgradeManager {
 
         pickaxeLevels.put(playerUUID, targetLevel);
         return true;
+    }
+
+    /**
+     * Set the player's pickaxe level directly (used for downgrade on death)
+     * @param playerUUID Player's UUID
+     * @param level Target level (0-4, 0 means no pickaxe)
+     */
+    public void setPickaxeLevel(UUID playerUUID, int level) {
+        if (level <= 0) {
+            pickaxeLevels.remove(playerUUID);
+        } else if (level <= 4) {
+            pickaxeLevels.put(playerUUID, level);
+        }
     }
 
     /**

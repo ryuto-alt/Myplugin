@@ -22,7 +22,7 @@ public class OmegaLastListener implements Listener {
     private final PvPGame plugin;
     private final OmegaLastGUI omegaLastGUI;
     private final Map<String, Long> teamCooldowns; // Team name -> cooldown end time
-    private static final long COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+    private static final long COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
     private static final double BED_RANGE = 10.0; // Must be within 10m of own bed
     private static final double EXPLOSION_RADIUS = 4.0;
     private static final double MAX_DAMAGE = 10.0; // 5 hearts
@@ -153,6 +153,9 @@ public class OmegaLastListener implements Listener {
     }
 
     private void executeOmegaLast(Player player, String playerTeamName, Team targetTeam, String targetTeamName) {
+        // Get start location (player's team bed) and target location (enemy bed)
+        Team playerTeam = plugin.getGameManager().getTeam(playerTeamName);
+        Location startLoc = playerTeam.getBedBlock().getLocation().clone().add(0.5, 1, 0.5);
         Location targetBedLoc = targetTeam.getBedBlock().getLocation().clone().add(0.5, 1, 0.5);
 
         // Broadcast warning to all players
@@ -163,24 +166,26 @@ public class OmegaLastListener implements Listener {
             p.playSound(p.getLocation(), "gamesound.warn", org.bukkit.SoundCategory.MASTER, 1.0f, 1.0f);
         }
 
-        // Play global alert sound for 5 seconds
+        // Visual effect on player during countdown
         new BukkitRunnable() {
             int ticks = 0;
 
             @Override
             public void run() {
-                if (ticks >= 100) { // 5 seconds = 100 ticks
+                if (ticks >= 60 || !player.isOnline()) { // 3 seconds countdown
                     this.cancel();
-                    // After 5 seconds, launch the player
-                    launchPlayer(player, targetBedLoc, targetTeamName);
                     return;
                 }
 
-                // Countdown messages
-                int secondsLeft = (100 - ticks) / 20;
-                if (ticks % 20 == 0 && secondsLeft > 0) {
+                // Particle effect around player (charging up)
+                player.getWorld().spawnParticle(Particle.FLAME, player.getLocation().add(0, 1, 0), 10, 0.5, 0.5, 0.5, 0.05);
+                player.getWorld().spawnParticle(Particle.PORTAL, player.getLocation().add(0, 1, 0), 5, 0.3, 0.5, 0.3, 0);
+
+                // Countdown messages every second
+                if (ticks % 20 == 0) {
+                    int secondsLeft = 3 - (ticks / 20);
                     for (Player p : Bukkit.getOnlinePlayers()) {
-                        p.sendMessage("§c§l" + secondsLeft + "秒後に" + playerTeamName + "が" + targetTeamName + "のベッドに突撃！");
+                        p.sendMessage("§c§l" + secondsLeft + "秒後に" + playerTeamName + "が" + targetTeamName + "のベッドを攻撃！");
                     }
                 }
 
@@ -188,117 +193,75 @@ public class OmegaLastListener implements Listener {
             }
         }.runTaskTimer(plugin, 0L, 1L);
 
-        // Visual effect on player during countdown
+        // After 3 seconds, launch the arc projectile effect
         new BukkitRunnable() {
-            int ticks = 0;
-
             @Override
             public void run() {
-                if (ticks >= 100 || !player.isOnline()) {
-                    this.cancel();
-                    return;
-                }
-
-                // Particle effect around player
-                player.getWorld().spawnParticle(Particle.FLAME, player.getLocation().add(0, 1, 0), 10, 0.5, 0.5, 0.5, 0.05);
-                player.getWorld().spawnParticle(Particle.PORTAL, player.getLocation().add(0, 1, 0), 5, 0.3, 0.5, 0.3, 0);
-
-                ticks++;
+                launchArcProjectile(player, startLoc, targetBedLoc, targetTeamName);
             }
-        }.runTaskTimer(plugin, 0L, 1L);
+        }.runTaskLater(plugin, 60L); // 3 seconds delay
     }
 
-    private void launchPlayer(Player player, Location targetLoc, String targetTeamName) {
-        if (!player.isOnline()) {
-            return;
-        }
-
-        Location startLoc = player.getLocation().clone();
-        Location finalTarget = targetLoc.clone().add(0, 10, 0); // 10 blocks above bed
-
-        // Play launch sound
-        player.playSound(player.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 2.0f, 0.5f);
+    private void launchArcProjectile(Player player, Location startLoc, Location targetLoc, String targetTeamName) {
+        // Play launch sound at start location
+        startLoc.getWorld().playSound(startLoc, Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 2.0f, 0.5f);
 
         // Broadcast launch message
         for (Player p : Bukkit.getOnlinePlayers()) {
-            p.sendMessage("§c§l" + player.getName() + "が" + targetTeamName + "のベッドに向けて発射！！");
+            p.sendMessage("§c§l💥 " + targetTeamName + "のベッドに向けてΩ-LAST発射！！ 💥");
         }
 
-        // Calculate total flight time (60 ticks = 3 seconds)
-        final int FLIGHT_DURATION = 60;
-        final double totalDistance = startLoc.distance(finalTarget);
+        // Calculate total flight time (40 ticks = 2 seconds)
+        final int FLIGHT_DURATION = 40;
 
-        // Flight animation - interpolate between start and target
+        // Arc projectile animation
         new BukkitRunnable() {
             int ticks = 0;
             Location lastLoc = startLoc.clone();
 
             @Override
             public void run() {
-                if (!player.isOnline()) {
-                    this.cancel();
-                    return;
-                }
-
                 ticks++;
 
                 // Calculate progress (0.0 to 1.0)
                 double progress = (double) ticks / FLIGHT_DURATION;
 
                 if (progress >= 1.0) {
-                    // Flight complete - teleport to final position above bed
+                    // Projectile reached target - trigger explosion
                     this.cancel();
-
-                    // Find safe landing spot above bed
-                    Location landingLoc = targetLoc.clone().add(0, 1, 0);
-                    player.teleport(landingLoc);
-
-                    // Small delay before explosion
-                    new BukkitRunnable() {
-                        @Override
-                        public void run() {
-                            if (player.isOnline()) {
-                                createExplosion(player.getLocation(), targetLoc);
-                            }
-                        }
-                    }.runTaskLater(plugin, 5L);
+                    createExplosion(targetLoc, targetLoc);
                     return;
                 }
 
-                // Use ease-in-out curve for smoother flight
-                double easedProgress = progress < 0.5
-                    ? 2 * progress * progress
-                    : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-
                 // Calculate arc height (parabolic arc, highest at middle)
-                double arcHeight = 30 * (1 - Math.pow(2 * progress - 1, 2)); // Max 30 blocks high
+                double arcHeight = 25 * (1 - Math.pow(2 * progress - 1, 2)); // Max 25 blocks high
 
                 // Interpolate position
-                double x = startLoc.getX() + (finalTarget.getX() - startLoc.getX()) * easedProgress;
-                double z = startLoc.getZ() + (finalTarget.getZ() - startLoc.getZ()) * easedProgress;
-                double baseY = startLoc.getY() + (finalTarget.getY() - startLoc.getY()) * easedProgress;
+                double x = startLoc.getX() + (targetLoc.getX() - startLoc.getX()) * progress;
+                double z = startLoc.getZ() + (targetLoc.getZ() - startLoc.getZ()) * progress;
+                double baseY = startLoc.getY() + (targetLoc.getY() - startLoc.getY()) * progress;
                 double y = baseY + arcHeight;
 
-                Location newLoc = new Location(player.getWorld(), x, y, z);
+                Location currentLoc = new Location(startLoc.getWorld(), x, y, z);
 
-                // Look towards target
-                Vector direction = targetLoc.toVector().subtract(newLoc.toVector()).normalize();
-                newLoc.setDirection(direction);
-
-                // Teleport player
-                player.teleport(newLoc);
-
-                // Trail particles at previous location
-                player.getWorld().spawnParticle(Particle.FLAME, lastLoc, 8, 0.2, 0.2, 0.2, 0.05);
-                player.getWorld().spawnParticle(Particle.SMOKE, lastLoc, 5, 0.1, 0.1, 0.1, 0.02);
-
-                // Rocket particles around player
+                // Spawn explosion particles along the arc - "ばばばばばばん！" effect
                 if (ticks % 2 == 0) {
-                    player.getWorld().spawnParticle(Particle.FIREWORK, player.getLocation(), 3, 0.3, 0.3, 0.3, 0.1);
-                    player.playSound(player.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 0.3f, 1.5f);
+                    // Main fireball particles
+                    currentLoc.getWorld().spawnParticle(Particle.FLAME, currentLoc, 20, 0.3, 0.3, 0.3, 0.1);
+                    currentLoc.getWorld().spawnParticle(Particle.LAVA, currentLoc, 5, 0.2, 0.2, 0.2, 0);
+                    currentLoc.getWorld().spawnParticle(Particle.SMOKE, currentLoc, 10, 0.2, 0.2, 0.2, 0.05);
+
+                    // Small explosions along the path
+                    currentLoc.getWorld().spawnParticle(Particle.EXPLOSION, currentLoc, 1, 0, 0, 0, 0);
+
+                    // Sound effect - rapid fire explosions
+                    currentLoc.getWorld().playSound(currentLoc, Sound.ENTITY_FIREWORK_ROCKET_BLAST, 1.0f, 1.2f);
                 }
 
-                lastLoc = newLoc.clone();
+                // Trail particles from last position
+                currentLoc.getWorld().spawnParticle(Particle.FIREWORK, lastLoc, 5, 0.1, 0.1, 0.1, 0.05);
+
+                lastLoc = currentLoc.clone();
             }
         }.runTaskTimer(plugin, 0L, 1L);
     }
@@ -350,22 +313,28 @@ public class OmegaLastListener implements Listener {
     }
 
     private void destroyBlocksAroundBed(Location center) {
-        int radius = 3; // Destroy blocks within 3 block radius
+        // 破壊範囲: 2x2x2エリア (X: 0~1, Y: 0~1, Z: 0~1)
+        // ベッドの周囲を2x2x2で破壊（ガラスは除く）
 
-        for (int x = -radius; x <= radius; x++) {
-            for (int y = -radius; y <= radius; y++) {
-                for (int z = -radius; z <= radius; z++) {
+        for (int x = 0; x <= 1; x++) {
+            for (int y = 0; y <= 1; y++) {
+                for (int z = 0; z <= 1; z++) {
                     Location blockLoc = center.clone().add(x, y, z);
                     Block block = blockLoc.getBlock();
+
+                    // Skip glass blocks - cannot be destroyed by Ω-LAST
+                    if (isGlassBlock(block.getType())) {
+                        continue;
+                    }
 
                     // Only destroy player-placed blocks (not the bed itself or natural terrain)
                     if (BlockPlaceListener.isPlayerPlaced(block)) {
                         // Explosion particle for each destroyed block
-                        block.getWorld().spawnParticle(Particle.BLOCK, 
-                            blockLoc.add(0.5, 0.5, 0.5), 
-                            10, 
-                            0.3, 0.3, 0.3, 
-                            0.1, 
+                        block.getWorld().spawnParticle(Particle.BLOCK,
+                            blockLoc.clone().add(0.5, 0.5, 0.5),
+                            10,
+                            0.3, 0.3, 0.3,
+                            0.1,
                             block.getBlockData());
 
                         // Remove the block
@@ -375,6 +344,14 @@ public class OmegaLastListener implements Listener {
                 }
             }
         }
+    }
+
+    /**
+     * Check if a material is a type of glass
+     */
+    private boolean isGlassBlock(Material material) {
+        String name = material.name();
+        return name.contains("GLASS");
     }
 
     private void removeOmegaLastItem(Player player) {
@@ -419,15 +396,21 @@ public class OmegaLastListener implements Listener {
         if (meta != null) {
             meta.setDisplayName("§c§lΩ-LAST");
             meta.setLore(Arrays.asList(
-                "§7敵チームのベッドに突撃する",
-                "§7最終兵器",
+                "§7敵チームのベッド囲いを破壊する",
+                "§7アーチ状の爆破攻撃",
                 "",
                 "§c⚠ 使用条件:",
                 "§7・自分のベッドから10m以内",
-                "§7・チーム毎に10分のクールダウン",
+                "§7・チーム毎に5分のクールダウン",
+                "",
+                "§6効果:",
+                "§7・ベッド周り2x2x2を破壊",
+                "§7・ガラスは破壊不可",
                 "",
                 "§e右クリックで使用"
             ));
+            // 1.21.4+ item_model component
+            meta.setItemModel(org.bukkit.NamespacedKey.minecraft("last"));
             item.setItemMeta(meta);
         }
         return item;

@@ -9,32 +9,21 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
 
-/**
- * デバッグモード中のサーバー情報表示
- * アクションバーにTPS, MSPT, メモリ, Pingを表示
- */
 public class DebugInfoDisplay {
 
     private final PvPGame plugin;
     private BukkitTask displayTask;
-    private BukkitTask tpsTask;
 
-    // TPS計算用
-    private long lastTickTime;
-    private double[] tpsHistory = new double[20]; // 直近20秒分
-    private int tpsIndex = 0;
-    private double currentTps = 20.0;
-    private double currentMspt = 0.0;
-
-    // tick計測用
+    // TPS計算用（システム時間ベース - 毎tick実行不要）
     private long lastPollTime;
-    private int tickCount;
+    private long lastTickCount;
+    private double currentTps = 20.0;
+    private double currentMspt = 50.0;
 
     public DebugInfoDisplay(PvPGame plugin) {
         this.plugin = plugin;
-        this.lastTickTime = System.nanoTime();
         this.lastPollTime = System.currentTimeMillis();
-        this.tickCount = 0;
+        this.lastTickCount = 0;
     }
 
     /**
@@ -45,46 +34,29 @@ public class DebugInfoDisplay {
             return; // 既に実行中
         }
 
-        // TPS計測タスク（毎tick実行）
-        tpsTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            long now = System.nanoTime();
-            long diff = now - lastTickTime;
-            lastTickTime = now;
+        lastPollTime = System.currentTimeMillis();
+        lastTickCount = Bukkit.getCurrentTick();
 
-            // MSPT計算（ナノ秒→ミリ秒）
-            currentMspt = diff / 1_000_000.0;
-
-            tickCount++;
-        }, 1L, 1L);
-
-        // 表示更新タスク（1秒ごと）
+        // 表示更新タスク（1秒ごと）- TPS計算もここで行う
         displayTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            // TPS計算
+            // TPS計算（システム時間ベース）
             long now = System.currentTimeMillis();
+            long currentTickCount = Bukkit.getCurrentTick();
             long elapsed = now - lastPollTime;
-            
-            if (elapsed > 0) {
-                // 実際のTPS = (tickCount / 経過秒数)
-                double measuredTps = (tickCount * 1000.0) / elapsed;
-                if (measuredTps > 20.0) measuredTps = 20.0; // 上限20
-                
-                tpsHistory[tpsIndex] = measuredTps;
-                tpsIndex = (tpsIndex + 1) % tpsHistory.length;
-                
-                // 平均TPS計算
-                double sum = 0;
-                int count = 0;
-                for (double tps : tpsHistory) {
-                    if (tps > 0) {
-                        sum += tps;
-                        count++;
-                    }
-                }
-                currentTps = count > 0 ? sum / count : 20.0;
+            long ticksElapsed = currentTickCount - lastTickCount;
+
+            if (elapsed > 0 && ticksElapsed > 0) {
+                // 実際のTPS = (経過tick / 経過秒数)
+                double measuredTps = (ticksElapsed * 1000.0) / elapsed;
+                if (measuredTps > 20.0) measuredTps = 20.0;
+                currentTps = measuredTps;
+
+                // MSPT = 経過時間 / 経過tick
+                currentMspt = (double) elapsed / ticksElapsed;
             }
-            
+
             lastPollTime = now;
-            tickCount = 0;
+            lastTickCount = currentTickCount;
 
             // デバッグモード中の全プレイヤーに表示
             if (plugin.getGameManager().isDebugMode()) {
@@ -101,10 +73,6 @@ public class DebugInfoDisplay {
      * 表示を停止
      */
     public void stop() {
-        if (tpsTask != null) {
-            tpsTask.cancel();
-            tpsTask = null;
-        }
         if (displayTask != null) {
             displayTask.cancel();
             displayTask = null;
@@ -156,53 +124,35 @@ public class DebugInfoDisplay {
         player.sendActionBar(Component.text(sb.toString()));
     }
 
-    /**
-     * TPS値に応じた色を取得
-     */
     private String getTpsColor(double tps) {
-        if (tps >= 19.0) return "§a"; // 緑: 良好
-        if (tps >= 15.0) return "§e"; // 黄: 注意
-        return "§c"; // 赤: 問題
+        if (tps >= 19.0) return "§a";
+        if (tps >= 15.0) return "§e";
+        return "§c";
     }
 
-    /**
-     * MSPT値に応じた色を取得
-     */
     private String getMsptColor(double mspt) {
-        if (mspt < 30) return "§a";  // 緑: 良好
-        if (mspt < 50) return "§e";  // 黄: 注意
-        return "§c"; // 赤: 問題（50ms超えるとラグ）
+        if (mspt < 30) return "§a";
+        if (mspt < 50) return "§e";
+        return "§c";
     }
 
-    /**
-     * メモリ使用率に応じた色を取得
-     */
     private String getMemoryColor(int percent) {
-        if (percent < 70) return "§a";  // 緑: 余裕あり
-        if (percent < 85) return "§e";  // 黄: やや多い
-        return "§c"; // 赤: 危険
+        if (percent < 70) return "§a";
+        if (percent < 85) return "§e";
+        return "§c";
     }
 
-    /**
-     * Ping値に応じた色を取得
-     */
     private String getPingColor(int ping) {
-        if (ping < 50) return "§a";   // 緑: 良好
-        if (ping < 100) return "§e";  // 黄: 普通
-        if (ping < 200) return "§6";  // オレンジ: やや遅い
-        return "§c"; // 赤: 遅い
+        if (ping < 50) return "§a";
+        if (ping < 100) return "§e";
+        if (ping < 200) return "§6";
+        return "§c";
     }
 
-    /**
-     * 現在のTPSを取得
-     */
     public double getCurrentTps() {
         return currentTps;
     }
 
-    /**
-     * 現在のMSPTを取得
-     */
     public double getCurrentMspt() {
         return currentMspt;
     }

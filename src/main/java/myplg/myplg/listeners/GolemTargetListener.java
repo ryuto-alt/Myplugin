@@ -22,6 +22,7 @@ import java.util.List;
 public class GolemTargetListener implements Listener {
     private final PvPGame plugin;
     private static final double MAX_DETECTION_RANGE = 10.0; // Maximum detection range from spawn point
+    private static final double MAX_DETECTION_RANGE_SQUARED = MAX_DETECTION_RANGE * MAX_DETECTION_RANGE;
 
     public GolemTargetListener(PvPGame plugin) {
         this.plugin = plugin;
@@ -38,27 +39,28 @@ public class GolemTargetListener implements Listener {
                 return;
             }
 
-            // Check all Iron Golems
-            for (org.bukkit.World world : Bukkit.getWorlds()) {
-                for (IronGolem golem : world.getEntitiesByClass(IronGolem.class)) {
-                    // Check if golem has owner team metadata
-                    List<MetadataValue> metadata = golem.getMetadata("ownerTeam");
-                    if (metadata == null || metadata.isEmpty()) {
-                        continue;
-                    }
+            // Check all Iron Golems in game world only - 負荷軽減
+            org.bukkit.World gameWorld = Bukkit.getWorld("world");
+            if (gameWorld == null) return;
+            
+            for (IronGolem golem : gameWorld.getEntitiesByClass(IronGolem.class)) {
+                // Check if golem has owner team metadata
+                List<MetadataValue> metadata = golem.getMetadata("ownerTeam");
+                if (metadata == null || metadata.isEmpty()) {
+                    continue;
+                }
 
-                    String ownerTeam = metadata.get(0).asString();
-                    if (ownerTeam == null) {
-                        continue;
-                    }
+                String ownerTeam = metadata.get(0).asString();
+                if (ownerTeam == null) {
+                    continue;
+                }
 
-                    // If golem doesn't have a target, search for enemies
-                    if (golem.getTarget() == null) {
-                        findEnemyNearSpawn(golem, ownerTeam);
-                    }
+                // If golem doesn't have a target, search for enemies
+                if (golem.getTarget() == null) {
+                    findEnemyNearSpawn(golem, ownerTeam);
                 }
             }
-        }, 0L, 20L); // Run every second
+        }, 0L, 40L); // 2秒毎に変更 - 負荷軽減 // Run every second
     }
 
     @EventHandler
@@ -102,9 +104,9 @@ public class GolemTargetListener implements Listener {
                 return;
             }
 
-            // Check if target is within 10 blocks of spawn point
+            // Check if target is within 10 blocks of spawn point (squared for performance)
             Location spawnLoc = getSpawnLocation(golem);
-            if (spawnLoc != null && targetPlayer.getLocation().distance(spawnLoc) > MAX_DETECTION_RANGE) {
+            if (spawnLoc != null && targetPlayer.getLocation().distanceSquared(spawnLoc) > MAX_DETECTION_RANGE_SQUARED) {
                 event.setCancelled(true);
                 // Try to find a closer enemy
                 findEnemyNearSpawn(golem, ownerTeam);
@@ -144,7 +146,7 @@ public class GolemTargetListener implements Listener {
 
         // Find enemy players within 10 blocks of spawn location
         Player closestEnemy = null;
-        double closestDistance = Double.MAX_VALUE;
+        double closestDistance = Double.MAX_VALUE; // Using squared distance
 
         for (Player player : Bukkit.getOnlinePlayers()) {
             // Skip if player has invisibility effect
@@ -164,11 +166,11 @@ public class GolemTargetListener implements Listener {
                 continue;
             }
 
-            // Check distance to spawn location
-            double distance = player.getLocation().distance(spawnLoc);
-            if (distance <= MAX_DETECTION_RANGE && distance < closestDistance) {
+            // Check distance to spawn location (squared for performance)
+            double distanceSquared = player.getLocation().distanceSquared(spawnLoc);
+            if (distanceSquared <= MAX_DETECTION_RANGE_SQUARED && distanceSquared < closestDistance) {
                 closestEnemy = player;
-                closestDistance = distance;
+                closestDistance = distanceSquared;
             }
         }
 

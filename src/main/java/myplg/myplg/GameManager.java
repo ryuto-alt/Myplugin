@@ -12,6 +12,7 @@ public class GameManager {
     private final Map<UUID, String> playerTeams;
     private boolean gameRunning;
     private myplg.myplg.GameMode currentGameMode;
+    private boolean debugMode;
 
     public GameManager(PvPGame plugin) {
         this.plugin = plugin;
@@ -19,6 +20,7 @@ public class GameManager {
         this.playerTeams = new HashMap<>();
         this.gameRunning = false;
         this.currentGameMode = myplg.myplg.GameMode.SOLO; // Default mode
+        this.debugMode = false;
     }
 
     public void addTeam(Team team) {
@@ -63,6 +65,19 @@ public class GameManager {
     public void setGameMode(myplg.myplg.GameMode mode) {
         this.currentGameMode = mode;
         plugin.getLogger().info("Game mode set to: " + mode.getDisplayName());
+    }
+
+    public boolean isDebugMode() {
+        return debugMode;
+    }
+
+    public void setDebugMode(boolean debug) {
+        this.debugMode = debug;
+        if (debug) {
+            plugin.getLogger().info("Debug mode ENABLED - shops are free!");
+        } else {
+            plugin.getLogger().info("Debug mode disabled");
+        }
     }
 
     public void assignPlayersToTeams(List<Player> players) {
@@ -166,5 +181,6 @@ public class GameManager {
         teams.clear();
         playerTeams.clear();
         gameRunning = false;
+        debugMode = false;
     }
 }

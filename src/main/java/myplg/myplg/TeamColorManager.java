@@ -57,8 +57,15 @@ public class TeamColorManager {
             scoreboardTeam.addEntry(player.getName());
         }
 
-        // Set player list name (TAB list) with team color
-        player.setPlayerListName(color + player.getName());
+        // Set player list name (TAB list) with team color and admin/staff prefix if applicable
+        // Priority: Admin > Staff > Normal
+        String rolePrefix = "";
+        if (AdminUtil.isAdmin(player)) {
+            rolePrefix = AdminUtil.ADMIN_PREFIX;
+        } else if (StaffUtil.isStaff(player)) {
+            rolePrefix = StaffUtil.STAFF_PREFIX;
+        }
+        player.setPlayerListName(rolePrefix + color + player.getName());
 
         // Apply to all other players' scoreboards so they see the color
         for (Player otherPlayer : Bukkit.getOnlinePlayers()) {

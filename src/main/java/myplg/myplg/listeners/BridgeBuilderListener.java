@@ -22,7 +22,7 @@ import java.util.UUID;
 
 public class BridgeBuilderListener implements Listener {
     private final PvPGame plugin;
-    private static final int MAX_BRIDGE_LENGTH = 15;
+    private static final int MAX_BRIDGE_LENGTH = 25;
     private final Set<UUID> trackedEggs = new HashSet<>();
 
     public BridgeBuilderListener(PvPGame plugin) {
@@ -56,6 +56,9 @@ public class BridgeBuilderListener implements Listener {
                 player.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
             }
 
+            // Remember player's starting location
+            Location startLoc = player.getLocation().clone();
+
             // Launch egg and track its trajectory
             Egg egg = player.launchProjectile(Egg.class);
             egg.setVelocity(player.getLocation().getDirection().multiply(1.5));
@@ -64,15 +67,36 @@ public class BridgeBuilderListener implements Listener {
             egg.setMetadata("bridgeWool", new FixedMetadataValue(plugin, woolType.name()));
             trackedEggs.add(egg.getUniqueId());
 
-            // Track egg trajectory and place blocks
-            trackEggAndBuild(egg, woolType);
+            // Track egg trajectory and place blocks (starts after 0.7s, 2 blocks away)
+            trackEggAndBuild(egg, woolType, startLoc);
         }
     }
 
-    private void trackEggAndBuild(Egg egg, Material woolType) {
+    private void trackEggAndBuild(Egg egg, Material woolType, Location startLoc) {
+        // プレイヤーの向き（水平方向）
+        org.bukkit.util.Vector direction = startLoc.getDirection().setY(0).normalize();
+
+        // 最初のブロック：プレイヤーの2ブロック先に置く
+        Location firstBlockLoc = startLoc.clone().add(direction.clone().multiply(2));
+        firstBlockLoc.setY(startLoc.getBlockY() - 1);
+        Block firstBlock = firstBlockLoc.getBlock();
+
+        if (firstBlock.getType() == Material.AIR ||
+            firstBlock.getType() == Material.WATER ||
+            firstBlock.getType() == Material.LAVA ||
+            firstBlock.getType() == Material.CAVE_AIR ||
+            firstBlock.getType() == Material.VOID_AIR) {
+
+            firstBlock.setType(woolType);
+            BlockPlaceListener.addPlayerPlacedBlock(firstBlock);
+            firstBlock.getWorld().playSound(firstBlock.getLocation(),
+                org.bukkit.Sound.BLOCK_WOOL_PLACE, 0.5f, 1.0f);
+        }
+
+        // その後は卵の軌道を追跡
         new BukkitRunnable() {
-            int blocksPlaced = 0;
-            Location lastBlockLoc = null;
+            int blocksPlaced = 1; // 最初の1ブロックはカウント済み
+            Location lastBlockLoc = firstBlockLoc.clone();
 
             @Override
             public void run() {
@@ -83,36 +107,43 @@ public class BridgeBuilderListener implements Listener {
                     return;
                 }
 
-                // Get current egg location
+                // 卵の現在位置
                 Location eggLoc = egg.getLocation();
 
-                // Get block below the egg (where we place wool)
-                Block blockBelow = eggLoc.clone().add(0, -1, 0).getBlock();
+                // 卵が開始位置より5ブロック以上下に落ちたら終了
+                if (eggLoc.getY() < startLoc.getY() - 5) {
+                    trackedEggs.remove(egg.getUniqueId());
+                    this.cancel();
+                    return;
+                }
 
-                // Check if this is a new block position
-                if (lastBlockLoc == null ||
-                    blockBelow.getX() != lastBlockLoc.getBlockX() ||
-                    blockBelow.getY() != lastBlockLoc.getBlockY() ||
-                    blockBelow.getZ() != lastBlockLoc.getBlockZ()) {
+                // 卵の1ブロック下にブロックを置く（卵の軌道に沿う）
+                Block targetBlock = eggLoc.clone().add(0, -1, 0).getBlock();
 
-                    // Only place if the block is air or replaceable
-                    if (blockBelow.getType() == Material.AIR ||
-                        blockBelow.getType() == Material.WATER ||
-                        blockBelow.getType() == Material.LAVA ||
-                        blockBelow.getType() == Material.CAVE_AIR ||
-                        blockBelow.getType() == Material.VOID_AIR) {
+                // 同じブロックには置かない
+                if (targetBlock.getX() == lastBlockLoc.getBlockX() &&
+                    targetBlock.getY() == lastBlockLoc.getBlockY() &&
+                    targetBlock.getZ() == lastBlockLoc.getBlockZ()) {
+                    return;
+                }
 
-                        blockBelow.setType(woolType);
-                        BlockPlaceListener.addPlayerPlacedBlock(blockBelow);
-                        blockBelow.getWorld().playSound(blockBelow.getLocation(),
-                            org.bukkit.Sound.BLOCK_WOOL_PLACE, 0.5f, 1.0f);
+                // Only place if the block is air or replaceable
+                if (targetBlock.getType() == Material.AIR ||
+                    targetBlock.getType() == Material.WATER ||
+                    targetBlock.getType() == Material.LAVA ||
+                    targetBlock.getType() == Material.CAVE_AIR ||
+                    targetBlock.getType() == Material.VOID_AIR) {
 
-                        blocksPlaced++;
-                        lastBlockLoc = blockBelow.getLocation();
-                    }
+                    targetBlock.setType(woolType);
+                    BlockPlaceListener.addPlayerPlacedBlock(targetBlock);
+                    targetBlock.getWorld().playSound(targetBlock.getLocation(),
+                        org.bukkit.Sound.BLOCK_WOOL_PLACE, 0.5f, 1.0f);
+
+                    blocksPlaced++;
+                    lastBlockLoc = targetBlock.getLocation();
                 }
             }
-        }.runTaskTimer(plugin, 0L, 1L); // Check every tick
+        }.runTaskTimer(plugin, 1L, 1L); // すぐ開始、毎tick実行
     }
 
     @EventHandler

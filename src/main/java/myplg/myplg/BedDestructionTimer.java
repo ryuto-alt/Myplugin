@@ -131,6 +131,9 @@ public class BedDestructionTimer {
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.playSound(player.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1.0f, 1.0f);
         }
+
+        // ENDモードのチェック（全ベッドが破壊されたので発動する）
+        plugin.getEndModeManager().checkAllBedsDestroyed();
     }
 
     /**

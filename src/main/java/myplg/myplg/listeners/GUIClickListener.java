@@ -288,8 +288,8 @@ public class GUIClickListener implements Listener {
                         .append(Component.text(" に設定しました！", NamedTextColor.GREEN)));
                 managementGUI.openMainMenu(player);
             } else if (clickedItem.getType() == Material.DIAMOND_SWORD) {
-                // Duel mode selected
-                plugin.getGameManager().setGameMode(myplg.myplg.GameMode.DUEL);
+                // Duo mode selected
+                plugin.getGameManager().setGameMode(myplg.myplg.GameMode.DUO);
                 player.sendMessage(Component.text("ゲームモードを ", NamedTextColor.GREEN)
                         .append(Component.text("デュオ", NamedTextColor.AQUA))
                         .append(Component.text(" に設定しました！", NamedTextColor.GREEN)));

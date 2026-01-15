@@ -19,10 +19,42 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.10-R0.1-SNAPSHOT")
 }
 
+// JBR (JetBrains Runtime) のパス
+def jbrPath = "${project.projectDir}/jbr/jbr-21.0.9-windows-x64-b1163.91"
+
 tasks {
     runServer {
         minecraftVersion("1.21")
+
+        // HotSwapAgent設定 (JBR内蔵のDCEVMと連携)
+        jvmArgs(
+            "-XX:+AllowEnhancedClassRedefinition",
+            "-XX:HotswapAgent=fatjar",
+            "-javaagent:${project.projectDir}/agent/hotswap-agent.jar"
+        )
     }
+}
+
+// JBRを使ってサーバーを起動するタスク
+task runServerWithJBR(type: Exec) {
+    dependsOn 'prepareRunServer'
+
+    workingDir = file("run")
+
+    def javaExe = file("${jbrPath}/bin/java.exe")
+    def agentJar = file("${project.projectDir}/agent/hotswap-agent.jar")
+    def serverJar = file("run/paper.jar")
+
+    commandLine javaExe,
+        "-XX:+AllowEnhancedClassRedefinition",
+        "-XX:HotswapAgent=fatjar",
+        "-javaagent:${agentJar}",
+        "-Xms2G",
+        "-Xmx2G",
+        "-jar", serverJar,
+        "--nogui"
+
+    standardInput = System.in
 }
 
 def targetJavaVersion = 21

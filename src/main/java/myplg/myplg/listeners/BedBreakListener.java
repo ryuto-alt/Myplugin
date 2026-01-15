@@ -77,6 +77,9 @@ public class BedBreakListener implements Listener {
                 // Check for victory after bed destruction
                 plugin.getPlayerDeathListener().checkVictoryCondition();
 
+                // ENDモードのチェック（全ベッドが破壊されたか）
+                plugin.getEndModeManager().checkAllBedsDestroyed();
+
                 // Notify all players with sounds
                 for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
                     String onlinePlayerTeam = plugin.getGameManager().getPlayerTeam(onlinePlayer.getUniqueId());

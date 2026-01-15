@@ -482,12 +482,12 @@ public class DebugGUIListener implements Listener {
             }
         }
 
-        // 速度変更
+        // 速度変更（ファイルには保存しない = 一時的な変更）
         for (Generator gen : plugin.getGeneratorManager().getGenerators().values()) {
             int originalSpeed = originalGeneratorSpeeds.getOrDefault(gen.getId(), gen.getSpawnInterval());
             int newInterval = (int) (originalSpeed * multiplier);
             if (newInterval < 1) newInterval = 1; // 最小値
-            plugin.getGeneratorManager().updateGeneratorInterval(gen.getId(), newInterval);
+            plugin.getGeneratorManager().updateGeneratorInterval(gen.getId(), newInterval, false);
         }
 
         String speedText = multiplier < 1 ? "x" + (int)(1/multiplier) : "x" + String.format("%.1f", 1/multiplier);
@@ -504,12 +504,35 @@ public class DebugGUIListener implements Listener {
         for (Generator gen : plugin.getGeneratorManager().getGenerators().values()) {
             Integer originalSpeed = originalGeneratorSpeeds.get(gen.getId());
             if (originalSpeed != null) {
-                plugin.getGeneratorManager().updateGeneratorInterval(gen.getId(), originalSpeed);
+                plugin.getGeneratorManager().updateGeneratorInterval(gen.getId(), originalSpeed, false);
             }
         }
 
         originalGeneratorSpeeds.clear();
         player.sendMessage("§c§l[DEBUG] §eジェネレーター速度を初期状態に戻しました。");
         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.5f, 0.5f);
+    }
+
+    /**
+     * ゲーム終了時にデバッグ状態をリセット
+     * resetGameStateから呼び出される
+     */
+    public void reset() {
+        // ジェネレーター速度の記録をクリア（新しいゲームでは新しい値を使う）
+        originalGeneratorSpeeds.clear();
+        generatorsPaused = false;
+
+        // プレイヤーの無敵・透明状態をリセット
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player.isInvulnerable()) {
+                player.setInvulnerable(false);
+            }
+            if (player.isInvisible()) {
+                player.setInvisible(false);
+                player.removePotionEffect(PotionEffectType.INVISIBILITY);
+            }
+        }
+
+        plugin.getLogger().info("[DEBUG] デバッグ状態をリセットしました。");
     }
 }

@@ -107,6 +107,21 @@ public class InvisibilityArmorListener implements Listener {
     }
 
     /**
+     * Get and remove stored armor for a player (used when player dies)
+     * Returns the stored armor if it exists, otherwise null
+     */
+    public ItemStack[] getAndRemoveStoredArmor(Player player) {
+        return storedArmor.remove(player.getUniqueId());
+    }
+
+    /**
+     * Check if player has stored armor (i.e., is invisible with hidden armor)
+     */
+    public boolean hasStoredArmor(Player player) {
+        return storedArmor.containsKey(player.getUniqueId());
+    }
+
+    /**
      * Clear all stored armor (called on plugin disable)
      */
     public void clearAllStoredArmor() {

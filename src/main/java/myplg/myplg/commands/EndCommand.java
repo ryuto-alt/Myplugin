@@ -31,34 +31,21 @@ public class EndCommand implements CommandExecutor {
             return true;
         }
 
-        // Get world to restore
-        World world;
-        if (args.length > 0) {
-            world = Bukkit.getWorld(args[0]);
-            if (world == null) {
-                sender.sendMessage(Component.text("ワールド「" + args[0] + "」が見つかりません。", NamedTextColor.RED));
-                return true;
-            }
-        } else {
-            if (sender instanceof Player) {
-                world = ((Player) sender).getWorld();
-            } else {
-                world = Bukkit.getWorlds().get(0);
-            }
+        // Check if backup exists
+        if (!plugin.getWorldBackupManager().hasBackup("world")) {
+            sender.sendMessage(Component.text("マスターバックアップが見つかりません。", NamedTextColor.RED));
+            sender.sendMessage(Component.text("先に /save でワールドを保存してください。", NamedTextColor.YELLOW));
+            return true;
         }
 
-        // Check if backup exists
-        if (!plugin.getWorldBackupManager().hasBackup(world.getName())) {
-            sender.sendMessage(Component.text("ワールド「" + world.getName() + "」のバックアップが見つかりません。", NamedTextColor.RED));
-            sender.sendMessage(Component.text("先に /save でワールドを保存してください。", NamedTextColor.YELLOW));
+        // Check if backup world is ready
+        if (!plugin.getWorldBackupManager().isBackupReady()) {
+            sender.sendMessage(Component.text("バックアップワールドが準備中です。少々お待ちください...", NamedTextColor.YELLOW));
             return true;
         }
 
         // End game
         plugin.getGameManager().setGameRunning(false);
-
-        // DON'T stop game music - let it continue playing
-        // plugin.getMusicManager().stopGameMusic();
 
         // Stop all generators
         plugin.getGeneratorManager().stopAllGenerators();
@@ -72,6 +59,11 @@ public class EndCommand implements CommandExecutor {
         // Stop bed destruction timer
         plugin.getBedDestructionTimer().stopTimer();
 
+        // Stop END mode manager
+        if (plugin.getEndModeManager() != null) {
+            plugin.getEndModeManager().stop();
+        }
+
         // Stop alarm trap task
         plugin.getAlarmTrapManager().stopAlarmTask();
 
@@ -84,7 +76,6 @@ public class EndCommand implements CommandExecutor {
         // Broadcast game end
         Bukkit.broadcast(Component.text("==================", NamedTextColor.GOLD));
         Bukkit.broadcast(Component.text("ゲームが終了しました！", NamedTextColor.GREEN));
-        Bukkit.broadcast(Component.text("ロビーに移動しています...", NamedTextColor.YELLOW));
         Bukkit.broadcast(Component.text("==================", NamedTextColor.GOLD));
 
         // Get lobby world
@@ -100,70 +91,53 @@ public class EndCommand implements CommandExecutor {
             player.getInventory().clear();
             player.setGameMode(GameMode.ADVENTURE);
             player.teleport(lobbySpawn);
-
-            // DON'T start lobby music - let the current music continue playing
-            // final Player finalPlayer = player;
-            // Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            //     plugin.getMusicManager().startLobbyMusic(finalPlayer);
-            // }, 20L);
         }
 
-        final String worldName = world.getName();
-
-        // Notify OPs that restoration is starting
+        // Notify OPs
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.isOp()) {
-                player.sendMessage(Component.text("ワールドを復元しています...", NamedTextColor.YELLOW));
+                player.sendMessage(Component.text("ワールドスワップを実行中...", NamedTextColor.YELLOW));
             }
         }
 
-        // Restore world in real-time after a short delay
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            boolean success = plugin.getWorldBackupManager().restoreWorldRealtime(worldName);
-
-            if (success) {
-                // Notify OPs that restoration is complete
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    if (player.isOp()) {
-                        player.sendMessage(Component.text("ワールド「" + worldName + "」の復元が完了しました！", NamedTextColor.GREEN));
-                        player.sendMessage(Component.text("[ゲーム状態を初期化しています...]", NamedTextColor.YELLOW));
-                    }
-                }
-
-                plugin.getLogger().info("===== ワールド復元完了 =====");
-
-                // Reset all game state for next game (after 1 second delay)
-                Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    plugin.resetGameState();
-
-                    // Wait for initialization to complete, then reload plugin
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                        for (Player player : Bukkit.getOnlinePlayers()) {
-                            if (player.isOp()) {
-                                player.sendMessage(Component.text("[プラグインを再読み込みしています...]", NamedTextColor.YELLOW));
-                            }
+        // Execute world swap (this is now very fast!)
+        plugin.getWorldBackupManager().swapWorlds().thenAccept(success -> {
+            // This runs on main thread after swap completes
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (success) {
+                    // Notify success
+                    for (Player player : Bukkit.getOnlinePlayers()) {
+                        if (player.isOp()) {
+                            player.sendMessage(Component.text("ワールドスワップ完了！", NamedTextColor.GREEN));
+                            player.sendMessage(Component.text("ゲーム状態を初期化中...", NamedTextColor.YELLOW));
                         }
+                    }
 
-                        // Game state is already reset, notify OPs
+                    // Reset game state after short delay
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        plugin.resetGameState();
+
+                        // Notify completion
                         Bukkit.getScheduler().runTaskLater(plugin, () -> {
                             for (Player player : Bukkit.getOnlinePlayers()) {
                                 if (player.isOp()) {
-                                    player.sendMessage(Component.text("[ゲームの準備ができました]", NamedTextColor.GOLD));
-                                    player.sendMessage(Component.text("§7/start でゲームを開始できます", NamedTextColor.GRAY));
+                                    player.sendMessage(Component.text("ゲームの準備ができました！", NamedTextColor.GOLD));
+                                    player.sendMessage(Component.text("/start でゲームを開始できます", NamedTextColor.GRAY));
                                 }
                             }
-                            plugin.getLogger().info("§a[初期化完了] ゲームの準備ができました");
-                        }, 20L); // 1 second delay
-                    }, 40L); // 2 seconds for initialization
-                }, 20L); // 1 second delay before reset
-            } else {
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    if (player.isOp()) {
-                        player.sendMessage(Component.text("ワールドの復元に失敗しました。", NamedTextColor.RED));
+                            plugin.getLogger().info("[初期化完了] ゲームの準備ができました");
+                        }, 40L); // 2 seconds
+                    }, 20L); // 1 second
+                } else {
+                    for (Player player : Bukkit.getOnlinePlayers()) {
+                        if (player.isOp()) {
+                            player.sendMessage(Component.text("ワールドスワップに失敗しました。", NamedTextColor.RED));
+                            player.sendMessage(Component.text("サーバーログを確認してください。", NamedTextColor.RED));
+                        }
                     }
                 }
-            }
-        }, 60L); // 3 seconds delay
+            });
+        });
 
         return true;
     }

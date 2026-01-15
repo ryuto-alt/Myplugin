@@ -31,6 +31,8 @@ public class PlayerDeathListener implements Listener {
     private final Map<UUID, ItemStack> savedPickaxe; // Saved pickaxe for respawn
     private final Set<UUID> processingDeath; // Prevent duplicate death processing
     private final Map<UUID, UUID> lastAttacker; // Track last player who damaged each player
+    private final Map<UUID, Long> combatTagTime; // Track when player was last damaged in combat
+    private static final long COMBAT_TAG_DURATION_MS = 12000; // 12 seconds combat tag
 
     public PlayerDeathListener(PvPGame plugin) {
         this.plugin = plugin;
@@ -40,6 +42,7 @@ public class PlayerDeathListener implements Listener {
         this.savedPickaxe = new HashMap<>();
         this.processingDeath = new HashSet<>();
         this.lastAttacker = new HashMap<>();
+        this.combatTagTime = new HashMap<>();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -94,8 +97,9 @@ public class PlayerDeathListener implements Listener {
 
     /**
      * Track the last player who attacked each player (for resource stealing)
+     * Note: ignoreCancelled = false to track killing blows that get cancelled
      */
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         if (!(event.getEntity() instanceof Player)) {
             return;
@@ -131,11 +135,31 @@ public class PlayerDeathListener implements Listener {
             // Don't track same team attacks
             String victimTeam = plugin.getGameManager().getPlayerTeam(victim.getUniqueId());
             String attackerTeam = plugin.getGameManager().getPlayerTeam(attacker.getUniqueId());
-            
+
             if (victimTeam != null && attackerTeam != null && !victimTeam.equals(attackerTeam)) {
                 lastAttacker.put(victim.getUniqueId(), attacker.getUniqueId());
+                // Update combat tag time
+                combatTagTime.put(victim.getUniqueId(), System.currentTimeMillis());
             }
         }
+    }
+
+    /**
+     * Check if a player is currently combat tagged
+     */
+    public boolean isInCombat(UUID playerUUID) {
+        Long tagTime = combatTagTime.get(playerUUID);
+        if (tagTime == null) {
+            return false;
+        }
+        return (System.currentTimeMillis() - tagTime) < COMBAT_TAG_DURATION_MS;
+    }
+
+    /**
+     * Get the last attacker for a player (for combat tag item transfer)
+     */
+    public UUID getLastAttacker(UUID playerUUID) {
+        return lastAttacker.get(playerUUID);
     }
 
     private void handleInstantDeath(Player player) {
@@ -145,17 +169,28 @@ public class PlayerDeathListener implements Listener {
         plugin.getLogger().info("=== Death Handler Started for " + player.getName() + " ===");
         plugin.getLogger().info("Team: " + teamName);
 
-        // Clear invisibility armor storage on death
-        if (plugin.getInvisibilityArmorListener() != null) {
-            plugin.getInvisibilityArmorListener().clearStoredArmor(player);
+        // Clear all potion effects on death
+        for (org.bukkit.potion.PotionEffect effect : player.getActivePotionEffects()) {
+            player.removePotionEffect(effect.getType());
         }
+        plugin.getLogger().info("Cleared potion effects for " + player.getName());
 
         // Save all armor BEFORE clearing inventory (leather, iron, diamond, netherite)
-        ItemStack[] armor = player.getInventory().getArmorContents();
-        ItemStack[] savedArmorArray = new ItemStack[4];
-        for (int i = 0; i < armor.length; i++) {
-            if (armor[i] != null && isArmor(armor[i].getType())) {
-                savedArmorArray[i] = armor[i].clone();
+        // First check if invisibility listener has stored armor (player was invisible)
+        ItemStack[] savedArmorArray = null;
+        if (plugin.getInvisibilityArmorListener() != null &&
+            plugin.getInvisibilityArmorListener().hasStoredArmor(player)) {
+            // Player was invisible - get armor from invisibility storage
+            savedArmorArray = plugin.getInvisibilityArmorListener().getAndRemoveStoredArmor(player);
+            plugin.getLogger().info("Retrieved stored armor from invisibility system for " + player.getName());
+        } else {
+            // Player was not invisible - get armor from inventory
+            ItemStack[] armor = player.getInventory().getArmorContents();
+            savedArmorArray = new ItemStack[4];
+            for (int i = 0; i < armor.length; i++) {
+                if (armor[i] != null && isArmor(armor[i].getType())) {
+                    savedArmorArray[i] = armor[i].clone();
+                }
             }
         }
         savedArmor.put(playerUUID, savedArmorArray);
@@ -215,18 +250,20 @@ public class PlayerDeathListener implements Listener {
             }
         }
 
-        // Downgrade tools
+        // Downgrade tools - 死亡時にレベルを1段階下げる
         if (currentAxe != null) {
             int currentLevel = getToolLevel(currentAxe.getType(), true);
             if (currentLevel > 0) {
                 int newLevel = currentLevel - 1;
-                plugin.getToolUpgradeManager().upgradeAxe(playerUUID, newLevel);
+                // setAxeLevelを使って直接レベルを設定（ダウングレード対応）
+                plugin.getToolUpgradeManager().setAxeLevel(playerUUID, newLevel);
                 if (newLevel > 0) {
                     Material downgradedAxe = plugin.getToolUpgradeManager().getAxeMaterial(newLevel);
                     savedAxe.put(playerUUID, new ItemStack(downgradedAxe));
                 } else {
                     savedAxe.remove(playerUUID);
                 }
+                plugin.getLogger().info("Player " + player.getName() + " axe downgraded: " + currentLevel + " -> " + newLevel);
             }
         }
 
@@ -234,13 +271,15 @@ public class PlayerDeathListener implements Listener {
             int currentLevel = getToolLevel(currentPickaxe.getType(), false);
             if (currentLevel > 0) {
                 int newLevel = currentLevel - 1;
-                plugin.getToolUpgradeManager().upgradePickaxe(playerUUID, newLevel);
+                // setPickaxeLevelを使って直接レベルを設定（ダウングレード対応）
+                plugin.getToolUpgradeManager().setPickaxeLevel(playerUUID, newLevel);
                 if (newLevel > 0) {
                     Material downgradedPickaxe = plugin.getToolUpgradeManager().getPickaxeMaterial(newLevel);
                     savedPickaxe.put(playerUUID, new ItemStack(downgradedPickaxe));
                 } else {
                     savedPickaxe.remove(playerUUID);
                 }
+                plugin.getLogger().info("Player " + player.getName() + " pickaxe downgraded: " + currentLevel + " -> " + newLevel);
             }
         }
 
@@ -623,6 +662,31 @@ public class PlayerDeathListener implements Listener {
         // Stop all generators
         plugin.getGeneratorManager().stopAllGenerators();
 
+        // Stop bed destruction timer
+        if (plugin.getBedDestructionTimer() != null) {
+            plugin.getBedDestructionTimer().stopTimer();
+        }
+
+        // Stop END mode manager
+        if (plugin.getEndModeManager() != null) {
+            plugin.getEndModeManager().stop();
+        }
+
+        // Stop scoreboard update task
+        if (plugin.getScoreboardManager() != null) {
+            plugin.getScoreboardManager().stopUpdateTask();
+        }
+
+        // Stop nametag visibility task
+        if (plugin.getNametagVisibilityListener() != null) {
+            plugin.getNametagVisibilityListener().stopVisibilityTask();
+        }
+
+        // Stop alarm trap task
+        if (plugin.getAlarmTrapManager() != null) {
+            plugin.getAlarmTrapManager().stopAlarmTask();
+        }
+
         // Clear player-placed blocks tracking
         BlockPlaceListener.clearPlayerPlacedBlocks();
 
@@ -671,6 +735,7 @@ public class PlayerDeathListener implements Listener {
         savedAxe.clear();
         savedPickaxe.clear();
         lastAttacker.clear();
+        combatTagTime.clear();
     }
 
     /**

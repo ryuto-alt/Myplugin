@@ -9,14 +9,14 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
-/**
- * Controls nametag visibility - only shows nametags to players within 20 blocks
- * Uses scoreboard teams to hide nametags when players are too far
- */
 public class NametagVisibilityListener implements Listener {
     private final PvPGame plugin;
     private static final double VISIBILITY_DISTANCE = 20.0;
+    private static final double VISIBILITY_DISTANCE_SQUARED = VISIBILITY_DISTANCE * VISIBILITY_DISTANCE;
     private int taskId = -1;
+
+    // 前回の可視状態をキャッシュ（変更があった時のみ更新）
+    private final java.util.Map<String, java.util.Set<String>> lastVisibleState = new java.util.HashMap<>();
 
     public NametagVisibilityListener(PvPGame plugin) {
         this.plugin = plugin;
@@ -36,14 +36,17 @@ public class NametagVisibilityListener implements Listener {
         // Cancel existing task if running
         stopVisibilityTask();
 
-        // Run task every 10 ticks (0.5 seconds) to update nametag visibility
+        // キャッシュをクリア
+        lastVisibleState.clear();
+
+        // Run task every 40 ticks (2 seconds) - 頻度を下げて負荷軽減
         taskId = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             if (!plugin.getGameManager().isGameRunning()) {
                 return;
             }
 
             updateAllNametagVisibility();
-        }, 0L, 10L).getTaskId();
+        }, 0L, 40L).getTaskId();
     }
 
     public void stopVisibilityTask() {
@@ -51,6 +54,8 @@ public class NametagVisibilityListener implements Listener {
             Bukkit.getScheduler().cancelTask(taskId);
             taskId = -1;
         }
+
+        lastVisibleState.clear();
 
         // Reset all nametags to visible when task stops
         for (Player player : Bukkit.getOnlinePlayers()) {
@@ -80,7 +85,12 @@ public class NametagVisibilityListener implements Listener {
     }
 
     private void updateAllNametagVisibility() {
-        for (Player viewer : Bukkit.getOnlinePlayers()) {
+        // プレイヤーリストを一度だけ取得
+        Player[] players = Bukkit.getOnlinePlayers().toArray(new Player[0]);
+        int playerCount = players.length;
+
+        for (int i = 0; i < playerCount; i++) {
+            Player viewer = players[i];
             Scoreboard scoreboard = viewer.getScoreboard();
             if (scoreboard == null) {
                 continue;
@@ -94,23 +104,44 @@ public class NametagVisibilityListener implements Listener {
                 continue;
             }
 
-            for (Player target : Bukkit.getOnlinePlayers()) {
-                if (viewer.equals(target)) {
+            String viewerName = viewer.getName();
+            java.util.Set<String> currentVisible = lastVisibleState.computeIfAbsent(viewerName, k -> new java.util.HashSet<>());
+
+            // viewerのワールドと位置を一度だけ取得
+            org.bukkit.World viewerWorld = viewer.getWorld();
+            org.bukkit.Location viewerLoc = viewer.getLocation();
+
+            for (int j = 0; j < playerCount; j++) {
+                if (i == j) continue;
+
+                Player target = players[j];
+                String targetName = target.getName();
+
+                // 別ワールドなら非表示
+                if (!target.getWorld().equals(viewerWorld)) {
+                    if (currentVisible.remove(targetName)) {
+                        visibleTeam.removeEntry(targetName);
+                        hiddenTeam.addEntry(targetName);
+                    }
                     continue;
                 }
 
-                String targetName = target.getName();
-                double distance = viewer.getLocation().distance(target.getLocation());
+                // 距離の2乗で比較（sqrt回避）
+                double distanceSquared = viewerLoc.distanceSquared(target.getLocation());
+                boolean shouldBeVisible = distanceSquared <= VISIBILITY_DISTANCE_SQUARED;
+                boolean wasVisible = currentVisible.contains(targetName);
 
-                // Remove from both teams first
-                visibleTeam.removeEntry(targetName);
-                hiddenTeam.removeEntry(targetName);
-
-                // Add to appropriate team based on distance
-                if (distance <= VISIBILITY_DISTANCE) {
-                    visibleTeam.addEntry(targetName);
-                } else {
-                    hiddenTeam.addEntry(targetName);
+                // 状態が変わった時のみ更新
+                if (shouldBeVisible != wasVisible) {
+                    if (shouldBeVisible) {
+                        hiddenTeam.removeEntry(targetName);
+                        visibleTeam.addEntry(targetName);
+                        currentVisible.add(targetName);
+                    } else {
+                        visibleTeam.removeEntry(targetName);
+                        hiddenTeam.addEntry(targetName);
+                        currentVisible.remove(targetName);
+                    }
                 }
             }
         }

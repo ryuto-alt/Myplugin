@@ -122,3 +122,7 @@ runs/
 .serena/index/
 .serena/cache/
 .serena/.*.lock
+
+# HotSwapAgent / JetBrains Runtime
+jbr/
+agent/

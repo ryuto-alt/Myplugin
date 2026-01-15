@@ -55,7 +55,7 @@ public class LobbyCommand implements CommandExecutor {
         // プレイヤーをテレポート
         player.teleport(lobbySpawn);
         player.setGameMode(GameMode.ADVENTURE);
-        player.sendMessage(Component.text("ロビーに戻りました。", NamedTextColor.GREEN));
+        player.sendMessage(Component.text("★★★ ホットリロード大成功！！！ ★★★", NamedTextColor.LIGHT_PURPLE));
 
         plugin.getLogger().info(player.getName() + " がロビーに戻りました。");
 
